@@ -1,5 +1,5 @@
 import { fail, json, type Env } from '../_lib/env';
-import { guardRead } from '../_lib/live';
+import { describeDbError, guardRead } from '../_lib/live';
 
 /**
  * GET /api/live — every committee's current state, plus the combined log.
@@ -24,23 +24,47 @@ export const onRequestGet: PagesFunction<Env> = async ({ request, env }) => {
   const guard = await guardRead(request, env);
   if (!guard.ok) return fail(guard.error, guard.status);
 
-  const [states, log] = await Promise.all([
-    env.DB.prepare('SELECT summary FROM committee_state ORDER BY committee_id').all<{
+  let states: { results?: { summary: string }[] };
+  let log: {
+    results?: {
+      id: string;
+      committee_id: string;
+      at: number;
+      type: string;
       summary: string;
-    }>(),
-    env.DB.prepare(
-      'SELECT id, committee_id, at, type, summary, detail FROM session_log ORDER BY at DESC LIMIT ?1',
-    )
-      .bind(LOG_LIMIT)
-      .all<{
-        id: string;
-        committee_id: string;
-        at: number;
-        type: string;
+      detail: string | null;
+    }[];
+  };
+
+  try {
+    [states, log] = await Promise.all([
+      env.DB.prepare('SELECT summary FROM committee_state ORDER BY committee_id').all<{
         summary: string;
-        detail: string | null;
       }>(),
-  ]);
+      env.DB.prepare(
+        'SELECT id, committee_id, at, type, summary, detail FROM session_log ORDER BY at DESC LIMIT ?1',
+      )
+        .bind(LOG_LIMIT)
+        .all<{
+          id: string;
+          committee_id: string;
+          at: number;
+          type: string;
+          summary: string;
+          detail: string | null;
+        }>(),
+    ]);
+  } catch (error) {
+    // Report it and carry on: the dashboard falls back to local data rather
+    // than the whole page failing on a misconfigured database.
+    return json({
+      configured: false,
+      serverNow,
+      committees: [],
+      log: [],
+      error: describeDbError(error),
+    });
+  }
 
   return json({
     configured: true,

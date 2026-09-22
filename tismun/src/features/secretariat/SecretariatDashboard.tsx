@@ -77,14 +77,32 @@ export function SecretariatDashboard() {
       </header>
 
       {!remote && !loading ? (
-        <div className="mt-6 flex items-start gap-3 rounded-card border border-hairline bg-canvas px-4 py-3.5">
-          <Laptop size={17} strokeWidth={1.5} className="mt-0.5 shrink-0 text-ink-400" />
+        // A configured-but-broken database is a different problem from no
+        // database at all, and the chair setting it up needs to be told which.
+        <div
+          className={cn(
+            'mt-6 flex items-start gap-3 rounded-card border px-4 py-3.5',
+            data?.error ? 'border-warning-border bg-warning-soft' : 'border-hairline bg-canvas',
+          )}
+        >
+          {data?.error ? (
+            <AlertTriangle size={17} strokeWidth={1.5} className="mt-0.5 shrink-0 text-warning" />
+          ) : (
+            <Laptop size={17} strokeWidth={1.5} className="mt-0.5 shrink-0 text-ink-400" />
+          )}
           <div>
-            <p className="text-sm font-medium text-ink-800">Showing this browser only</p>
-            <p className="mt-0.5 text-sm text-muted">
-              No live-sync database is bound, so committees running on other devices cannot be seen.
-              Bind a D1 database named <code className="rounded bg-ink-50 px-1 text-[12px]">DB</code>{' '}
-              in the Cloudflare dashboard to watch the whole conference.
+            <p className={cn('text-sm font-medium', data?.error ? 'text-warning' : 'text-ink-800')}>
+              {data?.error ? 'Live sync is not working' : 'Showing this browser only'}
+            </p>
+            <p className={cn('mt-0.5 text-sm', data?.error ? 'text-warning' : 'text-muted')}>
+              {data?.error ?? (
+                <>
+                  No live-sync database is bound, so committees running on other devices cannot be
+                  seen. Bind a D1 database named{' '}
+                  <code className="rounded bg-ink-50 px-1 text-[12px]">DB</code> in the Cloudflare
+                  dashboard to watch the whole conference.
+                </>
+              )}
             </p>
           </div>
         </div>

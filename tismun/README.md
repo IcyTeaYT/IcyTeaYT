@@ -373,17 +373,25 @@ running **in the same browser** — it reads what each chair's dashboard has
 already saved to local storage. To watch chairs on their own laptops, bind a
 D1 database:
 
-```bash
-# 1. Create the database
-npx wrangler d1 create tismun
+**1. Create the database.** Cloudflare dashboard → **Storage & Databases → D1
+→ Create database**, named `tismun`.
 
-# 2. Create its tables
-npx wrangler d1 execute tismun --remote --file=./migrations/0001_live_sync.sql
-```
+**2. Create its tables.** Open the database → **Console** tab → paste the
+contents of `migrations/0001_live_sync.sql` → Execute.
 
-Then in the Cloudflare dashboard: **your Pages project → Settings → Functions →
-D1 database bindings → Add binding**, with the variable name **`DB`** and the
-`tismun` database. Redeploy.
+The dashboard console is the reliable way to do this. `wrangler d1 execute`
+resolves database *names* through a `wrangler.toml`, which this project does
+not ship (a stale `database_id` in one would break Pages builds), so the CLI
+route needs the database's UUID rather than its name.
+
+**3. Bind it.** Your Pages project → **Settings → Functions → D1 database
+bindings → Add binding**, variable name **`DB`**, database `tismun`.
+
+**4. Redeploy.** Deployments → Retry deployment. Bindings only apply to new
+deployments.
+
+If something is wrong, `https://your-site.pages.dev/api/live` says what — a
+missing table names itself rather than failing the request.
 
 The dashboard header tells you which mode you are in — *Live across devices* or
 *This browser only* — so there is no guessing.

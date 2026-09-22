@@ -1,5 +1,5 @@
 import { fail, json, type Env } from '../_lib/env';
-import { guardRead, guardWrite, LOG_RETENTION_MS } from '../_lib/live';
+import { describeDbError, guardRead, guardWrite, LOG_RETENTION_MS } from '../_lib/live';
 
 /**
  * GET  /api/live/:committeeId — the full read-only view of one committee.
@@ -25,15 +25,19 @@ export const onRequestGet: PagesFunction<Env, 'committeeId'> = async ({ request,
   const guard = await guardRead(request, env, committeeId);
   if (!guard.ok) return fail(guard.error, guard.status);
 
-  const row = await env.DB.prepare('SELECT snapshot FROM committee_state WHERE committee_id = ?1')
-    .bind(committeeId)
-    .first<{ snapshot: string }>();
+  try {
+    const row = await env.DB.prepare('SELECT snapshot FROM committee_state WHERE committee_id = ?1')
+      .bind(committeeId)
+      .first<{ snapshot: string }>();
 
-  return json({
-    configured: true,
-    serverNow,
-    snapshot: row ? (JSON.parse(row.snapshot) as unknown) : null,
-  });
+    return json({
+      configured: true,
+      serverNow,
+      snapshot: row ? (JSON.parse(row.snapshot) as unknown) : null,
+    });
+  } catch (error) {
+    return json({ configured: false, serverNow, snapshot: null, error: describeDbError(error) });
+  }
 };
 
 interface PushBody {
@@ -92,14 +96,20 @@ export const onRequestPost: PagesFunction<Env, 'committeeId'> = async ({ request
     );
   }
 
-  await env.DB.batch(statements);
+  try {
+    await env.DB.batch(statements);
 
-  // Occasional housekeeping rather than a cron: one push in fifty clears out
-  // anything older than the retention window.
-  if (Math.random() < 0.02) {
-    await env.DB.prepare('DELETE FROM session_log WHERE at < ?1')
-      .bind(serverNow - LOG_RETENTION_MS)
-      .run();
+    // Occasional housekeeping rather than a cron: one push in fifty clears out
+    // anything older than the retention window.
+    if (Math.random() < 0.02) {
+      await env.DB.prepare('DELETE FROM session_log WHERE at < ?1')
+        .bind(serverNow - LOG_RETENTION_MS)
+        .run();
+    }
+  } catch (error) {
+    // A chair mid-session must never lose their committee to a database
+    // problem: the dashboard keeps working on local state either way.
+    return json({ configured: false, serverNow, error: describeDbError(error) });
   }
 
   return json({ configured: true, serverNow });

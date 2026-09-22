@@ -77,6 +77,8 @@ export interface LiveOverview {
   serverNow: number;
   committees: LiveSummary[];
   log: LiveLogEntry[];
+  /** Set when sync is configured but failing, e.g. the tables are missing. */
+  error?: string;
 }
 
 /** GET /api/live/:committeeId */
@@ -84,6 +86,7 @@ export interface LiveDetail {
   configured: boolean;
   serverNow: number;
   snapshot: LiveSnapshot | null;
+  error?: string;
 }
 
 /** How long before a committee that has stopped reporting is flagged as stale. */

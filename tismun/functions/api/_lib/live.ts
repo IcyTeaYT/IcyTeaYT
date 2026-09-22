@@ -56,3 +56,23 @@ export async function guardRead(
 
 /** Entries older than this are pruned so the log cannot grow without bound. */
 export const LOG_RETENTION_MS = 7 * 24 * 60 * 60 * 1000;
+
+
+/**
+ * Describe a D1 failure without taking the endpoint down with it.
+ *
+ * The most common cause by far is that the migration has not been run against
+ * the bound database, so the tables do not exist. Left unhandled that surfaces
+ * as a Cloudflare 1101 page, which says nothing useful and breaks the site for
+ * everyone rather than just switching the Secretariat back to local data.
+ */
+export function describeDbError(error: unknown): string {
+  const message = error instanceof Error ? error.message : String(error);
+  if (/no such table/i.test(message)) {
+    return (
+      'The live-sync tables do not exist in the bound D1 database. Run: ' +
+      'npx wrangler d1 execute <database> --remote --file=./migrations/0001_live_sync.sql'
+    );
+  }
+  return `Live sync is unavailable: ${message}`;
+}
