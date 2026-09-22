@@ -1,14 +1,16 @@
 import { motion } from 'framer-motion';
-import { Gavel, Info, Loader2, Users } from 'lucide-react';
+import { Gavel, Info, Landmark, Loader2, Users } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Navigate, useNavigate } from 'react-router-dom';
 import { GlobeLines } from '@/components/GlobeLines';
+import { HostedBy } from '@/components/HostedBy';
 import { Logo, Wordmark } from '@/components/Logo';
 import { Button } from '@/components/ui/Button';
 import { Select } from '@/components/ui/Field';
 import { CONFERENCE, COPY, SCHOOL_DOMAIN } from '@/config/conference';
 import { dataSource, isDemoMode } from '@/data/source';
 import type { User } from '@/data/source/types';
+import { formatDateRange } from '@/lib/conferenceDates';
 import { exchangeCredential, isGoogleConfigured, renderGoogleButton } from '@/lib/googleAuth';
 import { useAuth } from '@/store/auth';
 
@@ -50,10 +52,11 @@ export function Login() {
     }).catch(() => setError('Google sign-in is unavailable right now.'));
   }, [restore, navigate]);
 
-  const { defaultDelegate, defaultChair, grouped } = useMemo(() => {
+  const { defaultDelegate, defaultChair, defaultSecretariat, grouped } = useMemo(() => {
     const groups = new Map<string, User[]>();
     for (const user of demoUsers) {
-      const key = user.committeeId ?? 'Unassigned';
+      // The list arrives already ordered, so Map insertion order carries it.
+      const key = user.committeeId ?? (user.role === 'SECRETARIAT' ? 'Secretariat' : 'Unassigned');
       const bucket = groups.get(key);
       if (bucket) bucket.push(user);
       else groups.set(key, [user]);
@@ -61,6 +64,7 @@ export function Login() {
     return {
       defaultDelegate: demoUsers.find((u) => u.role === 'DELEGATE' && u.committeeId) ?? null,
       defaultChair: demoUsers.find((u) => u.role === 'CHAIR') ?? null,
+      defaultSecretariat: demoUsers.find((u) => u.role === 'SECRETARIAT') ?? null,
       grouped: [...groups.entries()],
     };
   }, [demoUsers]);
@@ -79,12 +83,12 @@ export function Login() {
     }
   };
 
-  const optionLabel = (user: User): string =>
-    user.role === 'CHAIR'
-      ? `Chair — ${user.fullName}`
-      : user.country
-        ? `${user.country} — ${user.fullName}`
-        : `Unassigned — ${user.fullName}`;
+  const optionLabel = (user: User): string => {
+    if (user.role === 'SECRETARIAT') return `${user.title ?? 'Secretariat'} — ${user.fullName}`;
+    if (user.role === 'CHAIR') return `Chair — ${user.fullName}`;
+    if (user.country) return `${user.country} — ${user.fullName}`;
+    return `Unassigned — ${user.fullName}`;
+  };
 
   return (
     <div className="grid min-h-screen lg:grid-cols-[1.05fr_1fr]">
@@ -110,11 +114,10 @@ export function Login() {
           <h1 className="mt-3 font-serif text-[30px] leading-[1.18] text-ink-900 sm:text-[38px]">
             {CONFERENCE.fullName}
           </h1>
-          {CONFERENCE.dates ? (
-            <p className="mt-4 text-sm text-muted">
-              {CONFERENCE.dates} · {CONFERENCE.venue}
-            </p>
-          ) : null}
+          <p className="mt-4 text-sm text-muted">
+            {formatDateRange()} · {CONFERENCE.venue}
+          </p>
+          <HostedBy className="mt-7" />
         </motion.div>
 
         <p className="mt-12 hidden text-xs text-muted lg:block">
@@ -174,22 +177,36 @@ export function Login() {
               </div>
               <p className="mt-2 text-xs leading-relaxed text-muted">{COPY.login.demoSubtext}</p>
 
-              <div className="mt-4 grid grid-cols-2 gap-2">
+              <div className="mt-4 grid grid-cols-3 gap-2">
                 <Button
                   variant="secondary"
+                  size="sm"
+                  className="flex-col gap-1 py-2 h-auto"
                   disabled={signingIn || !defaultDelegate}
                   onClick={() => void signIn(defaultDelegate?.email)}
                 >
-                  <Users size={15} strokeWidth={1.5} />
-                  As Delegate
+                  <Users size={16} strokeWidth={1.5} />
+                  Delegate
                 </Button>
                 <Button
                   variant="secondary"
+                  size="sm"
+                  className="flex-col gap-1 py-2 h-auto"
                   disabled={signingIn || !defaultChair}
                   onClick={() => void signIn(defaultChair?.email)}
                 >
-                  <Gavel size={15} strokeWidth={1.5} />
-                  As Chair
+                  <Gavel size={16} strokeWidth={1.5} />
+                  Chair
+                </Button>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  className="flex-col gap-1 py-2 h-auto"
+                  disabled={signingIn || !defaultSecretariat}
+                  onClick={() => void signIn(defaultSecretariat?.email)}
+                >
+                  <Landmark size={16} strokeWidth={1.5} />
+                  Secretariat
                 </Button>
               </div>
 

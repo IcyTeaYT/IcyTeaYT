@@ -7,7 +7,7 @@ import { Committees } from '@/pages/Committees';
 import { AccessDenied, NotFound } from '@/pages/ErrorPages';
 import { Home } from '@/pages/Home';
 import { Login } from '@/pages/Login';
-import { RequireAuth, RequireChair } from '@/routes/guards';
+import { RequireAuth, RequireChair, RequireSecretariat } from '@/routes/guards';
 import { useAuth } from '@/store/auth';
 import { useConference } from '@/store/conference';
 
@@ -21,6 +21,14 @@ const ChairDashboard = lazy(() =>
 );
 const ProjectorDisplay = lazy(() =>
   import('@/features/chair/ProjectorDisplay').then((m) => ({ default: m.ProjectorDisplay })),
+);
+const SecretariatDashboard = lazy(() =>
+  import('@/features/secretariat/SecretariatDashboard').then((m) => ({
+    default: m.SecretariatDashboard,
+  })),
+);
+const CommitteeLive = lazy(() =>
+  import('@/features/secretariat/CommitteeLive').then((m) => ({ default: m.CommitteeLive })),
 );
 
 /** The splash is held at least this long so it reads as an opening, not a flash. */
@@ -85,6 +93,26 @@ export function App() {
                         </RequireChair>
                       }
                     />
+                    <Route
+                      path="/secretariat"
+                      element={
+                        <RequireSecretariat>
+                          <Suspense fallback={<PaneSkeleton />}>
+                            <SecretariatDashboard />
+                          </Suspense>
+                        </RequireSecretariat>
+                      }
+                    />
+                    <Route
+                      path="/secretariat/:committeeId"
+                      element={
+                        <RequireSecretariat>
+                          <Suspense fallback={<PaneSkeleton />}>
+                            <CommitteeLive />
+                          </Suspense>
+                        </RequireSecretariat>
+                      }
+                    />
                     <Route path="/denied" element={<AccessDenied />} />
                     <Route path="*" element={<NotFound />} />
                   </Routes>
@@ -95,6 +123,20 @@ export function App() {
         </Routes>
       )}
     </BrowserRouter>
+  );
+}
+
+/** Placeholder while a lazily-loaded page arrives. */
+function PaneSkeleton() {
+  return (
+    <div className="mx-auto max-w-6xl px-5 pt-10 sm:px-6">
+      <div className="h-20 animate-pulse rounded-card bg-ink-50" />
+      <div className="mt-6 grid gap-5 lg:grid-cols-2 xl:grid-cols-3">
+        <div className="h-72 animate-pulse rounded-card bg-ink-50" />
+        <div className="h-72 animate-pulse rounded-card bg-ink-50" />
+        <div className="h-72 animate-pulse rounded-card bg-ink-50" />
+      </div>
+    </div>
   );
 }
 

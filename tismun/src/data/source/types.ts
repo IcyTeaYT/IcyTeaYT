@@ -12,6 +12,11 @@ export interface User {
   email: string;
   fullName: string;
   role: Role;
+  /**
+   * Optional post, e.g. "Secretary-General". Only the Secretariat uses it —
+   * delegates are known by their country and chairs by their committee.
+   */
+  title: string | null;
   /** null when the user has not been assigned to a committee yet. */
   committeeId: string | null;
   /** null for chairs and unassigned users. */
@@ -72,6 +77,8 @@ export interface UserRow {
   'Committee ID': string;
   Country: string;
   'Country Code': string;
+  /** Optional column. Blank for everyone except the Secretariat. */
+  Title?: string;
 }
 
 export interface CommitteeRow {

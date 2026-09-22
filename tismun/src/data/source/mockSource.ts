@@ -44,10 +44,16 @@ export const mockSource: DataSource = {
   },
 
   async listDemoUsers() {
+    // The Secretariat leads, then each committee: chairs, then delegations
+    // alphabetically. Unassigned accounts come last.
+    const rank = (user: User): string => {
+      if (user.role === 'SECRETARIAT') return '0';
+      if (user.committeeId) return `1${user.committeeId}`;
+      return '2';
+    };
     return [...users].sort((a, b) => {
-      // Chairs first inside each committee, then delegations alphabetically.
-      const committee = (a.committeeId ?? 'zz').localeCompare(b.committeeId ?? 'zz');
-      if (committee !== 0) return committee;
+      const group = rank(a).localeCompare(rank(b));
+      if (group !== 0) return group;
       if (a.role !== b.role) return a.role === 'CHAIR' ? -1 : 1;
       return (a.country ?? a.fullName).localeCompare(b.country ?? b.fullName);
     });

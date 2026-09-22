@@ -4,8 +4,12 @@ The conference site for Tashkent International School Model United Nations.
 
 Delegates sign in with their school account and see their committee, their
 delegation and their background paper. Chairs get a full dashboard for running
-their committee: roll call, timers, the speakers' list, caucuses, motions,
-resolutions, voting, a session log, and a projector display for the room.
+their committee: Roll Call, timers, the General Speakers' List, caucuses,
+Motions, Draft Resolutions, Voting Procedure, a session log, and a projector
+display for the room. The Secretariat gets a live view of every committee at
+once.
+
+**October 15–16, 2026**, at Tashkent International School.
 
 **Phase 1 (this build)** runs entirely on mock data, so the whole site works
 today without a spreadsheet or a Google project. **Phase 2** swaps the mock data
@@ -25,8 +29,8 @@ npm run dev
 Then open http://localhost:5173.
 
 There is no login to set up: the **Demo access** panel on the sign-in page lets
-you continue as a delegate, as a chair, or as any of the 99 mock accounts, so
-you can see exactly what each person sees.
+you continue as a Delegate, a Chair or the Secretariat, or pick any of the 102
+mock accounts, so you can see exactly what each person sees.
 
 | Command | What it does |
 | --- | --- |
@@ -35,6 +39,7 @@ you can see exactly what each person sees.
 | `npm run preview` | Serves the built `dist/` locally |
 | `npm run typecheck` | TypeScript only, no build |
 | `npm run papers` | Regenerates the placeholder background paper PDFs |
+| `npm run mock-data` | Regenerates the mock committees and accounts |
 
 ---
 
@@ -128,10 +133,11 @@ Two tabs, with these headers in row 1:
 
 **Users**
 
-| Email | Full Name | Role | Committee ID | Country | Country Code |
-| --- | --- | --- | --- | --- | --- |
-| amir.nazarov@tashkentis.uz | Amir Nazarov | DELEGATE | unsc | China | CN |
-| aziza.karimova@tashkentis.uz | Aziza Karimova | CHAIR | unsc | | |
+| Email | Full Name | Role | Committee ID | Country | Country Code | Title |
+| --- | --- | --- | --- | --- | --- | --- |
+| amir.nazarov@tashkentis.uz | Amir Nazarov | DELEGATE | unsc | China | CN | |
+| aziza.karimova@tashkentis.uz | Aziza Karimova | CHAIR | unsc | | | |
+| kamron.yusupov@tashkentis.uz | Kamron Yusupov | SECRETARIAT | | | | Secretary-General |
 
 **Committees**
 
@@ -140,10 +146,11 @@ Two tabs, with these headers in row 1:
 | unsc | United Nations Security Council | UNSC | … | … | Aziza Karimova; Daniel Whitfield | Assembly Hall | /papers/unsc.pdf | … |
 
 Notes:
-- `Role` is `DELEGATE` or `CHAIR`. Anything unrecognised is treated as
-  `DELEGATE`, so a typo can never grant chair access by accident.
-  `SECRETARIAT` and `ADMIN` already exist in the type and are ready to be given
-  their own screens.
+- `Role` is `DELEGATE`, `CHAIR` or `SECRETARIAT`. Anything unrecognised is
+  treated as `DELEGATE`, so a typo can never grant chair access by accident.
+  `ADMIN` exists in the type and is ready to be given its own screens.
+- `Title` is optional and only the Secretariat uses it — it is the post shown
+  in the nav and on their dashboard.
 - `Committee ID` is the key joining the two tabs, and also the PDF filename.
   Keep it short and lowercase.
 - `Chairs` is one cell, names separated by semicolons.
@@ -216,8 +223,33 @@ in one file, with no component changes needed:
   delegations forfeit the right to abstain.
 - **`DEFAULTS`** — default speaking times and caucus lengths.
 
-Conference name, dates, venue, the Secretariat email address and all the page
-copy are in **`src/config/conference.ts`**.
+Conference name, venue, the Secretariat email address and all the page copy are
+in **`src/config/conference.ts`**, and the dates in `CONFERENCE_DATES` in the
+same file:
+
+```ts
+export const CONFERENCE_DATES = {
+  start: '2026-10-15',
+  end: '2026-10-16',
+  timezone: 'Asia/Tashkent',
+};
+```
+
+Those three values drive the date shown on the login page, home and footer, the
+countdown on the delegate home ("23 days until TISMUN" → "Day 1" → "Thank you
+for attending TISMUN 2026"), and the timestamps in the session log and its
+exports. Everything is resolved in `timezone`, not in the viewer's local time:
+a delegate opening the site from London at 22:00 on 14 October is looking at
+03:00 on the 15th in Tashkent, and the site agrees with the room.
+
+### A note on terminology
+
+Every label in the interface is the official term — Moderated Caucus,
+Unmoderated Caucus, General Speakers' List, Roll Call, Present and Voting,
+Motion, Yield, Draft Resolution, Friendly and Unfriendly Amendment, Close
+Debate, Voting Procedure, Quorum, Simple Majority, Two-Thirds Majority. Nothing
+is renamed or simplified. Guided Mode makes it easy to *find* the right control,
+not to avoid learning what it is called.
 
 ---
 
@@ -225,14 +257,17 @@ copy are in **`src/config/conference.ts`**.
 
 ```
 tismun/
-├── functions/api/          Cloudflare Pages Functions — the Phase 2 API
+├── functions/api/          Cloudflare Pages Functions
 │   ├── _lib/               Sheets client, session cookie, Google token checks
 │   ├── session.ts          Sign in / sign out
 │   ├── me.ts               Your own record
 │   ├── committees.ts       Public committee info
-│   └── roster/[id].ts      Your committee's roster — chairs only
+│   ├── roster/[id].ts      Your committee's roster — chairs only
+│   └── live/               Live session sync for the Secretariat (D1)
+├── migrations/             D1 schema
 ├── public/
-│   ├── logo.png            The conference logo
+│   ├── logo.png            The TISMUN logo
+│   ├── tis-logo.png        The host school's logo, always secondary
 │   ├── papers/             Background papers, one per committee
 │   └── _redirects          SPA fallback for Cloudflare Pages
 ├── scripts/                Placeholder-paper generator
@@ -244,7 +279,9 @@ tismun/
     ├── lib/                Timer engine, majority maths, exports, broadcast
     ├── components/         Shared UI
     ├── pages/              Login · Home · Committees · Committee · Errors
-    ├── features/chair/     The Chair Dashboard and its eight tools
+    ├── features/chair/     Guided Mode and the eight chair tools
+    ├── features/live/      Live sync: snapshots, clock skew, local fallback
+    ├── features/secretariat/  The conference floor and per-committee views
     └── store/              Auth and committee state
 ```
 
@@ -268,8 +305,23 @@ the projector runs its own smooth countdown from a single message.
 ## Chair Dashboard
 
 Open it from the nav when signed in as a chair. Session state is saved to the
-browser, keyed by committee, so a refresh never loses the roll call, the
-speakers' list, the timers or a vote in progress. **Reset session** clears it.
+browser, keyed by committee, so a refresh never loses the Roll Call, the
+General Speakers' List, the timers or a vote in progress. **Reset session**
+clears it.
+
+### Guided Mode
+
+The dashboard opens on **Guided Mode**, which reads the committee's current
+state and says what it can do next — take the Roll Call, open the General
+Speakers' List, recognise the next speaker, extend or close a caucus, vote on
+the Motions on the floor — as large buttons, with the clock that matters and
+the standing figures a chair is asked for constantly (present, quorum, simple
+and two-thirds majorities). The eight tools remain in the sidebar for
+everything Guided Mode does not put one tap away.
+
+Which stage it shows follows the rules of procedure: Voting Procedure outranks
+a caucus, a caucus outranks Motions on the floor, and nothing opens before
+quorum is met.
 
 | Shortcut | Action |
 | --- | --- |
@@ -281,6 +333,60 @@ speakers' list, the timers or a vote in progress. **Reset session** clears it.
 **Projector mode** opens `/chair/display` in a second window — put it on the
 room's projector and drive everything from the laptop. The two windows stay in
 sync over `BroadcastChannel` (same browser, same machine).
+
+---
+
+## Secretariat
+
+Accounts with the `SECRETARIAT` role get a **Conference floor** view: every
+committee at once, with its current status, live timers, who has the floor,
+attendance and quorum, Motions on the floor, Draft Resolutions, and a combined
+session log across the whole conference. Clicking a committee opens a full
+read-only view of it — the same information the chair sees, with no controls.
+
+It refreshes every two seconds. Timers tick smoothly between refreshes because
+what is sent is the timer's *state*, not a number of seconds, so the watching
+browser runs its own countdown from a single message.
+
+### Live sync across devices (Cloudflare D1)
+
+Without a database the Secretariat view still works, but only for committees
+running **in the same browser** — it reads what each chair's dashboard has
+already saved to local storage. To watch chairs on their own laptops, bind a
+D1 database:
+
+```bash
+# 1. Create the database
+npx wrangler d1 create tismun
+
+# 2. Create its tables
+npx wrangler d1 execute tismun --remote --file=./migrations/0001_live_sync.sql
+```
+
+Then in the Cloudflare dashboard: **your Pages project → Settings → Functions →
+D1 database bindings → Add binding**, with the variable name **`DB`** and the
+`tismun` database. Redeploy.
+
+The dashboard header tells you which mode you are in — *Live across devices* or
+*This browser only* — so there is no guessing.
+
+**How it works.** Each chair's browser posts a snapshot of its committee after
+every change (debounced, and with a heartbeat so a silent committee is
+distinguishable from a closed laptop). The server stores that JSON and hands it
+back; it has no idea what a quorum is or which majority a Motion needs. Those
+rules live in `src/config/rules.ts` and run in the browser, so there is no
+second implementation on the server to drift out of step with the first.
+
+Clock differences between devices are corrected: every response carries the
+server's own time, and each browser translates timestamps into and out of that
+shared reference, so a chair's laptop running three minutes fast does not make
+every caucus look three minutes further along on the Secretariat's screen.
+
+**In live mode** the endpoints are properly guarded — only a chair may report
+their own committee, and only the Secretariat may read every committee.
+**In demo mode there is no identity to check**, because the login page hands out
+any account on request, so the live endpoints are open. A demo deployment is
+public by design; do not put real delegate assignments on one.
 
 ---
 
@@ -300,4 +406,7 @@ sync over `BroadcastChannel` (same browser, same machine).
    abstentions count toward a majority.
 7. **The real background papers**, as PDFs named by committee ID.
 8. **The real committees and assignments** — this build ships six committees and
-   99 invented accounts purely as an example.
+   102 invented accounts purely as an example.
+9. **Who sits on the Secretariat**, with their posts. Their rows take the
+   optional `Title` column in the Users tab (e.g. "Secretary-General"); every
+   other row leaves it blank.

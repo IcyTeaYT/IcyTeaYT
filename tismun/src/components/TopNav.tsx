@@ -1,9 +1,9 @@
-import { Gavel, LogOut, Menu, X } from 'lucide-react';
+import { Gavel, Landmark, LogOut, Menu, X } from 'lucide-react';
 import { useState } from 'react';
 import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { firstNameOf } from '@/data/source';
 import { cn } from '@/lib/cn';
-import { isChair, useAuth } from '@/store/auth';
+import { isChair, isSecretariat, useAuth } from '@/store/auth';
 import { Logo } from './Logo';
 import { Badge } from './ui/Badge';
 import { Button } from './ui/Button';
@@ -16,6 +16,7 @@ interface NavItem {
 
 /** Delegates are known by their country; chairs by the committee they run. */
 function subtitleFor(user: NonNullable<ReturnType<typeof useAuth.getState>['user']>): string {
+  if (user.title) return user.title;
   if (user.country) return user.country;
   if (user.committeeId) return user.committeeId.toUpperCase();
   return 'Unassigned';
@@ -42,6 +43,7 @@ export function TopNav() {
     { to: '/committees', label: 'Committees' },
   ];
   if (isChair(user)) items.push({ to: '/chair', label: 'Chair Dashboard' });
+  if (isSecretariat(user)) items.push({ to: '/secretariat', label: 'Secretariat' });
 
   const handleSignOut = async () => {
     await signOut();
@@ -80,6 +82,11 @@ export function TopNav() {
                 <Badge tone="teal">
                   <Gavel size={11} strokeWidth={1.5} />
                   Chair
+                </Badge>
+              ) : isSecretariat(user) ? (
+                <Badge tone="teal">
+                  <Landmark size={11} strokeWidth={1.5} />
+                  Secretariat
                 </Badge>
               ) : null}
             </div>

@@ -90,3 +90,4 @@ export const useAuth = create<AuthState>((set) => ({
 }));
 
 export const isChair = (user: User | null): boolean => user?.role === 'CHAIR';
+export const isSecretariat = (user: User | null): boolean => user?.role === 'SECRETARIAT';

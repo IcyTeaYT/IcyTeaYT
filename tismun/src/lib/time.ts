@@ -1,3 +1,5 @@
+import { CONFERENCE_DATES } from '@/config/conference';
+
 /** mm:ss, minutes uncapped (90 minutes reads "90:00"). Never negative. */
 export function formatClock(ms: number): string {
   const total = Math.max(0, Math.round(ms / 1000));
@@ -18,9 +20,17 @@ export function formatDuration(ms: number): string {
 
 export const secondsToMs = (seconds: number): number => seconds * 1000;
 
-/** Wall-clock time of day for the session log, e.g. "14:32:07". */
+/**
+ * Session log times are always conference time, never the reader's.
+ *
+ * A chair in the room, the Secretariat on a phone and whoever opens the
+ * exported CSV next week must all read the same "14:32:07" for the same
+ * moment — so every timestamp is formatted in the conference timezone
+ * regardless of where the device thinks it is.
+ */
 export function formatTimeOfDay(epochMs: number): string {
-  return new Date(epochMs).toLocaleTimeString([], {
+  return new Date(epochMs).toLocaleTimeString('en-GB', {
+    timeZone: CONFERENCE_DATES.timezone,
     hour: '2-digit',
     minute: '2-digit',
     second: '2-digit',
@@ -29,7 +39,8 @@ export function formatTimeOfDay(epochMs: number): string {
 }
 
 export function formatDateTime(epochMs: number): string {
-  return new Date(epochMs).toLocaleString([], {
+  return new Date(epochMs).toLocaleString('en-GB', {
+    timeZone: CONFERENCE_DATES.timezone,
     year: 'numeric',
     month: 'short',
     day: '2-digit',
@@ -38,4 +49,9 @@ export function formatDateTime(epochMs: number): string {
     second: '2-digit',
     hour12: false,
   });
+}
+
+/** Spelled out for export headers, e.g. "22 Sep 2026, 14:32:07 (Tashkent)". */
+export function formatDateTimeWithZone(epochMs: number): string {
+  return `${formatDateTime(epochMs)} (Tashkent)`;
 }

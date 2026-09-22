@@ -10,11 +10,27 @@ export const CONFERENCE = {
   fullName: 'Tashkent International School Model United Nations',
   /** The current edition, shown under the wordmark on the login page. */
   edition: 'TISMUN 2026',
-  /** Shown on the login page under the edition. Set to '' to hide. */
-  dates: '13 – 15 March 2026',
   venue: 'Tashkent International School',
+  /** The school hosting the conference — the secondary mark beside TISMUN's. */
+  host: 'Tashkent International School',
+  hostShort: 'TIS',
   /** Where delegates are told to write when something is missing. */
   secretariatEmail: 'secretariat@tismun.uz',
+} as const;
+
+/**
+ * When the conference runs.
+ *
+ * Dates are plain YYYY-MM-DD in the conference's own timezone, never
+ * timestamps: "15 October in Tashkent" must mean the same thing to a delegate
+ * whose laptop is set to London. Everything date-related — the countdown, the
+ * Day 1 / Day 2 label, session log timestamps and exports — is resolved in
+ * `timezone` rather than in the viewer's local time.
+ */
+export const CONFERENCE_DATES = {
+  start: '2026-10-15',
+  end: '2026-10-16',
+  timezone: 'Asia/Tashkent',
 } as const;
 
 /**

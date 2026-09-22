@@ -830,7 +830,30 @@ export const presentAndVotingIds = (attendance: Record<string, Attendance>): str
     .filter(([, status]) => status === 'present-voting')
     .map(([id]) => id);
 
-export function sessionStatusOf(state: ChairState): SessionStatus {
+/**
+ * The data half of the store, without the actions.
+ *
+ * This is exactly what `persist` writes to localStorage, so anything that
+ * reads a committee's session from storage — rather than from a live store —
+ * can be typed against it.
+ */
+export type ChairData = Pick<
+  ChairState,
+  | 'names'
+  | 'codes'
+  | 'rollCallTakenAt'
+  | 'attendance'
+  | 'gsl'
+  | 'moderated'
+  | 'unmoderated'
+  | 'motions'
+  | 'resolutions'
+  | 'amendments'
+  | 'vote'
+  | 'log'
+>;
+
+export function sessionStatusOf(state: ChairData): SessionStatus {
   if (state.vote) return 'Voting procedure';
   if (state.moderated.active) return 'Moderated caucus';
   if (state.unmoderated.active) return 'Unmoderated caucus';

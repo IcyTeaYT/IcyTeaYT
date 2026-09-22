@@ -10,7 +10,8 @@
     "typecheck": "tsc --noEmit && tsc -p tsconfig.functions.json --noEmit",
     "lint": "tsc --noEmit && tsc -p tsconfig.functions.json --noEmit",
     "pages:dev": "wrangler pages dev -- npm run dev",
-    "papers": "node scripts/make-placeholder-papers.mjs"
+    "papers": "node scripts/make-placeholder-papers.mjs",
+    "mock-data": "node scripts/make-mock-data.mjs"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",

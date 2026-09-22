@@ -1,4 +1,5 @@
 import { AnimatePresence, motion } from 'framer-motion';
+import { HostedBy } from './HostedBy';
 import { Logo } from './Logo';
 
 /**
@@ -59,6 +60,15 @@ export function LoadingScreen({ visible, complete }: { visible: boolean; complet
                 transition={{ duration: complete ? 0.3 : 1.2, ease: 'easeOut' }}
               />
             </div>
+          </motion.div>
+
+          <motion.div
+            className="absolute bottom-10 left-1/2 -translate-x-1/2"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.4, delay: 0.55 }}
+          >
+            <HostedBy />
           </motion.div>
         </motion.div>
       ) : null}

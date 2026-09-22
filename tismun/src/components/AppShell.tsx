@@ -1,5 +1,7 @@
 import type { ReactNode } from 'react';
 import { CONFERENCE } from '@/config/conference';
+import { formatDateRange } from '@/lib/conferenceDates';
+import { HostedBy } from './HostedBy';
 import { TopNav } from './TopNav';
 
 export function AppShell({ children }: { children: ReactNode }) {
@@ -8,14 +10,19 @@ export function AppShell({ children }: { children: ReactNode }) {
       <TopNav />
       <main className="flex-1">{children}</main>
       <footer className="border-t border-hairline">
-        <div className="mx-auto flex max-w-6xl flex-col gap-1.5 px-5 py-7 sm:flex-row sm:items-center sm:justify-between sm:px-6">
-          <p className="text-xs text-muted">{CONFERENCE.fullName}</p>
-          <a
-            href={`mailto:${CONFERENCE.secretariatEmail}`}
-            className="rounded text-xs text-muted underline-offset-4 transition-colors duration-200 hover:text-teal-700 hover:underline"
-          >
-            {CONFERENCE.secretariatEmail}
-          </a>
+        <div className="mx-auto flex max-w-6xl flex-col gap-5 px-5 py-8 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+          <HostedBy variant="compact" />
+          <div className="flex flex-col gap-1.5 sm:items-end">
+            <p className="text-xs text-muted">
+              {CONFERENCE.edition} · {formatDateRange()}
+            </p>
+            <a
+              href={`mailto:${CONFERENCE.secretariatEmail}`}
+              className="rounded text-xs text-muted underline-offset-4 transition-colors duration-200 hover:text-teal-700 hover:underline"
+            >
+              {CONFERENCE.secretariatEmail}
+            </a>
+          </div>
         </div>
       </footer>
     </div>

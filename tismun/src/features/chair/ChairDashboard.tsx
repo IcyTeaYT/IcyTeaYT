@@ -1,5 +1,6 @@
 import {
   ClipboardCheck,
+  Compass,
   Coffee,
   FileText,
   Gavel,
@@ -25,8 +26,10 @@ import { createChannel } from '@/lib/broadcast';
 import { cn } from '@/lib/cn';
 import { useAuth } from '@/store/auth';
 import { useCommittee } from '@/store/conference';
+import { useLivePush } from '@/features/live/useLive';
 import { ChairProvider, useChair, useChairContext, useChairStoreApi } from './context';
 import { buildDisplayState, displayChannelName, type DisplayMessage } from './display';
+import { Guided } from './panes/Guided';
 import { ModeratedCaucus } from './panes/ModeratedCaucus';
 import { Motions } from './panes/Motions';
 import { Resolutions } from './panes/Resolutions';
@@ -44,7 +47,9 @@ interface Section {
   icon: LucideIcon;
 }
 
+/** Guided Mode leads; the rest are the full tools, in order of procedure. */
 const SECTIONS: Section[] = [
+  { to: '/chair/guided', label: 'Guided Mode', icon: Compass },
   { to: '/chair/roll-call', label: 'Roll Call', icon: ClipboardCheck },
   { to: '/chair/speakers', label: 'Speakers’ List', icon: ListOrdered },
   { to: '/chair/moderated', label: 'Moderated Caucus', icon: MessagesSquare },
@@ -90,6 +95,9 @@ function DashboardChrome() {
   const [confirmReset, setConfirmReset] = useState(false);
 
   useProjectorBroadcast();
+  // Report this committee's session so the Secretariat can watch it live.
+  // No-ops harmlessly when there is no API behind the site.
+  useLivePush(committee.id, store);
 
   const openProjector = useCallback(() => {
     window.open('/chair/display', 'tismun-projector', 'noopener,width=1280,height=720');
@@ -149,10 +157,20 @@ function DashboardChrome() {
 
       <div className="mt-6 grid gap-6 lg:grid-cols-[236px_minmax(0,1fr)]">
         {/* Sidebar on desktop, a scrolling tab strip on smaller screens. */}
-        <nav aria-label="Chair tools" className="lg:sticky lg:top-24 lg:self-start">
+        {/* min-w-0: a grid item defaults to min-width:auto, which would let this
+            nav grow to fit the whole tool list and push the page sideways on a
+            phone instead of letting the strip below scroll. */}
+        <nav aria-label="Chair tools" className="min-w-0 lg:sticky lg:top-24 lg:self-start">
           <ul className="no-scrollbar -mx-5 flex gap-1.5 overflow-x-auto px-5 lg:mx-0 lg:flex-col lg:gap-0.5 lg:overflow-visible lg:px-0">
-            {SECTIONS.map((section) => (
-              <li key={section.to} className="shrink-0">
+            {SECTIONS.map((section, index) => (
+              <li
+                key={section.to}
+                className={
+                  index === 1
+                    ? 'shrink-0 lg:mt-2 lg:border-t lg:border-hairline lg:pt-2'
+                    : 'shrink-0'
+                }
+              >
                 <NavLink
                   to={section.to}
                   className={({ isActive }) =>
@@ -202,7 +220,8 @@ function DashboardChrome() {
             </Card>
           ) : (
             <Routes>
-              <Route index element={<Navigate to="/chair/roll-call" replace />} />
+              <Route index element={<Navigate to="/chair/guided" replace />} />
+              <Route path="guided" element={<Guided />} />
               <Route path="roll-call" element={<RollCall />} />
               <Route path="speakers" element={<SpeakersList />} />
               <Route path="moderated" element={<ModeratedCaucus />} />
@@ -211,7 +230,7 @@ function DashboardChrome() {
               <Route path="resolutions" element={<Resolutions />} />
               <Route path="voting" element={<Voting />} />
               <Route path="log" element={<SessionLog />} />
-              <Route path="*" element={<Navigate to="/chair/roll-call" replace />} />
+              <Route path="*" element={<Navigate to="/chair/guided" replace />} />
             </Routes>
           )}
         </div>
@@ -222,7 +241,7 @@ function DashboardChrome() {
         onClose={() => setConfirmReset(false)}
         onConfirm={() => {
           resetSession();
-          navigate('/chair/roll-call');
+          navigate('/chair/guided');
         }}
         title="Reset this committee’s session?"
         body="Roll call, timers, the speakers’ list, motions, resolutions and votes for this committee will be cleared. The session log is cleared too. This cannot be undone."

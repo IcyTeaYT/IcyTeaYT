@@ -1,8 +1,9 @@
 import { motion } from 'framer-motion';
-import { ArrowRight, DoorOpen, FileText, Gavel, MapPin, Users } from 'lucide-react';
+import { ArrowRight, DoorOpen, FileText, Gavel, Landmark, MapPin, Users } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { PageContainer } from '@/components/AppShell';
 import { Flag } from '@/components/Flag';
+import { ConferenceCountdown } from '@/components/ConferenceCountdown';
 import { GlobeLines } from '@/components/GlobeLines';
 import { PaperActions } from '@/components/PaperActions';
 import { Badge } from '@/components/ui/Badge';
@@ -10,7 +11,8 @@ import { Button } from '@/components/ui/Button';
 import { Card, CardBody, CardHeader } from '@/components/ui/Card';
 import { CONFERENCE, COPY } from '@/config/conference';
 import { firstNameOf } from '@/data/source';
-import { useAuth } from '@/store/auth';
+import { formatDateRange } from '@/lib/conferenceDates';
+import { isSecretariat, useAuth } from '@/store/auth';
 import { useCommittee } from '@/store/conference';
 
 const enter = (delay: number) => ({
@@ -34,9 +36,12 @@ export function Home() {
       <div className="relative isolate overflow-hidden border-b border-hairline">
         <GlobeLines className="absolute -right-20 -top-40 -z-10 h-[420px] w-[420px] opacity-[0.06] sm:-right-10 sm:h-[520px] sm:w-[520px]" />
         <div className="mx-auto max-w-6xl px-5 pb-10 pt-10 sm:px-6 sm:pb-12 sm:pt-14">
-          <motion.p className="label-micro" {...enter(0)}>
-            {CONFERENCE.edition}
-          </motion.p>
+          <motion.div className="flex flex-wrap items-center justify-between gap-4" {...enter(0)}>
+            <p className="label-micro">
+              {CONFERENCE.edition} · {formatDateRange()}
+            </p>
+            <ConferenceCountdown />
+          </motion.div>
           <motion.h1
             className="mt-3 max-w-2xl font-serif text-[28px] leading-[1.2] text-ink-900 sm:text-[38px]"
             {...enter(0.05)}
@@ -50,7 +55,24 @@ export function Home() {
       </div>
 
       <PageContainer>
-        {!committee ? (
+        {isSecretariat(user) ? (
+          <Card className="max-w-xl">
+            <CardHeader label="Your role" title={user.title ?? 'Secretariat'} />
+            <CardBody className="space-y-5 py-6">
+              <span className="inline-flex h-12 w-12 items-center justify-center rounded-card bg-teal-50 text-teal-600">
+                <Landmark size={22} strokeWidth={1.5} />
+              </span>
+              <p className="text-sm leading-relaxed text-muted">
+                The conference floor shows every committee as it stands right now — status, timers,
+                attendance and quorum, motions, resolutions, and a combined session log.
+              </p>
+              <Button variant="primary" onClick={() => navigate('/secretariat')}>
+                Open the conference floor
+                <ArrowRight size={15} strokeWidth={1.5} />
+              </Button>
+            </CardBody>
+          </Card>
+        ) : !committee ? (
           <Card className="max-w-xl">
             <CardBody className="px-6 py-7">
               <h2 className="font-serif text-lg text-ink-900">{COPY.home.unassignedTitle}</h2>
@@ -166,7 +188,7 @@ export function Home() {
           </div>
         )}
 
-        {committee ? (
+        {committee || isSecretariat(user) ? (
           <motion.div className="mt-8" {...enter(0.32)}>
             <Link
               to="/committees"

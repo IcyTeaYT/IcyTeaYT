@@ -1,0 +1,106 @@
+import { fail, json, type Env } from '../_lib/env';
+import { guardRead, guardWrite, LOG_RETENTION_MS } from '../_lib/live';
+
+/**
+ * GET  /api/live/:committeeId — the full read-only view of one committee.
+ * POST /api/live/:committeeId — the chair's browser reporting its session.
+ *
+ * The server stores whatever JSON it is handed and gives it back. It does not
+ * know what a quorum is, or which majority a motion needs: those rules live in
+ * src/config/rules.ts and are applied in the browser. Keeping the relay dumb
+ * means there is no second implementation of the rules of procedure here to
+ * fall out of step with the first.
+ */
+
+const paramOf = (value: string | string[] | undefined): string =>
+  (Array.isArray(value) ? value[0] : value) ?? '';
+
+export const onRequestGet: PagesFunction<Env, 'committeeId'> = async ({ request, env, params }) => {
+  const serverNow = Date.now();
+  const committeeId = paramOf(params.committeeId);
+  if (!committeeId) return fail('No committee was requested.', 400);
+
+  if (!env.DB) return json({ configured: false, serverNow, snapshot: null });
+
+  const guard = await guardRead(request, env, committeeId);
+  if (!guard.ok) return fail(guard.error, guard.status);
+
+  const row = await env.DB.prepare('SELECT snapshot FROM committee_state WHERE committee_id = ?1')
+    .bind(committeeId)
+    .first<{ snapshot: string }>();
+
+  return json({
+    configured: true,
+    serverNow,
+    snapshot: row ? (JSON.parse(row.snapshot) as unknown) : null,
+  });
+};
+
+interface PushBody {
+  summary?: unknown;
+  snapshot?: unknown;
+  log?: { id: string; at: number; type: string; summary: string; detail?: string }[];
+}
+
+export const onRequestPost: PagesFunction<Env, 'committeeId'> = async ({ request, env, params }) => {
+  const serverNow = Date.now();
+  const committeeId = paramOf(params.committeeId);
+  if (!committeeId) return fail('No committee was given.', 400);
+
+  // Nothing bound to sync to. Tell the chair's browser so it can stop asking.
+  if (!env.DB) return json({ configured: false, serverNow });
+
+  const guard = await guardWrite(request, env, committeeId);
+  if (!guard.ok) return fail(guard.error, guard.status);
+
+  let body: PushBody;
+  try {
+    body = (await request.json()) as PushBody;
+  } catch {
+    return fail('Expected a JSON body.', 400);
+  }
+  if (!body.summary || !body.snapshot) return fail('Missing summary or snapshot.', 400);
+
+  const summary = body.summary as { updatedAt?: number };
+  const statements = [
+    env.DB.prepare(
+      `INSERT INTO committee_state (committee_id, updated_at, received_at, summary, snapshot)
+       VALUES (?1, ?2, ?3, ?4, ?5)
+       ON CONFLICT(committee_id) DO UPDATE SET
+         updated_at = excluded.updated_at,
+         received_at = excluded.received_at,
+         summary = excluded.summary,
+         snapshot = excluded.snapshot`,
+    ).bind(
+      committeeId,
+      typeof summary.updatedAt === 'number' ? summary.updatedAt : serverNow,
+      serverNow,
+      JSON.stringify(body.summary),
+      JSON.stringify(body.snapshot),
+    ),
+  ];
+
+  // Log entries carry their own ids, so re-sending the same window is a no-op
+  // rather than a duplicate — which makes the push safe to retry.
+  for (const entry of body.log ?? []) {
+    if (!entry?.id) continue;
+    statements.push(
+      env.DB.prepare(
+        `INSERT OR IGNORE INTO session_log (id, committee_id, at, type, summary, detail)
+         VALUES (?1, ?2, ?3, ?4, ?5, ?6)`,
+      ).bind(entry.id, committeeId, entry.at, entry.type, entry.summary, entry.detail ?? null),
+    );
+  }
+
+  await env.DB.batch(statements);
+
+  // Occasional housekeeping rather than a cron: one push in fifty clears out
+  // anything older than the retention window.
+  if (Math.random() < 0.02) {
+    await env.DB.prepare('DELETE FROM session_log WHERE at < ?1')
+      .bind(serverNow - LOG_RETENTION_MS)
+      .run();
+  }
+
+  return json({ configured: true, serverNow });
+};

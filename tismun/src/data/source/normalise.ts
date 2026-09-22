@@ -12,10 +12,12 @@ export function rowToUser(row: UserRow): User {
   const country = clean(row.Country);
   const code = clean(row['Country Code']).toUpperCase();
   const committeeId = clean(row['Committee ID']);
+  const title = clean(row.Title);
   return {
     email: clean(row.Email).toLowerCase(),
     fullName: clean(row['Full Name']),
     role: toRole(row.Role),
+    title: title || null,
     committeeId: committeeId || null,
     country: country || null,
     countryCode: code || null,

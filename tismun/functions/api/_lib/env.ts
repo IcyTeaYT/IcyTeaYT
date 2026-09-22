@@ -19,7 +19,26 @@ export interface Env {
   GOOGLE_SA_PRIVATE_KEY: string;
   /** 64+ random characters for signing session cookies. SECRET — encrypt this one. */
   SESSION_SECRET: string;
+  /**
+   * D1 database for live session sync, bound in the Cloudflare dashboard under
+   * Settings → Functions → D1 database bindings, with the variable name DB.
+   *
+   * Optional on purpose: with no binding the site still works completely, the
+   * Secretariat dashboard just falls back to whatever this browser knows
+   * instead of seeing other people's devices.
+   */
+  DB?: D1Database;
 }
+
+/**
+ * True once the Google Sheet and session signing are configured — i.e. the
+ * deployment is running for real rather than on demo data.
+ *
+ * Demo deployments have no identity at all (anyone can pick any account on the
+ * login page), so there is nothing to authorise against. Live deployments get
+ * the full checks. This is why a demo deployment must be treated as public.
+ */
+export const isLiveMode = (env: Env): boolean => Boolean(env.SESSION_SECRET && env.SHEET_ID);
 
 export function requireEnv(env: Env, keys: (keyof Env)[]): string | null {
   const missing = keys.filter((key) => !env[key]);
