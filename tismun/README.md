@@ -28,8 +28,12 @@ npm run dev
 Then open http://localhost:5173.
 
 There is no login to set up: the **Demo access** panel on the sign-in page lets
-you continue as a Delegate, a Chair or the Secretariat, or pick any of the 100
-mock accounts, so you can see exactly what each person sees.
+you continue as a Delegate, a Chair or the Secretariat, or pick any of the 128
+accounts, so you can see exactly what each person sees.
+
+The eight committees, their chairs and their rooms are the real ones for
+TISMUN 2026. The delegations within them are still placeholders until the
+Google Sheet is connected.
 
 | Command | What it does |
 | --- | --- |
@@ -134,15 +138,15 @@ Two tabs, with these headers in row 1:
 
 | Email | Full Name | Role | Committee ID | Country | Country Code | Title |
 | --- | --- | --- | --- | --- | --- | --- |
-| amir.nazarov@tashkentis.uz | Amir Nazarov | DELEGATE | unsc | China | CN | |
-| aziza.karimova@tashkentis.uz | Aziza Karimova | CHAIR | unsc | | | |
+| amir.nazarov@tashkentis.uz | Amir Nazarov | DELEGATE | ga-2 | China | CN | |
+| yassir@tashkentis.uz | Yassir | CHAIR | ga-2 | | | |
 | kamron.yusupov@tashkentis.uz | Kamron Yusupov | SECRETARIAT | | | | Secretary-General |
 
 **Committees**
 
 | Committee ID | Name | Abbreviation | Topic 1 | Topic 2 | Chairs | Room | Background Paper URL | Description |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| unsc | United Nations Security Council | UNSC | … | … | Aziza Karimova; Daniel Whitfield | Assembly Hall | /papers/unsc.pdf | … |
+| ga-2 | General Assembly 2 | GA 2 | … | … | Yassir; Damirbek; Jihoo | Room 510 | /papers/ga-2.pdf | … |
 
 Notes:
 - `Role` is `DELEGATE`, `CHAIR` or `SECRETARIAT`. Anything unrecognised is
@@ -151,7 +155,8 @@ Notes:
 - `Title` is optional and only the Secretariat uses it — it is the post shown
   in the nav and on their dashboard.
 - `Committee ID` is the key joining the two tabs, and also the PDF filename.
-  Keep it short and lowercase.
+  Keep it short and lowercase. This year's are `hrc-russian`, `hrc-1`,
+  `hrc-2`, `sc`, `hsc-1`, `hsc-2`, `ga-2` and `ga-3`.
 - `Chairs` is one cell, names separated by semicolons.
 - `Country` and `Country Code` are left blank for chairs.
 - `Country Code` is the ISO 3166-1 two-letter code (`CN`, `GB`, `UZ`) — it
@@ -418,8 +423,9 @@ public by design; do not put real delegate assignments on one.
    need two-thirds, your order of disruptiveness, your quorum, and whether
    abstentions count toward a majority.
 7. **The real background papers**, as PDFs named by committee ID.
-8. **The real committees and assignments** — this build ships six committees and
-   100 invented accounts purely as an example.
+8. **The delegations** — which country each delegate represents in each
+   committee. The committees, chairs and rooms are already the real ones; only
+   the delegate lists are still invented.
 9. **Who holds the Secretariat account**, and their post. That row takes the
    optional `Title` column in the Users tab (e.g. "Secretary-General"); every
    other row leaves it blank. Add more `SECRETARIAT` rows if more than one

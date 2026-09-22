@@ -13,12 +13,14 @@ import type { User } from '@/data/source/types';
 import { formatDateRange } from '@/lib/conferenceDates';
 import { exchangeCredential, isGoogleConfigured, renderGoogleButton } from '@/lib/googleAuth';
 import { useAuth } from '@/store/auth';
+import { useConference } from '@/store/conference';
 
 export function Login() {
   const status = useAuth((state) => state.status);
   const restore = useAuth((state) => state.restore);
   const signInAs = useAuth((state) => state.signInAs);
   const navigate = useNavigate();
+  const committees = useConference((state) => state.committees);
 
   const [demoUsers, setDemoUsers] = useState<User[]>([]);
   const [selectedEmail, setSelectedEmail] = useState('');
@@ -82,6 +84,9 @@ export function Login() {
       setSigningIn(false);
     }
   };
+
+  const groupLabel = (key: string): string =>
+    committees.find((committee) => committee.id === key)?.abbreviation ?? key.toUpperCase();
 
   const optionLabel = (user: User): string => {
     if (user.role === 'SECRETARIAT') return `${user.title ?? 'Secretariat'} — ${user.fullName}`;
@@ -221,7 +226,9 @@ export function Login() {
                   disabled={demoUsers.length === 0}
                 >
                   {grouped.map(([committeeId, users]) => (
-                    <optgroup key={committeeId} label={committeeId.toUpperCase()}>
+                    // Show the committee's own abbreviation rather than a
+                    // shouted version of its id — "HRC 1", not "HRC-1".
+                    <optgroup key={committeeId} label={groupLabel(committeeId)}>
                       {users.map((user) => (
                         <option key={user.email} value={user.email}>
                           {optionLabel(user)}
