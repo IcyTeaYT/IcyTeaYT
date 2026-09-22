@@ -1,0 +1,68 @@
+[
+  {
+    "Committee ID": "unsc",
+    "Name": "United Nations Security Council",
+    "Abbreviation": "UNSC",
+    "Topic 1": "The situation in the Sahel and the future of regional peace operations",
+    "Topic 2": "Maintaining international peace and security in the context of autonomous weapons systems",
+    "Chairs": "Aziza Karimova; Daniel Whitfield",
+    "Room": "Assembly Hall",
+    "Background Paper URL": "/papers/unsc.pdf",
+    "Description": "The Security Council carries primary responsibility for the maintenance of international peace and security. With fifteen members and the veto in play, delegates in this committee negotiate under real constraint: a single permanent member can halt an otherwise unanimous resolution. Expect crisis updates, a demanding pace, and resolutions judged on whether they could survive a real vote."
+  },
+  {
+    "Committee ID": "unhrc",
+    "Name": "United Nations Human Rights Council",
+    "Abbreviation": "UNHRC",
+    "Topic 1": "Protecting human rights defenders in contexts of shrinking civic space",
+    "Topic 2": "Human rights implications of biometric surveillance technologies",
+    "Chairs": "Nilufar Rashidova; Thomas Okonkwo",
+    "Room": "Room 204",
+    "Background Paper URL": "/papers/unhrc.pdf",
+    "Description": "The Human Rights Council is where states answer for their record and where new standards are written. Delegates will balance the principle of non-interference against the Council’s mandate to respond, and will find that the hardest negotiations are over language rather than intent. Strong position papers in this committee cite specific instruments and cases."
+  },
+  {
+    "Committee ID": "who",
+    "Name": "World Health Organization",
+    "Abbreviation": "WHO",
+    "Topic 1": "Strengthening the pandemic preparedness and response accord",
+    "Topic 2": "Addressing antimicrobial resistance as a global health emergency",
+    "Chairs": "Malika Yusupova; Arjun Mehta",
+    "Room": "Science Block, Room 12",
+    "Background Paper URL": "/papers/who.pdf",
+    "Description": "The World Health Organization coordinates the international response to health emergencies and sets the technical standards states build their systems around. This committee rewards delegates who can translate scientific evidence into workable policy, and who understand that financing, manufacturing capacity and equitable access decide whether a good framework ever reaches a patient."
+  },
+  {
+    "Committee ID": "disec",
+    "Name": "Disarmament and International Security Committee",
+    "Abbreviation": "DISEC",
+    "Topic 1": "Preventing an arms race in outer space",
+    "Topic 2": "Regulating the international trade in small arms and light weapons",
+    "Chairs": "Kamila Abdullaeva; Sebastian Hoffmann",
+    "Room": "Room 110",
+    "Background Paper URL": "/papers/disec.pdf",
+    "Description": "As the First Committee of the General Assembly, DISEC addresses disarmament and the threats to global security that no state can meet alone. Its resolutions are not binding, which makes consensus-building the whole exercise: delegates must find language broad enough to attract signatures and precise enough to mean something."
+  },
+  {
+    "Committee ID": "ecosoc",
+    "Name": "Economic and Social Council",
+    "Abbreviation": "ECOSOC",
+    "Topic 1": "Sovereign debt distress and the financing of the Sustainable Development Goals",
+    "Topic 2": "Closing the digital divide in landlocked developing countries",
+    "Chairs": "Dilnoza Tursunova; Grace Adeyemi",
+    "Room": "Library Seminar Room",
+    "Background Paper URL": "/papers/ecosoc.pdf",
+    "Description": "ECOSOC coordinates the economic, social and environmental work of the United Nations system. Debate here turns on numbers as much as principle — debt service ratios, concessional finance, infrastructure costs — and delegates are expected to arrive knowing what their country can actually afford to promise."
+  },
+  {
+    "Committee ID": "unep",
+    "Name": "United Nations Environment Programme",
+    "Abbreviation": "UNEP",
+    "Topic 1": "Transboundary water management in Central Asia",
+    "Topic 2": "Establishing a binding international framework on plastic pollution",
+    "Chairs": "Zarina Islamova; Oliver Brennan",
+    "Room": "Room 301",
+    "Background Paper URL": "/papers/unep.pdf",
+    "Description": "UNEP sets the global environmental agenda and brokers the agreements that hold states to it. Our first topic sits on this conference’s doorstep: the Amu Darya and Syr Darya basins support tens of millions of people across five states whose needs for water, energy and agriculture do not align. Delegates should come prepared to trade."
+  }
+]

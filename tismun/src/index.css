@@ -1,0 +1,83 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    color-scheme: light;
+  }
+
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    @apply bg-canvas font-sans text-ink-800 antialiased;
+    font-feature-settings: 'cv05' 1, 'ss03' 1;
+  }
+
+  /* One focus treatment everywhere: a teal ring, never a browser default. */
+  :focus-visible {
+    @apply outline-none ring-2 ring-teal-500/60 ring-offset-2 ring-offset-canvas;
+  }
+
+  ::selection {
+    @apply bg-teal-100 text-ink-900;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4 {
+    @apply font-serif text-ink-900;
+    text-wrap: balance;
+  }
+
+  /* Native controls inherit the brand accent. */
+  input,
+  select,
+  textarea,
+  button {
+    accent-color: #0e9ab7;
+  }
+}
+
+@layer components {
+  /* The uppercase micro-label used above every field and card section. */
+  .label-micro {
+    @apply text-[11px] font-semibold uppercase tracking-label text-muted;
+  }
+
+  .card {
+    @apply rounded-card border border-hairline bg-surface shadow-card;
+  }
+
+  /* Timers and vote tallies: digits must not shift width as they count down. */
+  .tabular {
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: 'tnum' 1;
+  }
+}
+
+@layer utilities {
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+}
+
+/* Honour the OS setting: keep state changes, drop the motion. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

@@ -1,0 +1,4 @@
+# Cloudflare Pages SPA fallback: React Router owns every path, so any request
+# that isn't a real file must be served index.html rather than a 404.
+# /api/* is deliberately absent — Pages Functions claim those routes first.
+/*    /index.html   200
