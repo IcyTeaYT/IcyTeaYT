@@ -188,13 +188,10 @@ for (const c of committees) {
   }
 }
 
-// The Secretariat: no committee of their own, they oversee all of them.
-for (const [fullName, title] of [
-  ['Kamron Yusupov', 'Secretary-General'],
-  ['Elina Sattorova', 'Deputy Secretary-General'],
-  ['Bekhruz Karimov', 'Head of Chairs'],
-]) {
+// The Secretariat: one account, no committee of its own, oversees all of them.
+{
   const slug = (s) => s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z]/g, '');
+  const fullName = 'Kamron Yusupov';
   const [first, ...rest] = fullName.split(' ');
   userRows.push({
     Email: `${slug(first)}.${slug(rest.join(''))}@demo.tis`,
@@ -203,7 +200,7 @@ for (const [fullName, title] of [
     'Committee ID': '',
     Country: '',
     'Country Code': '',
-    Title: title,
+    Title: 'Secretary-General',
   });
 }
 

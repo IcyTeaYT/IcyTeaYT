@@ -12,7 +12,6 @@ import {
   ScrollText,
   Volume2,
   VolumeX,
-  Vote as VoteIcon,
   type LucideIcon,
 } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
@@ -37,7 +36,6 @@ import { RollCall } from './panes/RollCall';
 import { SessionLog } from './panes/SessionLog';
 import { SpeakersList } from './panes/SpeakersList';
 import { UnmoderatedCaucus } from './panes/UnmoderatedCaucus';
-import { Voting } from './panes/Voting';
 import { sessionStatusOf } from './store';
 import { SHORTCUTS, useChairShortcuts } from './useChairShortcuts';
 
@@ -56,7 +54,6 @@ const SECTIONS: Section[] = [
   { to: '/chair/unmoderated', label: 'Unmoderated Caucus', icon: Coffee },
   { to: '/chair/motions', label: 'Motions', icon: Gavel },
   { to: '/chair/resolutions', label: 'Resolutions', icon: FileText },
-  { to: '/chair/voting', label: 'Voting', icon: VoteIcon },
   { to: '/chair/log', label: 'Session Log', icon: ScrollText },
 ];
 
@@ -228,7 +225,6 @@ function DashboardChrome() {
               <Route path="unmoderated" element={<UnmoderatedCaucus />} />
               <Route path="motions" element={<Motions />} />
               <Route path="resolutions" element={<Resolutions />} />
-              <Route path="voting" element={<Voting />} />
               <Route path="log" element={<SessionLog />} />
               <Route path="*" element={<Navigate to="/chair/guided" replace />} />
             </Routes>

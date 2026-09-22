@@ -5,9 +5,8 @@ The conference site for Tashkent International School Model United Nations.
 Delegates sign in with their school account and see their committee, their
 delegation and their background paper. Chairs get a full dashboard for running
 their committee: Roll Call, timers, the General Speakers' List, caucuses,
-Motions, Draft Resolutions, Voting Procedure, a session log, and a projector
-display for the room. The Secretariat gets a live view of every committee at
-once.
+Motions, Draft Resolutions, voting, a session log, and a projector display for
+the room. The Secretariat gets a live view of every committee at once.
 
 **October 15–16, 2026**, at Tashkent International School.
 
@@ -29,7 +28,7 @@ npm run dev
 Then open http://localhost:5173.
 
 There is no login to set up: the **Demo access** panel on the sign-in page lets
-you continue as a Delegate, a Chair or the Secretariat, or pick any of the 102
+you continue as a Delegate, a Chair or the Secretariat, or pick any of the 100
 mock accounts, so you can see exactly what each person sees.
 
 | Command | What it does |
@@ -279,7 +278,7 @@ tismun/
     ├── lib/                Timer engine, majority maths, exports, broadcast
     ├── components/         Shared UI
     ├── pages/              Login · Home · Committees · Committee · Errors
-    ├── features/chair/     Guided Mode and the eight chair tools
+    ├── features/chair/     Guided Mode and the chair tools
     ├── features/live/      Live sync: snapshots, clock skew, local fallback
     ├── features/secretariat/  The conference floor and per-committee views
     └── store/              Auth and committee state
@@ -311,17 +310,31 @@ clears it.
 
 ### Guided Mode
 
-The dashboard opens on **Guided Mode**, which reads the committee's current
-state and says what it can do next — take the Roll Call, open the General
-Speakers' List, recognise the next speaker, extend or close a caucus, vote on
-the Motions on the floor — as large buttons, with the clock that matters and
-the standing figures a chair is asked for constantly (present, quorum, simple
-and two-thirds majorities). The eight tools remain in the sidebar for
-everything Guided Mode does not put one tap away.
+The dashboard opens on **Guided Mode**: the whole session as a numbered list —
+Take the Roll Call, Establish Quorum, Set the Agenda, Open the General
+Speakers' List, Debate the Topic, Introduce Draft Resolutions, Voting
+Procedure, Adjourn the Meeting — with the step the committee is actually on
+opened up, showing the clock that matters and large buttons for what to do
+next. Underneath sit the standing figures a chair is asked for constantly:
+present, quorum, simple and two-thirds majorities.
 
-Which stage it shows follows the rules of procedure: Voting Procedure outranks
-a caucus, a caucus outranks Motions on the floor, and nothing opens before
-quorum is met.
+Steps tick themselves off by reading the session, not by anyone marking them,
+so the list cannot disagree with what happened: the Roll Call step completes
+when the roll is taken, the Voting Procedure step when a Draft Resolution has
+actually been decided.
+
+Which stage is offered follows the rules of procedure: Voting Procedure
+outranks a caucus, a caucus outranks Motions on the floor, and nothing opens
+before quorum is met. The tools remain in the sidebar for everything Guided
+Mode does not put one tap away.
+
+### Voting
+
+There is no separate voting screen. A Motion is voted on in **Motions**, where
+it was raised. A Draft Resolution or an Unfriendly Amendment is voted on in
+**Resolutions**, on the item itself — placard or roll call, with the tally and
+the required majority in view. The chair never has to leave the thing being
+voted on and re-select it somewhere else.
 
 | Shortcut | Action |
 | --- | --- |
@@ -338,7 +351,7 @@ sync over `BroadcastChannel` (same browser, same machine).
 
 ## Secretariat
 
-Accounts with the `SECRETARIAT` role get a **Conference floor** view: every
+The `SECRETARIAT` role gets a **Conference floor** view: every
 committee at once, with its current status, live timers, who has the floor,
 attendance and quorum, Motions on the floor, Draft Resolutions, and a combined
 session log across the whole conference. Clicking a committee opens a full
@@ -406,7 +419,8 @@ public by design; do not put real delegate assignments on one.
    abstentions count toward a majority.
 7. **The real background papers**, as PDFs named by committee ID.
 8. **The real committees and assignments** — this build ships six committees and
-   102 invented accounts purely as an example.
-9. **Who sits on the Secretariat**, with their posts. Their rows take the
+   100 invented accounts purely as an example.
+9. **Who holds the Secretariat account**, and their post. That row takes the
    optional `Title` column in the Users tab (e.g. "Secretary-General"); every
-   other row leaves it blank.
+   other row leaves it blank. Add more `SECRETARIAT` rows if more than one
+   person needs the conference-floor view.

@@ -1,5 +1,5 @@
-import { ExternalLink, FileText, Plus, Trash2 } from 'lucide-react';
-import { useState } from 'react';
+import { ExternalLink, FileText, Plus, Trash2, Vote as VoteIcon } from 'lucide-react';
+import { useMemo, useState } from 'react';
 import { Flag } from '@/components/Flag';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
@@ -10,6 +10,7 @@ import { cn } from '@/lib/cn';
 import { DelegationMultiSelect } from '../components/DelegationMultiSelect';
 import { DelegationPicker } from '../components/DelegationPicker';
 import { Pane } from '../components/Pane';
+import { VotePanel } from '../components/VotePanel';
 import { useChair, useChairContext, useDelegationLookup } from '../context';
 import {
   RESOLUTION_FLOW,
@@ -119,7 +120,10 @@ export function Resolutions() {
               roster={roster}
               onCancel={() => setCreating(false)}
               onCreate={(input) => {
-                addResolution(input);
+                // Open the new resolution straight away — a chair who has just
+                // written one down wants to introduce it, not hunt for it in
+                // the list first.
+                setSelectedId(addResolution(input));
                 setCreating(false);
               }}
             />
@@ -339,6 +343,18 @@ function ResolutionDetail({
             </ol>
           </div>
 
+          {/* Voting Procedure, on the resolution itself */}
+          {resolution.status !== 'passed' && resolution.status !== 'failed' ? (
+            <div className="space-y-3 border-t border-hairline pt-5">
+              <p className="label-micro">Voting Procedure</p>
+              <VoteLauncher
+                subjectKind="resolution"
+                subjectId={resolution.id}
+                subjectLabel={`${resolution.number} — ${resolution.title}`}
+              />
+            </div>
+          ) : null}
+
           {/* Submitters */}
           <div className="grid gap-5 sm:grid-cols-2">
             <div>
@@ -378,6 +394,18 @@ function ResolutionDetail({
                       <Flag code={codeOf(amendment.submittedBy)} country={nameOf(amendment.submittedBy)} size="xs" />
                       {nameOf(amendment.submittedBy)}
                     </p>
+
+                    {/* Friendly amendments are accepted without a vote; only an
+                        unfriendly one still pending needs the committee. */}
+                    {!amendment.friendly && amendment.status === 'pending' ? (
+                      <div className="mt-3">
+                        <VoteLauncher
+                          subjectKind="amendment"
+                          subjectId={amendment.id}
+                          subjectLabel={`Amendment to ${resolution.number} — ${amendment.clause}`}
+                        />
+                      </div>
+                    ) : null}
                   </div>
                   <div className="flex items-center gap-1.5">
                     {amendment.status === 'pending' ? (
@@ -495,5 +523,73 @@ function SubmitterList({
         </li>
       ))}
     </ul>
+  );
+}
+
+
+/**
+ * Put something to a vote without leaving it.
+ *
+ * The chair has the Draft Resolution or the Amendment in front of them; making
+ * them go to a separate screen and pick it out of a dropdown again is the step
+ * this removes. Once a vote opens, the panel takes over this same spot.
+ */
+function VoteLauncher({
+  subjectKind,
+  subjectId,
+  subjectLabel,
+}: {
+  subjectKind: 'resolution' | 'amendment';
+  subjectId: string;
+  subjectLabel: string;
+}) {
+  const { roster } = useChairContext();
+  const vote = useChair((state) => state.vote);
+  const attendance = useChair((state) => state.attendance);
+  const startVote = useChair((state) => state.startVote);
+
+  const eligible = useMemo(
+    () =>
+      roster
+        .filter((delegation) => (attendance[delegation.id] ?? 'absent') !== 'absent')
+        .sort((a, b) => a.country.localeCompare(b.country))
+        .map((delegation) => delegation.id),
+    [roster, attendance],
+  );
+
+  if (vote?.subjectKind === subjectKind && vote.subjectId === subjectId) return <VotePanel />;
+
+  // One vote at a time: the committee cannot be voting on two things at once.
+  if (vote) {
+    return (
+      <p className="rounded-control border border-hairline bg-canvas px-3 py-2.5 text-xs text-muted">
+        A vote is already open on <span className="text-ink-700">{vote.subjectLabel}</span>. Close it
+        before opening another.
+      </p>
+    );
+  }
+
+  if (eligible.length === 0) {
+    return (
+      <p className="rounded-control border border-hairline bg-canvas px-3 py-2.5 text-xs text-muted">
+        Take the Roll Call before opening a vote.
+      </p>
+    );
+  }
+
+  const open = (mode: 'placard' | 'roll-call') =>
+    startVote({ subjectKind, subjectId, subjectLabel, mode, eligible });
+
+  return (
+    <div className="flex flex-wrap items-center gap-2">
+      <Button variant="primary" size="sm" onClick={() => open('placard')}>
+        <VoteIcon size={15} strokeWidth={1.5} />
+        Placard Vote
+      </Button>
+      <Button variant="secondary" size="sm" onClick={() => open('roll-call')}>
+        Roll Call Vote
+      </Button>
+      <span className="text-xs text-muted">{eligible.length} delegations eligible</span>
+    </div>
   );
 }

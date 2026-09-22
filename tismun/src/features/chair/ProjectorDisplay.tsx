@@ -19,10 +19,15 @@ import { displayChannelName, type DisplayMessage, type DisplayState } from './di
  * this window's own clock — smooth at 60fps, and correct even if a message is
  * dropped or the window is opened halfway through a caucus.
  */
+/** No word from the dashboard for this long and the feed is treated as stale. */
+const STALE_AFTER_MS = 20_000;
+
 export function ProjectorDisplay() {
   const user = useAuth((state) => state.user);
   const committee = useCommittee(user?.committeeId);
   const [snapshot, setSnapshot] = useState<DisplayState | null>(null);
+  const [receivedAt, setReceivedAt] = useState<number | null>(null);
+  const [now, setNow] = useState(() => Date.now());
 
   const channelName = committee ? displayChannelName(committee.id) : null;
 
@@ -30,7 +35,10 @@ export function ProjectorDisplay() {
     if (!channelName) return;
     const channel = createChannel<DisplayMessage>(channelName);
     const unsubscribe = channel.subscribe((message) => {
-      if (message.kind === 'state') setSnapshot(message.state);
+      if (message.kind === 'state') {
+        setSnapshot(message.state);
+        setReceivedAt(Date.now());
+      }
     });
     // Ask the dashboard for the current state, in case nothing has changed
     // since this window was opened.
@@ -40,6 +48,15 @@ export function ProjectorDisplay() {
       channel.close();
     };
   }, [channelName]);
+
+  // The dashboard publishes on every change plus whenever asked, so a long
+  // silence means its tab was closed or navigated away — worth saying, since
+  // the timers here would otherwise keep counting down convincingly.
+  useEffect(() => {
+    const id = window.setInterval(() => setNow(Date.now()), 5000);
+    return () => window.clearInterval(id);
+  }, []);
+  const stale = receivedAt !== null && now - receivedAt > STALE_AFTER_MS;
 
   const title = snapshot?.committeeName ?? committee?.name ?? CONFERENCE.name;
   const abbreviation = snapshot?.committeeAbbreviation ?? committee?.abbreviation ?? '';
@@ -60,21 +77,35 @@ export function ProjectorDisplay() {
       </header>
 
       <main className="flex flex-1 flex-col justify-center py-[2vh]">
-        <StatusLine snapshot={snapshot} />
+        {/* With no clock running the status IS the headline below, so showing
+            it here too would just print "In session" twice. */}
+        {snapshot?.primary || snapshot?.detail ? <StatusLine snapshot={snapshot} /> : null}
 
         {snapshot?.primary ? (
           <BigTimer timer={snapshot.primary.timer} />
         ) : (
-          <p className="tabular text-[20vw] font-semibold leading-none tracking-tight text-ink-700">
-            {formatClock(0)}
-          </p>
+          /* No clock is running. Showing a dimmed 00:00 here read as a broken
+             screen from across a room — near-black on black. Say what is
+             actually happening instead, at a size the back row can read. */
+          <div>
+            <p className="font-serif text-[9vw] leading-none text-white">
+              {snapshot?.status ?? 'Waiting for the Chair'}
+            </p>
+            <p className="mt-[2vh] text-[1.8vw] text-ink-300">
+              {snapshot
+                ? 'No delegation has the floor. The clock starts when a speaker is recognised.'
+                : 'Open the Chair Dashboard on this computer and press Projector.'}
+            </p>
+          </div>
         )}
 
         <div className="mt-[3vh] flex flex-wrap items-end justify-between gap-[3vw]">
           <div className="min-w-0">
-            <p className="text-[1vw] font-semibold uppercase tracking-label text-ink-400">
-              {snapshot?.speakerName ? 'Now speaking' : 'No delegation has the floor'}
-            </p>
+            {snapshot?.speakerName ? (
+              <p className="text-[1vw] font-semibold uppercase tracking-label text-ink-400">
+                Now speaking
+              </p>
+            ) : null}
             {snapshot?.speakerName ? (
               <div className="mt-[1vh] flex items-center gap-[1.4vw]">
                 <Flag
@@ -109,7 +140,13 @@ export function ProjectorDisplay() {
 
       <footer className="flex items-center justify-between border-t border-white/10 pt-[1.6vh] text-[0.95vw] text-ink-400">
         <span className="font-serif text-[1.1vw] font-semibold text-white">{CONFERENCE.edition}</span>
-        <span>{snapshot ? 'Live' : 'Waiting for the Chair Dashboard…'}</span>
+        <span className={stale ? 'text-warning' : undefined}>
+          {!snapshot
+            ? 'Waiting for the Chair Dashboard…'
+            : stale
+              ? 'Chair Dashboard not responding'
+              : 'Live'}
+        </span>
       </footer>
     </div>
   );

@@ -100,7 +100,8 @@ export interface ChairState {
   markMotionStarted: (id: string) => void;
 
   // Resolutions
-  addResolution: (input: Omit<Resolution, 'id' | 'createdAt' | 'status'>) => void;
+  /** Returns the new resolution's id so the caller can open it. */
+  addResolution: (input: Omit<Resolution, 'id' | 'createdAt' | 'status'>) => string;
   setResolutionStatus: (id: string, status: ResolutionStatus) => void;
   removeResolution: (id: string) => void;
   addAmendment: (input: Omit<Amendment, 'id' | 'createdAt' | 'status'>) => void;
@@ -572,6 +573,7 @@ function createChairState(committeeId: string) {
           `${resolution.number} created — ${resolution.title}`,
           `Main submitters: ${resolution.mainSubmitters.map(nameOf).join(', ') || 'none'}. ${resolution.signatories.length} signatories.`,
         );
+        return resolution.id;
       },
 
       setResolutionStatus(id, status) {

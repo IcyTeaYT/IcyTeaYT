@@ -74,7 +74,9 @@ export function guidedStage(state: ChairData): GuidedStage {
           : 'Count the placards for, against and abstaining, then record the result.',
       timer: null,
       actions: [
-        { label: 'Open the Voting Procedure', emphasis: 'primary', icon: 'vote', to: '/chair/voting' },
+        // Both resolutions and amendments are voted on in the Resolutions
+        // section, on the item itself.
+        { label: 'Go to the vote', emphasis: 'primary', icon: 'vote', to: '/chair/resolutions' },
       ],
     };
   }
@@ -215,4 +217,110 @@ export function guidedStage(state: ChairData): GuidedStage {
       { label: 'Unmoderated Caucus', emphasis: 'secondary', icon: 'coffee', to: '/chair/unmoderated' },
     ],
   };
+}
+
+/* ── The order of business ────────────────────────────────────────────────── */
+
+export interface ChecklistStep {
+  id: string;
+  /** The official name of this stage of the session. */
+  label: string;
+  hint: string;
+  done: boolean;
+  /** Where the chair goes to do it. */
+  to: string;
+}
+
+/**
+ * The session as a list the chair can see the whole of.
+ *
+ * Each step is marked done by reading the session rather than by anyone
+ * ticking a box, so it cannot disagree with what actually happened: the
+ * Roll Call step completes when the roll is taken, the Voting Procedure step
+ * when a Draft Resolution has actually been decided.
+ */
+export function sessionChecklist(state: ChairData): ChecklistStep[] {
+  const present = presentIds(state.attendance);
+  const total = Object.keys(state.names).length;
+
+  const agendaSet = state.motions.some(
+    (motion) => motion.type === 'set-agenda' && motion.status === 'passed',
+  );
+  const speakersOpened = state.gsl.currentId !== null || state.gsl.spoken.length > 0;
+  const debated =
+    state.log.some((entry) => entry.type === 'caucus') || state.gsl.spoken.length > 0;
+  const resolutionIntroduced = state.resolutions.some(
+    (resolution) => resolution.status !== 'draft',
+  );
+  const voted =
+    state.resolutions.some((r) => r.status === 'passed' || r.status === 'failed') ||
+    state.amendments.some((a) => a.status === 'passed' || a.status === 'failed');
+  const adjourned = state.motions.some(
+    (motion) => motion.type === 'adjourn-meeting' && motion.status === 'passed',
+  );
+
+  return [
+    {
+      id: 'roll-call',
+      label: 'Take the Roll Call',
+      hint: 'Record every delegation as Present, Present and Voting, or Absent.',
+      done: state.rollCallTakenAt !== null,
+      to: '/chair/roll-call',
+    },
+    {
+      id: 'quorum',
+      label: 'Establish Quorum',
+      hint: `${present.length} of ${total} present; ${quorumNeeded(total)} needed to open debate.`,
+      done: hasQuorum(present.length, total),
+      to: '/chair/roll-call',
+    },
+    {
+      id: 'agenda',
+      label: 'Set the Agenda',
+      hint: 'Entertain a Motion to set the order in which the topics are taken.',
+      done: agendaSet,
+      to: '/chair/motions',
+    },
+    {
+      id: 'speakers',
+      label: 'Open the General Speakers’ List',
+      hint: 'Recognise the first speaker to open general debate.',
+      done: speakersOpened,
+      to: '/chair/speakers',
+    },
+    {
+      id: 'debate',
+      label: 'Debate the Topic',
+      hint: 'Moderated and Unmoderated Caucuses, and the Motions that open them.',
+      done: debated,
+      to: '/chair/motions',
+    },
+    {
+      id: 'resolutions',
+      label: 'Introduce Draft Resolutions',
+      hint: 'Record the draft, its Main Submitters and Signatories, then introduce it.',
+      done: resolutionIntroduced,
+      to: '/chair/resolutions',
+    },
+    {
+      id: 'voting',
+      label: 'Voting Procedure',
+      hint: 'Vote on Amendments, then on the Draft Resolution itself.',
+      done: voted,
+      to: '/chair/resolutions',
+    },
+    {
+      id: 'adjourn',
+      label: 'Adjourn the Meeting',
+      hint: 'Entertain a Motion to adjourn once the committee has finished.',
+      done: adjourned,
+      to: '/chair/motions',
+    },
+  ];
+}
+
+/** The first step not yet done — where the committee actually is. */
+export function currentStepIndex(steps: ChecklistStep[]): number {
+  const index = steps.findIndex((step) => !step.done);
+  return index === -1 ? steps.length - 1 : index;
 }

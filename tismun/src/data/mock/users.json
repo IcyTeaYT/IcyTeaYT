@@ -891,24 +891,6 @@
     "Title": "Secretary-General"
   },
   {
-    "Email": "elina.sattorova@demo.tis",
-    "Full Name": "Elina Sattorova",
-    "Role": "SECRETARIAT",
-    "Committee ID": "",
-    "Country": "",
-    "Country Code": "",
-    "Title": "Deputy Secretary-General"
-  },
-  {
-    "Email": "bekhruz.karimov@demo.tis",
-    "Full Name": "Bekhruz Karimov",
-    "Role": "SECRETARIAT",
-    "Committee ID": "",
-    "Country": "",
-    "Country Code": "",
-    "Title": "Head of Chairs"
-  },
-  {
     "Email": "unassigned.delegate@demo.tis",
     "Full Name": "Sardor Nematov",
     "Role": "DELEGATE",
