@@ -2,10 +2,12 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import type { ChairStore } from '@/features/chair/store';
 import type { TimerState } from '@/lib/timer';
 import { fetchDetail, fetchOverview, isSyncReachable, pushLive } from './client';
+import { deviceId } from './device';
+import { toHandover } from './handover';
 import { localOverview, localSnapshot } from './localSource';
 import { clockOffset } from './serverClock';
 import { buildLiveSnapshot, buildLiveSummary, shiftTimer } from './snapshot';
-import type { LiveOverview, LiveSnapshot } from './types';
+import type { ControlHolder, LiveOverview, LiveSnapshot } from './types';
 
 /** Wait this long after the last change before reporting, to batch typing. */
 const PUSH_DEBOUNCE_MS = 600;
@@ -24,11 +26,26 @@ const POLL_MS = 2000;
  * chair has closed their laptop, and "stale" is exactly what the Secretariat
  * needs to be able to see.
  */
-export function useLivePush(committeeId: string, store: ChairStore): void {
+export function useLivePush(
+  committeeId: string,
+  store: ChairStore,
+  {
+    enabled,
+    onLocked,
+  }: {
+    /** Only the device running the committee reports it. */
+    enabled: boolean;
+    /** Another device has taken the committee over. */
+    onLocked: (holder: ControlHolder | null) => void;
+  },
+): void {
   const lastPushAt = useRef(0);
   const pending = useRef<number | null>(null);
+  const onLockedRef = useRef(onLocked);
+  onLockedRef.current = onLocked;
 
   useEffect(() => {
+    if (!enabled) return;
     let cancelled = false;
 
     const send = async () => {
@@ -36,11 +53,14 @@ export function useLivePush(committeeId: string, store: ChairStore): void {
       lastPushAt.current = Date.now();
       const state = store.getState();
       const offset = clockOffset();
-      await pushLive(committeeId, {
+      const result = await pushLive(committeeId, {
+        deviceId: deviceId(),
+        chairState: toHandover(state, offset),
         summary: buildLiveSummary(state, committeeId, offset),
         snapshot: buildLiveSnapshot(state, committeeId, offset),
         log: state.log.slice(0, 60).map((entry) => ({ ...entry, at: entry.at + offset })),
       });
+      if (result.kind === 'locked' && !cancelled) onLockedRef.current(result.holder);
     };
 
     const schedule = () => {
@@ -53,12 +73,9 @@ export function useLivePush(committeeId: string, store: ChairStore): void {
       }, wait);
     };
 
-    // Sync this device's clock against the server before the first report, so
-    // the timers the Secretariat sees are right from the outset rather than
-    // corrected a heartbeat later.
-    void fetchDetail(committeeId).then(() => {
-      if (!cancelled) void send();
-    });
+    // Claiming the committee already set this device's clock against the
+    // server's, so the first report can go straight away.
+    void send();
 
     const unsubscribe = store.subscribe(schedule);
     const heartbeat = window.setInterval(() => void send(), HEARTBEAT_MS);
@@ -68,8 +85,9 @@ export function useLivePush(committeeId: string, store: ChairStore): void {
       unsubscribe();
       window.clearInterval(heartbeat);
       if (pending.current !== null) window.clearTimeout(pending.current);
+      pending.current = null;
     };
-  }, [committeeId, store]);
+  }, [committeeId, store, enabled]);
 }
 
 export interface LiveView<T> {

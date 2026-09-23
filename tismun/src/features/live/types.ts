@@ -70,6 +70,10 @@ export interface LiveLogEntry extends LogEntry {
 
 /** What the chair's browser POSTs on each change. */
 export interface LivePush {
+  /** Which device is reporting; only the device holding the committee may. */
+  deviceId: string;
+  /** The full session in server time, so another device can take over from it. */
+  chairState: unknown;
   summary: LiveSummary;
   snapshot: LiveSnapshot;
   /** Only recent entries; the server keeps the full history. */
@@ -92,6 +96,36 @@ export interface LiveDetail {
   configured: boolean;
   serverNow: number;
   snapshot: LiveSnapshot | null;
+  error?: string;
+}
+
+/** The device currently running a committee, as another chair's device sees it. */
+export interface ControlHolder {
+  /** The chair's name from the sheet; null on a demo deployment. */
+  name: string | null;
+  heartbeatAt: number;
+  /** The claim has lapsed: that device has gone quiet, so anyone may pick it up. */
+  stale: boolean;
+}
+
+/** POST /api/control/:committeeId */
+export interface ControlClaim {
+  configured: boolean;
+  serverNow: number;
+  acquired?: boolean;
+  holder?: ControlHolder | null;
+  /** The session to carry on from, when another device last reported it. */
+  state?: unknown;
+  error?: string;
+}
+
+/** GET /api/control/:committeeId */
+export interface ControlStatus {
+  configured: boolean;
+  serverNow: number;
+  holder?: ControlHolder | null;
+  isYou?: boolean;
+  summary?: LiveSummary | null;
   error?: string;
 }
 

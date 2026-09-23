@@ -387,6 +387,21 @@ award until the closing ceremony; every change is logged. Awards survive
 | `N` | Next speaker |
 | `F` | Open the projector display |
 
+### Several chairs, one committee
+
+One device runs a committee at a time. The first chair to open the Chair
+Dashboard runs it; any other chair of that committee who opens it sees a
+watch-only view — who is running it, who has the floor, the timer — and a
+**Take over** button. Taking over carries the whole session across (timers
+keep running with the right time left) and switches the other device to
+watching. If the device running a committee goes quiet for 90 seconds — a
+closed laptop, a dead battery — the next chair to open the dashboard picks it
+up automatically, from where it stopped.
+
+This needs the D1 binding. The `committee_control` table is created on first
+use, so there is no extra migration to run. Without D1 each device simply runs
+on its own, as before.
+
 **Projector mode** opens `/chair/display` in a second window — put it on the
 room's projector and drive everything from the laptop. The two windows stay in
 sync over `BroadcastChannel` (same browser, same machine).

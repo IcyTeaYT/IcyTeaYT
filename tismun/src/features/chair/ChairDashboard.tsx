@@ -9,6 +9,7 @@ import {
   Loader2,
   MessagesSquare,
   Monitor,
+  MonitorCheck,
   RotateCcw,
   ScrollText,
   Volume2,
@@ -26,6 +27,7 @@ import { createChannel } from '@/lib/broadcast';
 import { cn } from '@/lib/cn';
 import { useAuth } from '@/store/auth';
 import { useCommittee } from '@/store/conference';
+import { useCommitteeControl } from '@/features/live/useControl';
 import { useLivePush } from '@/features/live/useLive';
 import { ChairProvider, useChair, useChairContext, useChairStoreApi } from './context';
 import { buildDisplayState, displayChannelName, type DisplayMessage } from './display';
@@ -40,6 +42,7 @@ import { SpeakersList } from './panes/SpeakersList';
 import { UnmoderatedCaucus } from './panes/UnmoderatedCaucus';
 import { sessionStatusOf } from './store';
 import { SHORTCUTS, useChairShortcuts } from './useChairShortcuts';
+import { WatchPanel } from './WatchPanel';
 
 interface Section {
   to: string;
@@ -95,15 +98,19 @@ function DashboardChrome() {
   const [confirmReset, setConfirmReset] = useState(false);
 
   useProjectorBroadcast();
+  // One device runs the committee at a time; any other chair's device watches
+  // until its chair presses Take over.
+  const control = useCommitteeControl(committee.id, store);
+  const running = control.mode === 'control' || control.mode === 'solo';
   // Report this committee's session so the Secretariat can watch it live.
   // No-ops harmlessly when there is no API behind the site.
-  useLivePush(committee.id, store);
+  useLivePush(committee.id, store, { enabled: running, onLocked: control.lostControl });
 
   const openProjector = useCallback(() => {
     window.open('/chair/display', 'tismun-projector', 'noopener,width=1280,height=720');
   }, []);
 
-  useChairShortcuts(openProjector);
+  useChairShortcuts(openProjector, running);
 
   // Keep the roster in the store fresh if it arrives after first paint.
   useEffect(() => {
@@ -119,7 +126,7 @@ function DashboardChrome() {
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-3">
             <p className="label-micro">Chair Dashboard</p>
-            <Badge tone={statusTone}>{status}</Badge>
+            {running ? <Badge tone={statusTone}>{status}</Badge> : null}
           </div>
           <h1 className="mt-2.5 font-serif text-[26px] leading-tight text-ink-900 sm:text-[30px]">
             {committee.name}
@@ -127,114 +134,135 @@ function DashboardChrome() {
           <p className="mt-1.5 text-sm text-muted">
             {committee.abbreviation} · {committee.room} · {roster.length} delegations
           </p>
+          {control.mode === 'control' ? (
+            <p className="mt-1.5 flex items-center gap-1.5 text-xs text-muted">
+              <MonitorCheck size={13} strokeWidth={1.5} className="text-teal-600" />
+              Running on this device. Other chairs can watch, or take over.
+            </p>
+          ) : null}
         </div>
 
-        <div className="flex flex-wrap items-center gap-2">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={toggleSound}
-            aria-pressed={soundEnabled}
-            title={soundEnabled ? 'Chime on' : 'Chime off'}
-          >
-            {soundEnabled ? (
-              <Volume2 size={15} strokeWidth={1.5} />
-            ) : (
-              <VolumeX size={15} strokeWidth={1.5} />
-            )}
-            {soundEnabled ? 'Chime on' : 'Chime off'}
-          </Button>
-          <Button variant="secondary" size="sm" onClick={openProjector}>
-            <Monitor size={15} strokeWidth={1.5} />
-            Projector
-          </Button>
-          <Button variant="ghost" size="sm" onClick={() => setConfirmReset(true)}>
-            <RotateCcw size={15} strokeWidth={1.5} />
-            Reset session
-          </Button>
-        </div>
+        {running ? (
+          <div className="flex flex-wrap items-center gap-2">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={toggleSound}
+              aria-pressed={soundEnabled}
+              title={soundEnabled ? 'Chime on' : 'Chime off'}
+            >
+              {soundEnabled ? (
+                <Volume2 size={15} strokeWidth={1.5} />
+              ) : (
+                <VolumeX size={15} strokeWidth={1.5} />
+              )}
+              {soundEnabled ? 'Chime on' : 'Chime off'}
+            </Button>
+            <Button variant="secondary" size="sm" onClick={openProjector}>
+              <Monitor size={15} strokeWidth={1.5} />
+              Projector
+            </Button>
+            <Button variant="ghost" size="sm" onClick={() => setConfirmReset(true)}>
+              <RotateCcw size={15} strokeWidth={1.5} />
+              Reset session
+            </Button>
+          </div>
+        ) : null}
       </header>
 
-      <div className="mt-6 grid gap-6 lg:grid-cols-[236px_minmax(0,1fr)]">
-        {/* Sidebar on desktop, a scrolling tab strip on smaller screens. */}
-        {/* min-w-0: a grid item defaults to min-width:auto, which would let this
+      {control.mode === 'checking' ? (
+        <Card className="mt-6">
+          <div className="flex items-center gap-3 px-5 py-10 text-sm text-muted">
+            <Loader2 size={16} strokeWidth={1.5} className="animate-spin" />
+            Checking whether another chair is running this committee…
+          </div>
+        </Card>
+      ) : control.mode === 'watching' ? (
+        <div className="mt-6">
+          <WatchPanel control={control} abbreviation={committee.abbreviation} />
+        </div>
+      ) : (
+        <div className="mt-6 grid gap-6 lg:grid-cols-[236px_minmax(0,1fr)]">
+          {/* Sidebar on desktop, a scrolling tab strip on smaller screens. */}
+          {/* min-w-0: a grid item defaults to min-width:auto, which would let this
             nav grow to fit the whole tool list and push the page sideways on a
             phone instead of letting the strip below scroll. */}
-        <nav aria-label="Chair tools" className="min-w-0 lg:sticky lg:top-24 lg:self-start">
-          <ul className="no-scrollbar -mx-5 flex gap-1.5 overflow-x-auto px-5 lg:mx-0 lg:flex-col lg:gap-0.5 lg:overflow-visible lg:px-0">
-            {SECTIONS.map((section, index) => (
-              <li
-                key={section.to}
-                className={
-                  index === 1
-                    ? 'shrink-0 lg:mt-2 lg:border-t lg:border-hairline lg:pt-2'
-                    : 'shrink-0'
-                }
-              >
-                <NavLink
-                  to={section.to}
-                  className={({ isActive }) =>
-                    cn(
-                      'flex items-center gap-2.5 whitespace-nowrap rounded-control px-3 py-2.5 text-sm font-medium transition-colors duration-200',
-                      isActive
-                        ? 'bg-teal-50 text-teal-800'
-                        : 'text-ink-600 hover:bg-ink-50 hover:text-ink-900',
-                    )
+          <nav aria-label="Chair tools" className="min-w-0 lg:sticky lg:top-24 lg:self-start">
+            <ul className="no-scrollbar -mx-5 flex gap-1.5 overflow-x-auto px-5 lg:mx-0 lg:flex-col lg:gap-0.5 lg:overflow-visible lg:px-0">
+              {SECTIONS.map((section, index) => (
+                <li
+                  key={section.to}
+                  className={
+                    index === 1
+                      ? 'shrink-0 lg:mt-2 lg:border-t lg:border-hairline lg:pt-2'
+                      : 'shrink-0'
                   }
                 >
-                  <section.icon size={16} strokeWidth={1.5} className="shrink-0" />
-                  {section.label}
-                </NavLink>
-              </li>
-            ))}
-          </ul>
-
-          <div className="mt-5 hidden rounded-card border border-hairline bg-surface p-4 lg:block">
-            <p className="label-micro">Shortcuts</p>
-            <dl className="mt-3 space-y-2">
-              {SHORTCUTS.map((shortcut) => (
-                <div key={shortcut.keys} className="flex items-center justify-between gap-3">
-                  <dt>
-                    <kbd className="rounded border border-hairline bg-canvas px-1.5 py-0.5 font-sans text-[11px] font-semibold text-ink-600">
-                      {shortcut.keys}
-                    </kbd>
-                  </dt>
-                  <dd className="text-xs text-muted">{shortcut.action}</dd>
-                </div>
+                  <NavLink
+                    to={section.to}
+                    className={({ isActive }) =>
+                      cn(
+                        'flex items-center gap-2.5 whitespace-nowrap rounded-control px-3 py-2.5 text-sm font-medium transition-colors duration-200',
+                        isActive
+                          ? 'bg-teal-50 text-teal-800'
+                          : 'text-ink-600 hover:bg-ink-50 hover:text-ink-900',
+                      )
+                    }
+                  >
+                    <section.icon size={16} strokeWidth={1.5} className="shrink-0" />
+                    {section.label}
+                  </NavLink>
+                </li>
               ))}
-            </dl>
-          </div>
-        </nav>
+            </ul>
 
-        <div className="min-w-0">
-          {error ? (
-            <Card>
-              <EmptyState title="Roster unavailable" body={error} />
-            </Card>
-          ) : loading ? (
-            <Card>
-              <div className="flex items-center gap-3 px-5 py-10 text-sm text-muted">
-                <Loader2 size={16} strokeWidth={1.5} className="animate-spin" />
-                Loading the committee roster…
-              </div>
-            </Card>
-          ) : (
-            <Routes>
-              <Route index element={<Navigate to="/chair/guided" replace />} />
-              <Route path="guided" element={<Guided />} />
-              <Route path="roll-call" element={<RollCall />} />
-              <Route path="speakers" element={<SpeakersList />} />
-              <Route path="moderated" element={<ModeratedCaucus />} />
-              <Route path="unmoderated" element={<UnmoderatedCaucus />} />
-              <Route path="motions" element={<Motions />} />
-              <Route path="resolutions" element={<Resolutions />} />
-              <Route path="awards" element={<Awards />} />
-              <Route path="log" element={<SessionLog />} />
-              <Route path="*" element={<Navigate to="/chair/guided" replace />} />
-            </Routes>
-          )}
+            <div className="mt-5 hidden rounded-card border border-hairline bg-surface p-4 lg:block">
+              <p className="label-micro">Shortcuts</p>
+              <dl className="mt-3 space-y-2">
+                {SHORTCUTS.map((shortcut) => (
+                  <div key={shortcut.keys} className="flex items-center justify-between gap-3">
+                    <dt>
+                      <kbd className="rounded border border-hairline bg-canvas px-1.5 py-0.5 font-sans text-[11px] font-semibold text-ink-600">
+                        {shortcut.keys}
+                      </kbd>
+                    </dt>
+                    <dd className="text-xs text-muted">{shortcut.action}</dd>
+                  </div>
+                ))}
+              </dl>
+            </div>
+          </nav>
+
+          <div className="min-w-0">
+            {error ? (
+              <Card>
+                <EmptyState title="Roster unavailable" body={error} />
+              </Card>
+            ) : loading ? (
+              <Card>
+                <div className="flex items-center gap-3 px-5 py-10 text-sm text-muted">
+                  <Loader2 size={16} strokeWidth={1.5} className="animate-spin" />
+                  Loading the committee roster…
+                </div>
+              </Card>
+            ) : (
+              <Routes>
+                <Route index element={<Navigate to="/chair/guided" replace />} />
+                <Route path="guided" element={<Guided />} />
+                <Route path="roll-call" element={<RollCall />} />
+                <Route path="speakers" element={<SpeakersList />} />
+                <Route path="moderated" element={<ModeratedCaucus />} />
+                <Route path="unmoderated" element={<UnmoderatedCaucus />} />
+                <Route path="motions" element={<Motions />} />
+                <Route path="resolutions" element={<Resolutions />} />
+                <Route path="awards" element={<Awards />} />
+                <Route path="log" element={<SessionLog />} />
+                <Route path="*" element={<Navigate to="/chair/guided" replace />} />
+              </Routes>
+            )}
+          </div>
         </div>
-      </div>
+      )}
 
       <ConfirmDialog
         open={confirmReset}

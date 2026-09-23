@@ -1,4 +1,5 @@
 import { fail, json, type Env } from '../_lib/env';
+import { ensureControlTable, holderOf, readControl, validDeviceId } from '../_lib/control';
 import { describeDbError, guardRead, guardWrite, LOG_RETENTION_MS } from '../_lib/live';
 
 /**
@@ -41,6 +42,10 @@ export const onRequestGet: PagesFunction<Env, 'committeeId'> = async ({ request,
 };
 
 interface PushBody {
+  /** The reporting device. Only the device holding the committee may report. */
+  deviceId?: unknown;
+  /** The full session, in server time, so another device can take over. */
+  chairState?: unknown;
   summary?: unknown;
   snapshot?: unknown;
   log?: { id: string; at: number; type: string; summary: string; detail?: string }[];
@@ -64,6 +69,45 @@ export const onRequestPost: PagesFunction<Env, 'committeeId'> = async ({ request
     return fail('Expected a JSON body.', 400);
   }
   if (!body.summary || !body.snapshot) return fail('Missing summary or snapshot.', 400);
+  if (!validDeviceId(body.deviceId)) return fail('Missing device id — reload the page.', 400);
+  const deviceId = body.deviceId;
+
+  // Report only while this device holds the committee. The claim is refreshed
+  // and the full session stored in the same statement; if another device has
+  // taken over, nothing changes and this one is told to stand down.
+  try {
+    await ensureControlTable(env.DB);
+    const claim = await env.DB.prepare(
+      `INSERT INTO committee_control
+         (committee_id, device_id, holder_name, heartbeat_at, state, state_device_id)
+       VALUES (?1, ?2, ?3, ?4, ?5, ?2)
+       ON CONFLICT(committee_id) DO UPDATE SET
+         holder_name = excluded.holder_name,
+         heartbeat_at = excluded.heartbeat_at,
+         state = COALESCE(excluded.state, committee_control.state),
+         state_device_id = CASE WHEN excluded.state IS NULL
+           THEN committee_control.state_device_id ELSE excluded.device_id END
+       WHERE committee_control.device_id = excluded.device_id`,
+    )
+      .bind(
+        committeeId,
+        deviceId,
+        guard.user?.['Full Name']?.trim() || null,
+        serverNow,
+        body.chairState ? JSON.stringify(body.chairState) : null,
+      )
+      .run();
+
+    if (!claim.meta.changes) {
+      const row = await readControl(env.DB, committeeId);
+      return json(
+        { configured: true, serverNow, locked: true, holder: holderOf(row, serverNow) },
+        409,
+      );
+    }
+  } catch (error) {
+    return json({ configured: false, serverNow, error: describeDbError(error) });
+  }
 
   const summary = body.summary as { updatedAt?: number };
   const statements = [

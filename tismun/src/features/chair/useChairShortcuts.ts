@@ -14,10 +14,12 @@ function isTypingTarget(target: EventTarget | null): boolean {
  * is actually doing, so the chair never has to think about which panel has
  * focus: Space always starts the timer that matters right now.
  */
-export function useChairShortcuts(openProjector: () => void): void {
+export function useChairShortcuts(openProjector: () => void, enabled = true): void {
   const store = useChairStoreApi();
 
   useEffect(() => {
+    // A device that is only watching must not start another chair's timers.
+    if (!enabled) return;
     const handler = (event: KeyboardEvent) => {
       if (event.metaKey || event.ctrlKey || event.altKey) return;
       if (isTypingTarget(event.target)) return;
@@ -58,7 +60,7 @@ export function useChairShortcuts(openProjector: () => void): void {
 
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, [store, openProjector]);
+  }, [store, openProjector, enabled]);
 }
 
 export const SHORTCUTS: { keys: string; action: string }[] = [

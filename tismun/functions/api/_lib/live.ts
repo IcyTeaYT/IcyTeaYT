@@ -1,5 +1,6 @@
 import { isLiveMode, type Env } from './env';
 import { currentUser } from './session';
+import type { SheetUser } from './sheets';
 
 /**
  * Who may read and write live session state.
@@ -10,9 +11,12 @@ import { currentUser } from './session';
  * definition. The README says so in as many words.
  */
 
-export type Guard = { ok: true } | { ok: false; status: number; error: string };
+/** On success, `user` is the signed-in account, or null in demo mode. */
+export type Guard =
+  | { ok: true; user: SheetUser | null }
+  | { ok: false; status: number; error: string };
 
-const allow: Guard = { ok: true };
+const allow: Guard = { ok: true, user: null };
 
 /** Only a chair may report their OWN committee's session. */
 export async function guardWrite(
@@ -31,7 +35,7 @@ export async function guardWrite(
   if ((user['Committee ID'] ?? '').trim() !== committeeId) {
     return { ok: false, status: 403, error: 'You can only report your own committee.' };
   }
-  return allow;
+  return { ok: true, user };
 }
 
 /** The Secretariat sees every committee; a chair sees only their own. */
@@ -46,10 +50,10 @@ export async function guardRead(
   if (!user) return { ok: false, status: 401, error: 'Not signed in.' };
 
   const role = (user.Role ?? '').trim().toUpperCase();
-  if (role === 'SECRETARIAT' || role === 'ADMIN') return allow;
+  if (role === 'SECRETARIAT' || role === 'ADMIN') return { ok: true, user };
 
   if (committeeId && role === 'CHAIR' && (user['Committee ID'] ?? '').trim() === committeeId) {
-    return allow;
+    return { ok: true, user };
   }
   return { ok: false, status: 403, error: 'Live session state is for the Secretariat.' };
 }
