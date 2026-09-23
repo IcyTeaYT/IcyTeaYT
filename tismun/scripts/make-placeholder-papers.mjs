@@ -165,7 +165,7 @@ function buildContent(c) {
   y = MARGIN;
   rule(width, 0.8, HAIRLINE);
   y -= 16;
-  text('Tashkent International School Model United Nations  ·  secretariat@tismun.uz', { font: 'F4', size: 8.5, color: MUTED });
+  text('Tashkent International School Model United Nations  ·  robb@tashschool.org', { font: 'F4', size: 8.5, color: MUTED });
 
   return ops.join('\n');
 }

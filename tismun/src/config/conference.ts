@@ -15,7 +15,7 @@ export const CONFERENCE = {
   host: 'Tashkent International School',
   hostShort: 'TIS',
   /** Where delegates are told to write when something is missing. */
-  secretariatEmail: 'secretariat@tismun.uz',
+  secretariatEmail: 'robb@tashschool.org',
 } as const;
 
 /**
