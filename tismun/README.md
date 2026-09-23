@@ -132,6 +132,7 @@ Two optional extras, if every participant has a school Workspace account:
 | --- | --- | --- |
 | `SCHOOL_DOMAIN` | `tashkentis.uz` | Refuses any account not on that domain, even before the sheet is checked |
 | `VITE_SCHOOL_DOMAIN` | `tashkentis.uz` | Names the domain in the login hint |
+| `TEST_LOGINS` | `on` | Shows **Test Delegate / Test Chair / Test Secretariat** buttons on the login page, so people can try the site without being on the sheet (shared accounts, GA 2). **Delete it before the conference** — while it is on, anyone with the link can sign in as the Secretariat. Deleting it also signs out anyone using a test account. |
 
 Without them the login page still tells everyone to use their school Google
 account.

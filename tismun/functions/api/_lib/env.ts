@@ -33,6 +33,12 @@ export interface Env {
    * instead of seeing other people's devices.
    */
   DB?: D1Database;
+  /**
+   * Optional. Set to "on" to show Test as Delegate / Chair / Secretariat
+   * buttons on the login page, for trying the site before the conference.
+   * Delete it to switch them off. See _lib/testLogins.ts.
+   */
+  TEST_LOGINS?: string;
 }
 
 /**

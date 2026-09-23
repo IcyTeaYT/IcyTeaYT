@@ -1,5 +1,6 @@
 import type { Env } from './env';
 import { importServiceAccountKey, signServiceAccountJwt } from './jwt';
+import { testAccountByEmail } from './testLogins';
 
 /**
  * Read-only access to the conference Google Sheet through a service account.
@@ -130,6 +131,10 @@ export interface SheetCommittee {
 }
 
 export async function findUser(env: Env, email: string): Promise<SheetUser | null> {
+  // Shared test accounts, while TEST_LOGINS=on. They are not in the sheet.
+  const test = testAccountByEmail(env, email);
+  if (test) return test;
+
   const rows = (await readTab(env, USERS_TAB)) as unknown as SheetUser[];
   const needle = email.trim().toLowerCase();
   return rows.find((row) => (row.Email ?? '').trim().toLowerCase() === needle) ?? null;
