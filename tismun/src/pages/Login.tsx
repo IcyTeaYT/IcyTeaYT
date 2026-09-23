@@ -27,6 +27,8 @@ export function Login() {
   const [signingIn, setSigningIn] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const googleSlot = useRef<HTMLDivElement>(null);
+  const [google, setGoogle] = useState<'loading' | 'ready' | 'failed'>('loading');
+  const [googleAttempt, setGoogleAttempt] = useState(0);
 
   useEffect(() => {
     if (!isDemoMode || !dataSource.listDemoUsers) return;
@@ -36,11 +38,16 @@ export function Login() {
     });
   }, []);
 
-  // Google's button is rendered by Google's own script into this slot.
+  // Google's button is rendered by Google's own script into this slot. It is
+  // drawn at a fixed width, so it is drawn again when the slot's width changes
+  // (a phone turning sideways), and a failed load can be retried.
   useEffect(() => {
     if (!isGoogleConfigured() || !googleSlot.current) return;
     const slot = googleSlot.current;
-    void renderGoogleButton(slot, async (idToken) => {
+    let cancelled = false;
+    let drawnWidth = 0;
+
+    const onCredential = async (idToken: string) => {
       setSigningIn(true);
       setError(null);
       const result = await exchangeCredential(idToken);
@@ -51,8 +58,32 @@ export function Login() {
         setError(result.error ?? COPY.login.wrongDomain);
         setSigningIn(false);
       }
-    }).catch(() => setError('Google sign-in is unavailable right now.'));
-  }, [restore, navigate]);
+    };
+
+    const draw = () => {
+      drawnWidth = slot.clientWidth;
+      renderGoogleButton(slot, onCredential)
+        .then(() => {
+          if (!cancelled) setGoogle('ready');
+        })
+        .catch(() => {
+          if (!cancelled) setGoogle('failed');
+        });
+    };
+
+    setGoogle('loading');
+    draw();
+
+    const observer = new ResizeObserver(() => {
+      if (Math.abs(slot.clientWidth - drawnWidth) > 8) draw();
+    });
+    observer.observe(slot);
+
+    return () => {
+      cancelled = true;
+      observer.disconnect();
+    };
+  }, [restore, navigate, googleAttempt]);
 
   const { defaultDelegate, defaultChair, defaultSecretariat, grouped } = useMemo(() => {
     const groups = new Map<string, User[]>();
@@ -98,7 +129,9 @@ export function Login() {
   return (
     <div className="grid min-h-screen lg:grid-cols-[1.05fr_1fr]">
       {/* Identity panel */}
-      <div className="relative isolate flex flex-col justify-between overflow-hidden bg-canvas px-6 py-10 sm:px-12 lg:py-14">
+      {/* On a phone this panel is kept short, so "Sign in with Google" is on the
+          first screen rather than below a full-height title. */}
+      <div className="relative isolate flex flex-col justify-between overflow-hidden bg-canvas px-6 py-6 sm:px-12 sm:py-10 lg:py-14">
         <GlobeLines className="absolute -right-24 top-1/2 -z-10 h-[520px] w-[520px] -translate-y-1/2 opacity-[0.07] lg:-right-32 lg:h-[640px] lg:w-[640px]" />
 
         <motion.div
@@ -106,23 +139,23 @@ export function Login() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
         >
-          <Logo className="h-auto w-[200px] sm:w-[240px]" priority />
+          <Logo className="h-auto w-[150px] sm:w-[240px]" priority />
         </motion.div>
 
         <motion.div
-          className="mt-12 max-w-md lg:mt-0"
+          className="mt-5 max-w-md sm:mt-12 lg:mt-0"
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.45, delay: 0.08, ease: [0.22, 1, 0.36, 1] }}
         >
           <p className="label-micro">{CONFERENCE.edition}</p>
-          <h1 className="mt-3 font-serif text-[30px] leading-[1.18] text-ink-900 sm:text-[38px]">
+          <h1 className="mt-2 font-serif text-[22px] leading-[1.2] text-ink-900 sm:mt-3 sm:text-[38px] sm:leading-[1.18]">
             {CONFERENCE.fullName}
           </h1>
-          <p className="mt-4 text-sm text-muted">
+          <p className="mt-2 text-sm text-muted sm:mt-4">
             {formatDateRange()} · {CONFERENCE.venue}
           </p>
-          <HostedBy className="mt-7" />
+          <HostedBy className="mt-4 sm:mt-7" />
         </motion.div>
 
         <p className="mt-12 hidden text-xs text-muted lg:block">
@@ -131,7 +164,7 @@ export function Login() {
       </div>
 
       {/* Sign-in panel */}
-      <div className="flex items-center justify-center border-t border-hairline bg-surface px-6 py-12 sm:px-12 lg:border-l lg:border-t-0">
+      <div className="flex items-start justify-center border-t border-hairline bg-surface px-6 py-7 sm:items-center sm:px-12 sm:py-12 lg:border-l lg:border-t-0">
         <motion.div
           className="w-full max-w-sm"
           initial={{ opacity: 0, y: 10 }}
@@ -143,7 +176,23 @@ export function Login() {
 
           <div className="mt-7">
             {isGoogleConfigured() ? (
-              <div ref={googleSlot} className="min-h-[44px] [color-scheme:light]" />
+              <>
+                <div ref={googleSlot} className="min-h-[44px] [color-scheme:light]" />
+                {google === 'loading' ? (
+                  <p className="-mt-[44px] flex h-[44px] items-center justify-center gap-2 rounded-control border border-hairline text-sm text-muted">
+                    <Loader2 size={15} strokeWidth={1.5} className="animate-spin" />
+                    Loading Google sign-in…
+                  </p>
+                ) : null}
+                {google === 'failed' ? (
+                  <div className="mt-2 flex flex-wrap items-center justify-between gap-2 rounded-control border border-danger-border bg-danger-soft px-3 py-2.5 text-sm text-danger">
+                    Google sign-in could not load.
+                    <Button variant="secondary" size="sm" onClick={() => setGoogleAttempt((n) => n + 1)}>
+                      Try again
+                    </Button>
+                  </div>
+                ) : null}
+              </>
             ) : (
               <div className="rounded-control border border-dashed border-hairline bg-canvas px-4 py-3.5">
                 <div className="flex items-center justify-between gap-3">

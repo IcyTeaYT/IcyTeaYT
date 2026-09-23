@@ -71,7 +71,10 @@ export function loadGoogleIdentity(): Promise<GoogleIdentity> {
     script.defer = true;
     script.addEventListener('load', () => {
       if (window.google?.accounts?.id) resolve(window.google);
-      else reject(new Error('Google Identity Services loaded but did not initialise.'));
+      else {
+        scriptPromise = null;
+        reject(new Error('Google Identity Services loaded but did not initialise.'));
+      }
     });
     script.addEventListener('error', () => {
       scriptPromise = null;
@@ -82,20 +85,33 @@ export function loadGoogleIdentity(): Promise<GoogleIdentity> {
   return scriptPromise;
 }
 
-/** Draw Google's own button into `parent`. Resolves once it is on screen. */
+/** Whoever is showing the button now; Google calls back through this. */
+let credentialHandler: ((idToken: string) => void) | null = null;
+let initialised = false;
+
+/**
+ * Draw Google's own button into `parent`. Resolves once it is on screen.
+ * Safe to call again — to redraw at a new width, or after a failed load.
+ */
 export async function renderGoogleButton(
   parent: HTMLElement,
   onCredential: (idToken: string) => void,
 ): Promise<void> {
   const google = await loadGoogleIdentity();
-  google.accounts.id.initialize({
-    client_id: GOOGLE_CLIENT_ID,
-    callback: (response) => {
-      if (response.credential) onCredential(response.credential);
-    },
-    auto_select: false,
-    cancel_on_tap_outside: true,
-  });
+  credentialHandler = onCredential;
+  // Initialise once: Google warns when it is initialised again, and the
+  // handler above lets a later caller take over the callback anyway.
+  if (!initialised) {
+    google.accounts.id.initialize({
+      client_id: GOOGLE_CLIENT_ID,
+      callback: (response) => {
+        if (response.credential) credentialHandler?.(response.credential);
+      },
+      auto_select: false,
+      cancel_on_tap_outside: true,
+    });
+    initialised = true;
+  }
   parent.replaceChildren();
   google.accounts.id.renderButton(parent, {
     type: 'standard',
@@ -104,7 +120,8 @@ export async function renderGoogleButton(
     text: 'signin_with',
     shape: 'rectangular',
     logo_alignment: 'center',
-    width: parent.clientWidth || 320,
+    // Google's button takes a fixed width between 200 and 400 pixels.
+    width: Math.min(400, Math.max(200, parent.clientWidth || 320)),
   });
 }
 
