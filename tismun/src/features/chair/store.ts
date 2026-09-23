@@ -1,7 +1,7 @@
 import { create, type StoreApi, type UseBoundStore } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { AWARD_LABEL, type AwardType } from '@/config/awards';
-import { DEFAULTS, MOTION_BY_ID, VOTING, type MotionTypeId } from '@/config/rules';
+import { DEFAULTS, MOTION_BY_ID, PRESENTATION, VOTING, type MotionTypeId } from '@/config/rules';
 import type { Delegation } from '@/data/source/types';
 import { requiredVotes, resolveVote } from '@/lib/majority';
 import { formatClock } from '@/lib/time';
@@ -14,8 +14,8 @@ import type {
   GslState,
   LogEntry,
   LogType,
-  ModeratedState,
   Motion,
+  PresentationState,
   Resolution,
   ResolutionStatus,
   RollCallChoice,
@@ -31,7 +31,7 @@ const uid = (): string =>
     : `id-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
 
 /** Which clock an action is talking about. */
-export type TimerKey = 'gsl' | 'modTotal' | 'modSpeaker' | 'unmod';
+export type TimerKey = 'gsl' | 'unmod' | 'present';
 
 export interface ChairState {
   /** Delegation id → country name, so log entries read in plain English. */
@@ -41,8 +41,12 @@ export interface ChairState {
   rollCallTakenAt: number | null;
   attendance: Record<string, Attendance>;
   gsl: GslState;
-  moderated: ModeratedState;
   unmoderated: UnmoderatedState;
+  presentation: PresentationState;
+  /** How many draft resolution presentations have been completed. */
+  presentationsHeld: number;
+  /** How many Unmoderated Caucuses have been opened. */
+  unmoderatedHeld: number;
   motions: Motion[];
   resolutions: Resolution[];
   amendments: Amendment[];
@@ -78,25 +82,25 @@ export interface ChairState {
   gslYield: (kind: 'chair' | 'delegate' | 'questions', toDelegationId?: string) => void;
   gslClear: () => void;
 
-  // Moderated caucus
-  modStart: (input: { topic: string; proposedBy: string; totalSec: number; speakingSec: number }) => void;
-  modAddSpeaker: (delegationId: string) => void;
-  modRemoveSpeaker: (delegationId: string) => void;
-  modNext: () => void;
-  modExtend: (seconds: number) => void;
-  modEnd: () => void;
-
   // Unmoderated caucus
   unmodStart: (input: { purpose: string; proposedBy: string; durationSec: number }) => void;
   unmodExtend: (seconds: number) => void;
   unmodEnd: () => void;
 
+  // Presentation of a draft resolution
+  presentStart: (input: { resolutionId: string | null; presenterId: string | null; durationSec: number }) => void;
+  /** Move straight on to the question-and-answer period, on a fresh clock. */
+  presentOpenQuestions: (durationSec: number) => void;
+  /** Finish — whether or not there was a question-and-answer period. */
+  presentEnd: () => void;
+
   // Motions
+  /** Returns the new motion's id, so the caller can take it straight to a vote. */
   raiseMotion: (input: {
     type: MotionTypeId;
     proposedBy: string;
     params: Record<string, string | number>;
-  }) => void;
+  }) => string;
   setMotionVotes: (id: string, votesFor: number, votesAgainst: number) => void;
   decideMotion: (id: string, presentCount: number) => void;
   withdrawMotion: (id: string) => void;
@@ -143,23 +147,19 @@ const emptyGsl = (): GslState => ({
   timer: createTimer(DEFAULTS.speakingTimeSec * 1000),
 });
 
-const emptyModerated = (): ModeratedState => ({
-  active: false,
-  topic: '',
-  proposedBy: null,
-  speakingTimeSec: DEFAULTS.moderatedSpeakerSec,
-  totalTimer: createTimer(DEFAULTS.moderatedTotalSec * 1000),
-  speakerTimer: createTimer(DEFAULTS.moderatedSpeakerSec * 1000),
-  queue: [],
-  spoken: [],
-  currentDelegationId: null,
-});
-
 const emptyUnmoderated = (): UnmoderatedState => ({
   active: false,
   purpose: '',
   proposedBy: null,
   timer: createTimer(DEFAULTS.unmoderatedSec * 1000),
+});
+
+export const emptyPresentation = (): PresentationState => ({
+  active: false,
+  resolutionId: null,
+  presenterId: null,
+  phase: 'presenting',
+  timer: createTimer(PRESENTATION.draftSec * 1000),
 });
 
 const initialState = () => ({
@@ -168,8 +168,10 @@ const initialState = () => ({
   rollCallTakenAt: null as number | null,
   attendance: {} as Record<string, Attendance>,
   gsl: emptyGsl(),
-  moderated: emptyModerated(),
   unmoderated: emptyUnmoderated(),
+  presentation: emptyPresentation(),
+  presentationsHeld: 0,
+  unmoderatedHeld: 0,
   motions: [] as Motion[],
   resolutions: [] as Resolution[],
   amendments: [] as Amendment[],
@@ -198,12 +200,10 @@ function createChairState(committeeId: string) {
         switch (key) {
           case 'gsl':
             return { gsl: { ...state.gsl, timer: transform(state.gsl.timer) } };
-          case 'modTotal':
-            return { moderated: { ...state.moderated, totalTimer: transform(state.moderated.totalTimer) } };
-          case 'modSpeaker':
-            return { moderated: { ...state.moderated, speakerTimer: transform(state.moderated.speakerTimer) } };
           case 'unmod':
             return { unmoderated: { ...state.unmoderated, timer: transform(state.unmoderated.timer) } };
+          case 'present':
+            return { presentation: { ...state.presentation, timer: transform(state.presentation.timer) } };
         }
       });
     };
@@ -400,99 +400,18 @@ function createChairState(committeeId: string) {
         log('speaker', 'Speakers’ list cleared');
       },
 
-      /* ── Moderated caucus ──────────────────────────────────────────────── */
-
-      modStart({ topic, proposedBy, totalSec, speakingSec }) {
-        set({
-          moderated: {
-            active: true,
-            topic,
-            proposedBy,
-            speakingTimeSec: speakingSec,
-            // The caucus clock runs from the moment the caucus opens: its time
-            // is spent whether or not anyone is on their feet yet.
-            totalTimer: startTimer(createTimer(totalSec * 1000), Date.now()),
-            speakerTimer: createTimer(speakingSec * 1000),
-            queue: [],
-            spoken: [],
-            currentDelegationId: null,
-          },
-          unmoderated: emptyUnmoderated(),
-        });
-        log(
-          'caucus',
-          `Moderated caucus opened — ${topic}`,
-          `Proposed by ${nameOf(proposedBy)}. ${formatClock(totalSec * 1000)} total, ${formatClock(
-            speakingSec * 1000,
-          )} per speaker.`,
-        );
-      },
-
-      modAddSpeaker(delegationId) {
-        set((state) => {
-          if (
-            state.moderated.queue.includes(delegationId) ||
-            state.moderated.currentDelegationId === delegationId
-          ) {
-            return {};
-          }
-          return { moderated: { ...state.moderated, queue: [...state.moderated.queue, delegationId] } };
-        });
-      },
-
-      modRemoveSpeaker(delegationId) {
-        set((state) => ({
-          moderated: {
-            ...state.moderated,
-            queue: state.moderated.queue.filter((id) => id !== delegationId),
-          },
-        }));
-      },
-
-      modNext() {
-        const state = get();
-        const { queue, currentDelegationId, speakingTimeSec } = state.moderated;
-        const next = queue[0];
-
-        set({
-          moderated: {
-            ...state.moderated,
-            queue: queue.slice(1),
-            spoken: currentDelegationId ? [currentDelegationId, ...state.moderated.spoken] : state.moderated.spoken,
-            currentDelegationId: next ?? null,
-            // The total clock keeps running; only the speaker's clock restarts.
-            speakerTimer: startTimer(createTimer(speakingTimeSec * 1000), Date.now()),
-          },
-        });
-
-        if (next) log('speaker', `${nameOf(next)} recognised in moderated caucus`);
-      },
-
-      modExtend(seconds) {
-        set((state) => ({
-          moderated: { ...state.moderated, totalTimer: adjustTimer(state.moderated.totalTimer, seconds * 1000) },
-        }));
-        log('caucus', `Moderated caucus extended by ${formatClock(seconds * 1000)}`, get().moderated.topic);
-      },
-
-      modEnd() {
-        const topic = get().moderated.topic;
-        set({ moderated: emptyModerated() });
-        if (topic) log('caucus', 'Moderated caucus closed', topic);
-      },
-
       /* ── Unmoderated caucus ────────────────────────────────────────────── */
 
       unmodStart({ purpose, proposedBy, durationSec }) {
-        set({
+        set((state) => ({
           unmoderated: {
             active: true,
             purpose,
             proposedBy,
             timer: startTimer(createTimer(durationSec * 1000), Date.now()),
           },
-          moderated: emptyModerated(),
-        });
+          unmoderatedHeld: state.unmoderatedHeld + 1,
+        }));
         log(
           'caucus',
           `Unmoderated caucus opened — ${formatClock(durationSec * 1000)}`,
@@ -513,6 +432,55 @@ function createChairState(committeeId: string) {
         if (wasActive) log('caucus', 'Unmoderated caucus closed');
       },
 
+      /* ── Presentation of a draft resolution ────────────────────────────── */
+
+      presentStart({ resolutionId, presenterId, durationSec }) {
+        set({
+          presentation: {
+            active: true,
+            resolutionId,
+            presenterId,
+            phase: 'presenting',
+            // The presenter is on their feet: the clock starts with them.
+            timer: startTimer(createTimer(durationSec * 1000), Date.now()),
+          },
+        });
+        const resolution = get().resolutions.find((entry) => entry.id === resolutionId);
+        log(
+          'presentation',
+          `${presenterId ? nameOf(presenterId) : 'The Main Submitter'} presents ${resolution?.number ?? 'the draft resolution'}`,
+          `${resolution ? `${resolution.title}. ` : ''}Presentation time ${formatClock(durationSec * 1000)}.`,
+        );
+      },
+
+      presentOpenQuestions(durationSec) {
+        const current = get().presentation;
+        if (!current.active) return;
+        set({
+          presentation: {
+            ...current,
+            phase: 'questions',
+            timer: startTimer(createTimer(durationSec * 1000), Date.now()),
+          },
+        });
+        log('presentation', 'Question-and-answer period opened', `${formatClock(durationSec * 1000)}.`);
+      },
+
+      presentEnd() {
+        const current = get().presentation;
+        if (!current.active) return;
+        set((state) => ({
+          presentation: emptyPresentation(),
+          presentationsHeld: state.presentationsHeld + 1,
+        }));
+        log(
+          'presentation',
+          current.phase === 'questions'
+            ? 'Question-and-answer period closed'
+            : 'Presentation finished — no question-and-answer period',
+        );
+      },
+
       /* ── Motions ───────────────────────────────────────────────────────── */
 
       raiseMotion({ type, proposedBy, params }) {
@@ -530,6 +498,7 @@ function createChairState(committeeId: string) {
         };
         set((state) => ({ motions: [motion, ...state.motions] }));
         log('motion', `${nameOf(proposedBy)} moved: ${MOTION_BY_ID[type].label}`, describeParams(params));
+        return motion.id;
       },
 
       setMotionVotes(id, votesFor, votesAgainst) {
@@ -867,12 +836,28 @@ export function chairStoreFor(committeeId: string): ChairStore {
   const store = create<ChairState>()(
     persist(createChairState(committeeId), {
       name: `tismun.chair.${committeeId}`,
-      version: 1,
+      version: 2,
+      // Version 2 is the simplified procedure: no Moderated Caucus, and no
+      // Divide the Question. A session saved before then may still hold them.
+      migrate: (persisted) => {
+        const state = { ...(persisted as Partial<ChairState> & { moderated?: unknown }) };
+        delete state.moderated;
+        if (state.motions) state.motions = knownMotions(state.motions);
+        return state as ChairState;
+      },
     }),
   );
   stores.set(committeeId, store);
   return store;
 }
+
+/**
+ * Motions of a type the rules still define. A session saved, or handed over,
+ * from an older version may hold motion types that have since been removed,
+ * and every screen that shows a motion looks its rule up by type.
+ */
+export const knownMotions = (motions: Motion[]): Motion[] =>
+  motions.filter((motion) => motion.type in MOTION_BY_ID);
 
 /* ── Derived selectors ───────────────────────────────────────────────────── */
 
@@ -908,8 +893,10 @@ export type ChairData = Pick<
   | 'rollCallTakenAt'
   | 'attendance'
   | 'gsl'
-  | 'moderated'
   | 'unmoderated'
+  | 'presentation'
+  | 'presentationsHeld'
+  | 'unmoderatedHeld'
   | 'motions'
   | 'resolutions'
   | 'amendments'
@@ -919,9 +906,13 @@ export type ChairData = Pick<
 >;
 
 export function sessionStatusOf(state: ChairData): SessionStatus {
-  if (state.vote) return 'Voting procedure';
-  if (state.moderated.active) return 'Moderated caucus';
-  if (state.unmoderated.active) return 'Unmoderated caucus';
+  if (state.vote) return 'Voting Procedure';
+  if (state.presentation?.active) {
+    return state.presentation.phase === 'questions'
+      ? 'Question-and-Answer Period'
+      : 'Presentation of the Draft Resolution';
+  }
+  if (state.unmoderated.active) return 'Unmoderated Caucus';
   if (state.gsl.currentId) return 'General Speakers’ List';
   if (state.rollCallTakenAt) return 'In session';
   return 'Not in session';

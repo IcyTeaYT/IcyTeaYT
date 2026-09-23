@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Flag } from '@/components/Flag';
 import { CONFERENCE } from '@/config/conference';
 import { createChannel } from '@/lib/broadcast';
@@ -79,7 +79,7 @@ export function ProjectorDisplay() {
       <main className="flex flex-1 flex-col justify-center py-[2vh]">
         {/* With no clock running the status IS the headline below, so showing
             it here too would just print "In session" twice. */}
-        {snapshot?.primary || snapshot?.detail ? <StatusLine snapshot={snapshot} /> : null}
+        {snapshot && (snapshot.primary || snapshot.detail) ? <StatusLine snapshot={snapshot} /> : null}
 
         {snapshot?.primary ? (
           <BigTimer timer={snapshot.primary.timer} />
@@ -152,20 +152,16 @@ export function ProjectorDisplay() {
   );
 }
 
-function StatusLine({ snapshot }: { snapshot: DisplayState | null }) {
-  const label = useMemo(() => {
-    if (!snapshot) return 'Waiting for the Chair Dashboard';
-    if (snapshot.status === 'Moderated caucus' && snapshot.detail) {
-      return `Moderated caucus — ${snapshot.detail}`;
-    }
-    if (snapshot.status === 'Unmoderated caucus' && snapshot.detail) {
-      return `Unmoderated caucus — ${snapshot.detail}`;
-    }
-    return snapshot.status;
-  }, [snapshot]);
-
+/** What the committee is doing, with what it is for underneath: an Unmoderated
+ *  Caucus and its purpose, or a presentation and the draft being presented. */
+function StatusLine({ snapshot }: { snapshot: DisplayState }) {
   return (
-    <p className="mb-[1.5vh] truncate text-[1.9vw] font-medium text-teal-300">{label}</p>
+    <div className="mb-[1.5vh] min-w-0">
+      <p className="truncate text-[1.9vw] font-medium text-teal-300">{snapshot.status}</p>
+      {snapshot.detail ? (
+        <p className="mt-[0.4vh] truncate text-[1.6vw] text-ink-200">{snapshot.detail}</p>
+      ) : null}
+    </div>
   );
 }
 

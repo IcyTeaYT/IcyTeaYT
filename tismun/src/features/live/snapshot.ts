@@ -26,13 +26,19 @@ function timersOf(state: ChairData): {
   queueIds: string[];
   detail: string;
 } {
-  if (state.moderated.active) {
+  if (state.presentation.active) {
+    const resolution = state.resolutions.find(
+      (entry) => entry.id === state.presentation.resolutionId,
+    );
     return {
-      primary: { label: 'Speaking time', timer: state.moderated.speakerTimer },
-      secondary: { label: 'Caucus remaining', timer: state.moderated.totalTimer },
-      speakerId: state.moderated.currentDelegationId,
-      queueIds: state.moderated.queue,
-      detail: state.moderated.topic,
+      primary: {
+        label: state.presentation.phase === 'questions' ? 'Questions' : 'Presentation time',
+        timer: state.presentation.timer,
+      },
+      secondary: null,
+      speakerId: state.presentation.presenterId,
+      queueIds: [],
+      detail: resolution ? `${resolution.number} — ${resolution.title}` : '',
     };
   }
 

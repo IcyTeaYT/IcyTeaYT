@@ -20,9 +20,10 @@ const STATUS_TONE: Record<string, 'neutral' | 'teal' | 'warning'> = {
   'Not in session': 'neutral',
   'In session': 'teal',
   'General Speakers’ List': 'teal',
-  'Moderated caucus': 'teal',
-  'Unmoderated caucus': 'teal',
-  'Voting procedure': 'warning',
+  'Presentation of the Draft Resolution': 'teal',
+  'Question-and-Answer Period': 'teal',
+  'Unmoderated Caucus': 'teal',
+  'Voting Procedure': 'warning',
 };
 
 const LOG_TONE: Record<LogType, 'neutral' | 'teal' | 'warning' | 'success'> = {
@@ -33,6 +34,7 @@ const LOG_TONE: Record<LogType, 'neutral' | 'teal' | 'warning' | 'success'> = {
   motion: 'warning',
   resolution: 'neutral',
   vote: 'success',
+  presentation: 'neutral',
   award: 'success',
 };
 

@@ -25,22 +25,24 @@ export interface GslState {
   timer: TimerState;
 }
 
-export interface ModeratedState {
-  active: boolean;
-  topic: string;
-  proposedBy: string | null;
-  speakingTimeSec: number;
-  totalTimer: TimerState;
-  speakerTimer: TimerState;
-  queue: string[];
-  spoken: string[];
-  currentDelegationId: string | null;
-}
-
 export interface UnmoderatedState {
   active: boolean;
   purpose: string;
   proposedBy: string | null;
+  timer: TimerState;
+}
+
+/**
+ * A delegation presenting a draft resolution to the committee, followed by an
+ * optional question-and-answer period on the same clock.
+ */
+export interface PresentationState {
+  active: boolean;
+  /** The draft resolution being presented, if it is on file. */
+  resolutionId: string | null;
+  /** The presenting delegation — normally the Main Submitter. */
+  presenterId: string | null;
+  phase: 'presenting' | 'questions';
   timer: TimerState;
 }
 
@@ -140,6 +142,7 @@ export type LogType =
   | 'motion'
   | 'resolution'
   | 'vote'
+  | 'presentation'
   | 'award';
 
 export const LOG_LABEL: Record<LogType, string> = {
@@ -150,6 +153,7 @@ export const LOG_LABEL: Record<LogType, string> = {
   motion: 'Motion',
   resolution: 'Resolution',
   vote: 'Vote',
+  presentation: 'Presentation',
   award: 'Award',
 };
 
@@ -166,9 +170,10 @@ export type SessionStatus =
   | 'Not in session'
   | 'In session'
   | 'General Speakers’ List'
-  | 'Moderated caucus'
-  | 'Unmoderated caucus'
-  | 'Voting procedure';
+  | 'Presentation of the Draft Resolution'
+  | 'Question-and-Answer Period'
+  | 'Unmoderated Caucus'
+  | 'Voting Procedure';
 
 /**
  * An award as given. The country and delegate names are copied in at the time,

@@ -44,15 +44,21 @@ export function buildDisplayState(state: ChairState, committee: Committee): Disp
   const nameOf = (id: string | null | undefined) => (id ? (state.names[id] ?? null) : null);
   const codeOf = (id: string | null | undefined) => (id ? (state.codes[id] ?? null) : null);
 
-  if (state.moderated.active) {
+  if (state.presentation.active) {
+    const resolution = state.resolutions.find(
+      (entry) => entry.id === state.presentation.resolutionId,
+    );
     return {
       ...base,
-      detail: state.moderated.topic,
-      speakerName: nameOf(state.moderated.currentDelegationId),
-      speakerCode: codeOf(state.moderated.currentDelegationId),
-      primary: { label: 'Speaking time', timer: state.moderated.speakerTimer },
-      secondary: { label: 'Caucus remaining', timer: state.moderated.totalTimer },
-      queue: state.moderated.queue.slice(0, 5).map((id) => state.names[id] ?? '—'),
+      detail: resolution ? `${resolution.number} — ${resolution.title}` : '',
+      speakerName: nameOf(state.presentation.presenterId),
+      speakerCode: codeOf(state.presentation.presenterId),
+      primary: {
+        label: state.presentation.phase === 'questions' ? 'Questions' : 'Presentation time',
+        timer: state.presentation.timer,
+      },
+      secondary: null,
+      queue: [],
     };
   }
 

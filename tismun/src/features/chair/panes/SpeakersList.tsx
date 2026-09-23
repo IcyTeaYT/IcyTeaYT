@@ -16,7 +16,7 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { GripVertical, Plus, SkipForward, Trash2 } from 'lucide-react';
+import { Coffee, GripVertical, Plus, SkipForward, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import { Flag } from '@/components/Flag';
 import { Badge } from '@/components/ui/Badge';
@@ -28,6 +28,7 @@ import { formatClock } from '@/lib/time';
 import { DelegationPicker } from '../components/DelegationPicker';
 import { Pane } from '../components/Pane';
 import { TimerPanel } from '../components/TimerPanel';
+import { UnmodMotionDialog } from '../components/UnmodMotionDialog';
 import { useChair, useChairContext, useDelegationLookup } from '../context';
 import type { SpeakerEntry } from '../types';
 
@@ -94,6 +95,7 @@ export function SpeakersList() {
   const clear = useChair((state) => state.gslClear);
 
   const [yieldTarget, setYieldTarget] = useState<string | null>(null);
+  const [motionOpen, setMotionOpen] = useState(false);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
@@ -167,6 +169,16 @@ export function SpeakersList() {
             </CardBody>
           </Card>
 
+          {/* The motion delegates raise most often between speeches — one tap. */}
+          <Button
+            variant="secondary"
+            onClick={() => setMotionOpen(true)}
+            className="h-14 w-full justify-start gap-3 border-teal-300 bg-teal-50/50 px-5 text-[15px] text-teal-800 hover:bg-teal-50"
+          >
+            <Coffee size={19} strokeWidth={1.5} />
+            Motion for an Unmoderated Caucus
+          </Button>
+
           {/* Queue */}
           <Card>
             <CardHeader
@@ -174,7 +186,7 @@ export function SpeakersList() {
               title={`${upcoming.length} waiting`}
               action={
                 <DelegationPicker
-                  className="w-56"
+                  className="w-44 sm:w-56"
                   delegations={presentRoster}
                   value={null}
                   onChange={add}
@@ -309,6 +321,7 @@ export function SpeakersList() {
           </Card>
         </div>
       </div>
+      <UnmodMotionDialog open={motionOpen} onClose={() => setMotionOpen(false)} />
     </Pane>
   );
 }

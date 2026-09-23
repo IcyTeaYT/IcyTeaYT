@@ -1,4 +1,9 @@
-import type { ChairData, ChairState } from '@/features/chair/store';
+import {
+  emptyPresentation,
+  knownMotions,
+  type ChairData,
+  type ChairState,
+} from '@/features/chair/store';
 import { shiftTimer } from './snapshot';
 
 /**
@@ -16,8 +21,10 @@ const CHAIR_DATA_KEYS = [
   'rollCallTakenAt',
   'attendance',
   'gsl',
-  'moderated',
   'unmoderated',
+  'presentation',
+  'presentationsHeld',
+  'unmoderatedHeld',
   'motions',
   'resolutions',
   'amendments',
@@ -44,12 +51,8 @@ export function shiftChairData(data: ChairData, deltaMs: number): ChairData {
     ...data,
     rollCallTakenAt: shiftOptional(data.rollCallTakenAt, deltaMs),
     gsl: { ...data.gsl, timer: shiftTimer(data.gsl.timer, deltaMs) },
-    moderated: {
-      ...data.moderated,
-      totalTimer: shiftTimer(data.moderated.totalTimer, deltaMs),
-      speakerTimer: shiftTimer(data.moderated.speakerTimer, deltaMs),
-    },
     unmoderated: { ...data.unmoderated, timer: shiftTimer(data.unmoderated.timer, deltaMs) },
+    presentation: { ...data.presentation, timer: shiftTimer(data.presentation.timer, deltaMs) },
     motions: data.motions.map((motion) => ({
       ...motion,
       raisedAt: motion.raisedAt + deltaMs,
@@ -85,7 +88,7 @@ export function toHandover(state: ChairState, offsetToServer: number): ChairData
 export function fromHandover(raw: unknown, offsetToServer: number): ChairData | null {
   if (!raw || typeof raw !== 'object') return null;
   const data = raw as Partial<ChairData>;
-  if (!data.gsl || !data.moderated || !data.unmoderated) return null;
+  if (!data.gsl || !data.unmoderated) return null;
   return shiftChairData(
     {
       names: data.names ?? {},
@@ -93,9 +96,13 @@ export function fromHandover(raw: unknown, offsetToServer: number): ChairData | 
       rollCallTakenAt: data.rollCallTakenAt ?? null,
       attendance: data.attendance ?? {},
       gsl: data.gsl,
-      moderated: data.moderated,
       unmoderated: data.unmoderated,
-      motions: data.motions ?? [],
+      presentation: data.presentation ?? emptyPresentation(),
+      presentationsHeld: data.presentationsHeld ?? 0,
+      unmoderatedHeld: data.unmoderatedHeld ?? 0,
+      // Sent by a device on an older version, the session may still hold
+      // motion types that have since been removed from the rules.
+      motions: knownMotions(data.motions ?? []),
       resolutions: data.resolutions ?? [],
       amendments: data.amendments ?? [],
       vote: data.vote ?? null,

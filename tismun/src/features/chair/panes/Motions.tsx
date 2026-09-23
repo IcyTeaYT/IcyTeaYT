@@ -1,19 +1,21 @@
-import { Check, Gavel, Minus, PlayCircle, Plus, X } from 'lucide-react';
+import { Check, Gavel, PlayCircle, X } from 'lucide-react';
 import { useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { Flag } from '@/components/Flag';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { Card, CardBody, CardHeader } from '@/components/ui/Card';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { Field, Input, Select } from '@/components/ui/Field';
-import { MAJORITY_LABEL, MOTIONS, MOTION_BY_ID, type MotionTypeId } from '@/config/rules';
+import { flowFor } from '@/config/flows';
+import { DEFAULTS, MAJORITY_LABEL, MOTIONS, MOTION_BY_ID, type MotionTypeId } from '@/config/rules';
 import { requiredVotes } from '@/lib/majority';
 import { cn } from '@/lib/cn';
 import { formatClock, formatTimeOfDay } from '@/lib/time';
 import { DelegationPicker } from '../components/DelegationPicker';
 import { DurationInput } from '../components/DurationInput';
 import { Pane } from '../components/Pane';
+import { VoteCounter } from '../components/VoteCounter';
 import { useChair, useChairContext, useDelegationLookup } from '../context';
 import type { Motion } from '../types';
 
@@ -31,6 +33,19 @@ function byDisruptiveness(a: Motion, b: Motion): number {
   return a.raisedAt - b.raisedAt;
 }
 
+/**
+ * The starting values for a motion's fields. An Unmoderated Caucus is for
+ * whatever this committee's flow says by default — editing the draft
+ * resolution on Day 1 — until the delegate moving it says otherwise.
+ */
+export function defaultParams(type: MotionTypeId, committeeId: string): Record<string, string | number> {
+  const params: Record<string, string | number> = Object.fromEntries(
+    MOTION_BY_ID[type].fields.map((field) => [field.key, field.defaultValue]),
+  );
+  if (type === 'unmoderated-caucus') params.purpose = flowFor(committeeId).unmoderatedPurpose;
+  return params;
+}
+
 function paramSummary(motion: Motion): string {
   const parts: string[] = [];
   for (const field of MOTION_BY_ID[motion.type].fields) {
@@ -46,9 +61,15 @@ function paramSummary(motion: Motion): string {
 }
 
 export function Motions() {
-  const { roster } = useChairContext();
+  const { roster, committee } = useChairContext();
   const { nameOf, codeOf } = useDelegationLookup();
   const navigate = useNavigate();
+  // Guided Mode can open this screen with a motion already chosen, e.g. the
+  // Motion to Set the Agenda or to Close Debate.
+  const location = useLocation();
+  const requested = (location.state as { motion?: MotionTypeId } | null)?.motion;
+  const initialType: MotionTypeId =
+    requested && requested in MOTION_BY_ID ? requested : 'unmoderated-caucus';
 
   const motions = useChair((state) => state.motions);
   const attendance = useChair((state) => state.attendance);
@@ -57,11 +78,12 @@ export function Motions() {
   const decide = useChair((state) => state.decideMotion);
   const withdraw = useChair((state) => state.withdrawMotion);
   const markStarted = useChair((state) => state.markMotionStarted);
+  const startUnmoderated = useChair((state) => state.unmodStart);
 
-  const [type, setType] = useState<MotionTypeId>('moderated-caucus');
+  const [type, setType] = useState<MotionTypeId>(initialType);
   const [proposedBy, setProposedBy] = useState<string | null>(null);
   const [params, setParams] = useState<Record<string, string | number>>(() =>
-    Object.fromEntries(MOTION_BY_ID['moderated-caucus'].fields.map((f) => [f.key, f.defaultValue])),
+    defaultParams(initialType, committee.id),
   );
 
   const rule = MOTION_BY_ID[type];
@@ -82,28 +104,24 @@ export function Motions() {
 
   const changeType = (nextType: MotionTypeId) => {
     setType(nextType);
-    setParams(Object.fromEntries(MOTION_BY_ID[nextType].fields.map((f) => [f.key, f.defaultValue])));
+    setParams(defaultParams(nextType, committee.id));
   };
 
   const missingRequired = rule.fields.some(
     (field) => field.required && String(params[field.key] ?? '').trim() === '',
   );
 
+  // A passed Motion for an Unmoderated Caucus opens the caucus as moved:
+  // its duration, its purpose, the delegation that moved it.
   const startCaucus = (motion: Motion) => {
-    const kind = MOTION_BY_ID[motion.type].startsCaucus;
-    if (!kind) return;
+    if (!MOTION_BY_ID[motion.type].startsCaucus) return;
     markStarted(motion.id);
-    navigate(kind === 'moderated' ? '/chair/moderated' : '/chair/unmoderated', {
-      state: {
-        prefill: {
-          topic: String(motion.params.topic ?? ''),
-          purpose: String(motion.params.purpose ?? ''),
-          proposedBy: motion.proposedBy,
-          totalSec: Number(motion.params.totalTimeSec ?? 0) || undefined,
-          speakingSec: Number(motion.params.speakingTimeSec ?? 0) || undefined,
-        },
-      },
+    startUnmoderated({
+      purpose: String(motion.params.purpose ?? ''),
+      proposedBy: motion.proposedBy,
+      durationSec: Number(motion.params.totalTimeSec ?? 0) || DEFAULTS.unmoderatedSec,
     });
+    navigate('/chair/unmoderated');
   };
 
   return (
@@ -315,7 +333,7 @@ export function Motions() {
                 onClick={() => {
                   if (!proposedBy) return;
                   raiseMotion({ type, proposedBy, params });
-                  setParams(Object.fromEntries(rule.fields.map((f) => [f.key, f.defaultValue])));
+                  setParams(defaultParams(type, committee.id));
                 }}
               >
                 <Gavel size={15} strokeWidth={1.5} />
@@ -334,30 +352,5 @@ export function Motions() {
         </div>
       </div>
     </Pane>
-  );
-}
-
-function VoteCounter({
-  label,
-  value,
-  onChange,
-}: {
-  label: string;
-  value: number;
-  onChange: (value: number) => void;
-}) {
-  return (
-    <div className="flex items-center gap-2">
-      <span className="label-micro w-12">{label}</span>
-      <div className="flex items-center gap-1">
-        <Button variant="quiet" size="sm" iconOnly onClick={() => onChange(value - 1)} aria-label={`One fewer ${label}`}>
-          <Minus size={13} strokeWidth={1.5} />
-        </Button>
-        <span className="tabular w-8 text-center text-sm font-semibold text-ink-900">{value}</span>
-        <Button variant="quiet" size="sm" iconOnly onClick={() => onChange(value + 1)} aria-label={`One more ${label}`}>
-          <Plus size={13} strokeWidth={1.5} />
-        </Button>
-      </div>
-    </div>
   );
 }

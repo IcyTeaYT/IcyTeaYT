@@ -7,7 +7,7 @@ import {
   Gavel,
   ListOrdered,
   Loader2,
-  MessagesSquare,
+  Mic,
   Monitor,
   MonitorCheck,
   RotateCcw,
@@ -33,8 +33,8 @@ import { ChairProvider, useChair, useChairContext, useChairStoreApi } from './co
 import { buildDisplayState, displayChannelName, type DisplayMessage } from './display';
 import { Awards } from './panes/Awards';
 import { Guided } from './panes/Guided';
-import { ModeratedCaucus } from './panes/ModeratedCaucus';
 import { Motions } from './panes/Motions';
+import { Presentation } from './panes/Presentation';
 import { Resolutions } from './panes/Resolutions';
 import { RollCall } from './panes/RollCall';
 import { SessionLog } from './panes/SessionLog';
@@ -48,15 +48,21 @@ interface Section {
   to: string;
   label: string;
   icon: LucideIcon;
+  /** The committee's main debate tool, shown first and set apart. */
+  featured?: boolean;
 }
 
-/** Guided Mode leads; the rest are the full tools, in order of procedure. */
+/**
+ * Guided Mode leads. The Unmoderated Caucus comes next and stands out: in the
+ * simplified procedure it is where most of the debate happens. The rest are the
+ * full tools, in order of procedure.
+ */
 const SECTIONS: Section[] = [
   { to: '/chair/guided', label: 'Guided Mode', icon: Compass },
+  { to: '/chair/unmoderated', label: 'Unmoderated Caucus', icon: Coffee, featured: true },
   { to: '/chair/roll-call', label: 'Roll Call', icon: ClipboardCheck },
   { to: '/chair/speakers', label: 'Speakers’ List', icon: ListOrdered },
-  { to: '/chair/moderated', label: 'Moderated Caucus', icon: MessagesSquare },
-  { to: '/chair/unmoderated', label: 'Unmoderated Caucus', icon: Coffee },
+  { to: '/chair/presentation', label: 'Presentation', icon: Mic },
   { to: '/chair/motions', label: 'Motions', icon: Gavel },
   { to: '/chair/resolutions', label: 'Resolutions', icon: FileText },
   { to: '/chair/awards', label: 'Awards', icon: Award },
@@ -118,7 +124,7 @@ function DashboardChrome() {
   }, [roster, store]);
 
   const statusTone =
-    status === 'Not in session' ? 'neutral' : status === 'Voting procedure' ? 'warning' : 'teal';
+    status === 'Not in session' ? 'neutral' : status === 'Voting Procedure' ? 'warning' : 'teal';
 
   return (
     <div className="mx-auto max-w-[1400px] px-5 pb-16 pt-7 sm:px-6">
@@ -205,7 +211,10 @@ function DashboardChrome() {
                         'flex items-center gap-2.5 whitespace-nowrap rounded-control px-3 py-2.5 text-sm font-medium transition-colors duration-200',
                         isActive
                           ? 'bg-teal-50 text-teal-800'
-                          : 'text-ink-600 hover:bg-ink-50 hover:text-ink-900',
+                          : section.featured
+                            ? 'border border-teal-200 bg-teal-50/40 font-semibold text-teal-800 hover:bg-teal-50'
+                            : 'text-ink-600 hover:bg-ink-50 hover:text-ink-900',
+                        section.featured && isActive && 'border border-teal-300 font-semibold',
                       )
                     }
                   >
@@ -251,7 +260,7 @@ function DashboardChrome() {
                 <Route path="guided" element={<Guided />} />
                 <Route path="roll-call" element={<RollCall />} />
                 <Route path="speakers" element={<SpeakersList />} />
-                <Route path="moderated" element={<ModeratedCaucus />} />
+                <Route path="presentation" element={<Presentation />} />
                 <Route path="unmoderated" element={<UnmoderatedCaucus />} />
                 <Route path="motions" element={<Motions />} />
                 <Route path="resolutions" element={<Resolutions />} />

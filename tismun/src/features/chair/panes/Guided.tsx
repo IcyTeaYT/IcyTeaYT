@@ -3,8 +3,11 @@ import {
   Check,
   ClipboardCheck,
   Coffee,
+  FileText,
   Gavel,
   ListOrdered,
+  MessageCircleQuestion,
+  Mic,
   Pause,
   Play,
   Plus,
@@ -15,17 +18,18 @@ import {
   Vote as VoteIcon,
   type LucideIcon,
 } from 'lucide-react';
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/Button';
 import { Card, CardBody, CardHeader } from '@/components/ui/Card';
-import { DEFAULTS, QUORUM } from '@/config/rules';
+import { DEFAULTS, PRESENTATION, QUORUM } from '@/config/rules';
 import { hasQuorum, quorumNeeded, simpleMajority, twoThirdsMajority } from '@/lib/majority';
 import { cn } from '@/lib/cn';
 import { isRunning } from '@/lib/timer';
 import { Pane, Stat } from '../components/Pane';
 import { TimerDisplay } from '../components/TimerPanel';
-import { useChair, useChairStoreApi } from '../context';
+import { UnmodMotionDialog } from '../components/UnmodMotionDialog';
+import { useChair, useChairContext, useChairStoreApi } from '../context';
 import {
   currentStepIndex,
   guidedStage,
@@ -39,7 +43,6 @@ import { presentAndVotingIds, presentIds, type ChairState, type TimerKey } from 
 const ICONS: Record<GuidedAction['icon'], LucideIcon> = {
   clipboard: ClipboardCheck,
   play: Play,
-  pause: Pause,
   skip: SkipForward,
   plus: Plus,
   stop: Square,
@@ -48,28 +51,19 @@ const ICONS: Record<GuidedAction['icon'], LucideIcon> = {
   vote: VoteIcon,
   users: Users,
   coffee: Coffee,
-  reset: RotateCcw,
+  mic: Mic,
+  question: MessageCircleQuestion,
+  file: FileText,
 };
 
-function runCommand(state: ChairState, command: GuidedCommand): void {
+/** Commands that act on the session directly. The one that opens a dialog is handled by the view. */
+function runCommand(state: ChairState, command: Exclude<GuidedCommand, 'unmod-motion'>): void {
   switch (command) {
     case 'mark-all-present':
       state.markAllPresent();
       break;
-    case 'take-roll-call':
-      state.takeRollCall();
-      break;
     case 'gsl-next':
       state.gslNext();
-      break;
-    case 'mod-next':
-      state.modNext();
-      break;
-    case 'mod-extend':
-      state.modExtend(DEFAULTS.extensionSec);
-      break;
-    case 'mod-end':
-      state.modEnd();
       break;
     case 'unmod-extend':
       state.unmodExtend(DEFAULTS.extensionSec);
@@ -77,8 +71,11 @@ function runCommand(state: ChairState, command: GuidedCommand): void {
     case 'unmod-end':
       state.unmodEnd();
       break;
-    case 'timer-toggle':
-    case 'timer-reset':
+    case 'present-questions':
+      state.presentOpenQuestions(PRESENTATION.qaSec);
+      break;
+    case 'present-end':
+      state.presentEnd();
       break;
   }
 }
@@ -94,15 +91,17 @@ function runCommand(state: ChairState, command: GuidedCommand): void {
  */
 export function Guided() {
   const store = useChairStoreApi();
+  const { committee } = useChairContext();
   const navigate = useNavigate();
+  const [motionOpen, setMotionOpen] = useState(false);
 
   // Select the state object itself, then derive. Both helpers build a fresh
   // object on every call, and zustand compares what a selector returns by
   // reference — returning a new object each render reads as a change each
   // render and spins.
   const state = useChair((snapshot) => snapshot);
-  const guide = useMemo(() => guidedStage(state), [state]);
-  const steps = useMemo(() => sessionChecklist(state), [state]);
+  const guide = useMemo(() => guidedStage(state, committee.id), [state, committee.id]);
+  const steps = useMemo(() => sessionChecklist(state, committee.id), [state, committee.id]);
   const currentIndex = currentStepIndex(steps);
   const completed = steps.filter((step) => step.done).length;
 
@@ -114,7 +113,8 @@ export function Guided() {
   const onFloor = motions.filter((motion) => motion.status === 'floor').length;
 
   const perform = (action: GuidedAction) => {
-    if (action.to) navigate(action.to);
+    if (action.to) navigate(action.to, action.motion ? { state: { motion: action.motion } } : undefined);
+    else if (action.command === 'unmod-motion') setMotionOpen(true);
     else if (action.command) runCommand(store.getState(), action.command);
   };
 
@@ -216,6 +216,8 @@ export function Guided() {
           </dl>
         </CardBody>
       </Card>
+
+      <UnmodMotionDialog open={motionOpen} onClose={() => setMotionOpen(false)} />
     </Pane>
   );
 }
@@ -258,11 +260,9 @@ function CurrentStep({
   const timerFor = (key: TimerKey) =>
     key === 'gsl'
       ? state.gsl.timer
-      : key === 'modSpeaker'
-        ? state.moderated.speakerTimer
-        : key === 'modTotal'
-          ? state.moderated.totalTimer
-          : state.unmoderated.timer;
+      : key === 'present'
+        ? state.presentation.timer
+        : state.unmoderated.timer;
 
   const activeTimer = guide.timer ? timerFor(guide.timer.key) : null;
   const running = activeTimer ? isRunning(activeTimer) : false;

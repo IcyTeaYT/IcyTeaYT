@@ -280,8 +280,8 @@ a delegate opening the site from London at 22:00 on 14 October is looking at
 
 ### A note on terminology
 
-Every label in the interface is the official term — Moderated Caucus,
-Unmoderated Caucus, General Speakers' List, Roll Call, Present and Voting,
+Every label in the interface is the official term — Unmoderated Caucus,
+General Speakers' List, Roll Call, Present and Voting,
 Motion, Yield, Draft Resolution, Friendly and Unfriendly Amendment, Close
 Debate, Voting Procedure, Quorum, Simple Majority, Two-Thirds Majority. Nothing
 is renamed or simplified. Guided Mode makes it easy to *find* the right control,
@@ -348,12 +348,24 @@ clears it.
 
 ### Guided Mode
 
-The dashboard opens on **Guided Mode**: the whole session as a numbered list —
-Take the Roll Call, Establish Quorum, Set the Agenda, Open the General
-Speakers' List, Debate the Topic, Introduce Draft Resolutions, Voting
-Procedure, Adjourn the Meeting — with the step the committee is actually on
-opened up, showing the clock that matters and large buttons for what to do
-next. Underneath sit the standing figures a chair is asked for constantly:
+The dashboard opens on **Guided Mode**: the committee's order of business as a
+numbered list, with the step the committee is actually on opened up, showing
+the clock that matters and large buttons for what to do next. The Day 1 flow:
+
+1. Roll Call
+2. Setting the Agenda
+3. Presentation of the Draft Resolution — the Main Submitter presents
+   (3:00 by default; 2, 3 or 5 minutes one tap each), then an optional
+   question-and-answer period (3:00 by default) that can be skipped
+4. General Speakers' List
+5. Motion for an Unmoderated Caucus
+6. Unmoderated Caucus
+7. Back to the General Speakers' List, or another Unmoderated Caucus
+8. Close Debate
+9. Voting Procedure
+10. Result
+
+Flows are per committee and live in `src/config/flows.ts`. Underneath sit the standing figures a chair is asked for constantly:
 present, quorum, simple and two-thirds majorities.
 
 Steps tick themselves off by reading the session, not by anyone marking them,
@@ -365,6 +377,24 @@ Which stage is offered follows the rules of procedure: Voting Procedure
 outranks a caucus, a caucus outranks Motions on the floor, and nothing opens
 before quorum is met. The tools remain in the sidebar for everything Guided
 Mode does not put one tap away.
+
+### Simplified procedure
+
+TISMUN runs a simplified procedure, since most delegates are new to MUN: there
+is **no Moderated Caucus**. Debate happens on the General Speakers' List and in
+**Unmoderated Caucuses**, the committee's main tool — first in the sidebar, set
+up with one tap (5, 10, 15 or 20 minutes; the delegation that moved it; a
+purpose that defaults to "Editing the draft resolution"). **Motion for an
+Unmoderated Caucus** is a one-tap button on the Speakers' List and in Guided
+Mode: it puts the motion on the floor, takes the vote and opens the caucus in
+one dialog. The projector shows "Unmoderated Caucus" with its purpose
+underneath.
+
+The motions are Unmoderated Caucus, Set / Change Speaking Time, Open / Set the
+Agenda, Introduce a Draft Resolution, Introduce an Amendment, Close Debate, Move
+into Voting Procedure, Table the Topic, Suspend the Meeting and Adjourn the
+Meeting. They live in `src/config/rules.ts`, which stays editable should a
+future year want the Moderated Caucus back.
 
 ### Voting
 

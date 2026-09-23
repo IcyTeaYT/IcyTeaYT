@@ -1,24 +1,27 @@
-import { AlertTriangle, PlayCircle, Plus, Square } from 'lucide-react';
-import { useEffect, useState } from 'react';
-import { useLocation } from 'react-router-dom';
+import { AlertTriangle, Gavel, PlayCircle, Plus, Square } from 'lucide-react';
+import { useState } from 'react';
 import { Card, CardBody, CardHeader } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Field, Input } from '@/components/ui/Field';
+import { flowFor } from '@/config/flows';
 import { DEFAULTS } from '@/config/rules';
 import { formatClock } from '@/lib/time';
 import { useTimer } from '@/lib/useTimer';
 import { DelegationPicker } from '../components/DelegationPicker';
-import { DurationInput } from '../components/DurationInput';
+import { DurationPresets } from '../components/DurationPresets';
 import { Pane } from '../components/Pane';
 import { TimerPanel } from '../components/TimerPanel';
+import { UnmodMotionDialog } from '../components/UnmodMotionDialog';
 import { useChair, useChairContext, useDelegationLookup } from '../context';
-import type { CaucusPrefill } from './ModeratedCaucus';
 
+/**
+ * The committee's main debate tool. TISMUN runs a simplified procedure with no
+ * Moderated Caucus: between speeches on the General Speakers' List, delegates
+ * move Unmoderated Caucuses to work on the draft resolution together.
+ */
 export function UnmoderatedCaucus() {
-  const { roster } = useChairContext();
+  const { roster, committee } = useChairContext();
   const { nameOf } = useDelegationLookup();
-  const location = useLocation();
-  const prefill = (location.state as { prefill?: CaucusPrefill } | null)?.prefill;
 
   const unmoderated = useChair((state) => state.unmoderated);
   const attendance = useChair((state) => state.attendance);
@@ -26,16 +29,10 @@ export function UnmoderatedCaucus() {
   const extend = useChair((state) => state.unmodExtend);
   const end = useChair((state) => state.unmodEnd);
 
-  const [purpose, setPurpose] = useState('');
+  const [purpose, setPurpose] = useState(() => flowFor(committee.id).unmoderatedPurpose);
   const [proposedBy, setProposedBy] = useState<string | null>(null);
   const [durationSec, setDurationSec] = useState<number>(DEFAULTS.unmoderatedSec);
-
-  useEffect(() => {
-    if (!prefill) return;
-    if (prefill.purpose) setPurpose(prefill.purpose);
-    if (prefill.proposedBy) setProposedBy(prefill.proposedBy);
-    if (prefill.totalSec) setDurationSec(prefill.totalSec);
-  }, [prefill]);
+  const [motionOpen, setMotionOpen] = useState(false);
 
   const presentRoster = roster.filter((d) => (attendance[d.id] ?? 'absent') !== 'absent');
   const view = useTimer(unmoderated.timer);
@@ -44,15 +41,29 @@ export function UnmoderatedCaucus() {
     return (
       <Pane
         title="Unmoderated Caucus"
-        description="Formal debate is suspended and delegates lobby freely until the clock runs out."
+        description="Formal debate is suspended while delegates work on the draft resolution together, until the clock runs out."
+        actions={
+          <Button variant="primary" onClick={() => setMotionOpen(true)}>
+            <Gavel size={15} strokeWidth={1.5} />
+            Motion for an Unmoderated Caucus
+          </Button>
+        }
       >
         <Card className="max-w-2xl">
-          <CardHeader label="New caucus" title="Set up" />
+          <CardHeader
+            label="Open a caucus"
+            title="A motion has passed"
+          />
           <CardBody className="space-y-5 py-5">
-            <DurationInput label="Duration" valueSec={durationSec} onChange={setDurationSec} />
+            <p className="text-sm leading-relaxed text-muted">
+              Use this once the committee has voted a Motion for an Unmoderated Caucus through. To
+              put a new motion to the committee, use the button above.
+            </p>
+
+            <DurationPresets label="Duration" valueSec={durationSec} onChange={setDurationSec} />
 
             <div>
-              <span className="label-micro mb-1.5 block">Proposed by</span>
+              <span className="label-micro mb-1.5 block">Moved by</span>
               <DelegationPicker
                 delegations={presentRoster}
                 value={proposedBy}
@@ -62,12 +73,11 @@ export function UnmoderatedCaucus() {
               />
             </div>
 
-            <Field label="Purpose" htmlFor="unmod-purpose" hint="Optional — shown on the projector.">
+            <Field label="Purpose" htmlFor="unmod-purpose" hint="Shown on the projector.">
               <Input
                 id="unmod-purpose"
                 value={purpose}
                 onChange={(event) => setPurpose(event.target.value)}
-                placeholder="e.g. Draft resolution writing"
               />
             </Field>
 
@@ -80,10 +90,12 @@ export function UnmoderatedCaucus() {
               }}
             >
               <PlayCircle size={15} strokeWidth={1.5} />
-              Open caucus
+              Open the Unmoderated Caucus
             </Button>
           </CardBody>
         </Card>
+
+        <UnmodMotionDialog open={motionOpen} onClose={() => setMotionOpen(false)} />
       </Pane>
     );
   }
@@ -100,7 +112,7 @@ export function UnmoderatedCaucus() {
           </Button>
           <Button variant="secondary" onClick={end}>
             <Square size={15} strokeWidth={1.5} />
-            Close caucus
+            Close the caucus
           </Button>
         </>
       }
@@ -124,7 +136,7 @@ export function UnmoderatedCaucus() {
             timer={unmoderated.timer}
             label="Time remaining"
             size="lg"
-            hint={`Proposed by ${nameOf(unmoderated.proposedBy)}`}
+            hint={`Moved by ${nameOf(unmoderated.proposedBy)}`}
           />
         </CardBody>
       </Card>

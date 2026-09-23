@@ -5,18 +5,21 @@
  * Change a majority, reorder disruptiveness, add or remove a motion type here
  * and the whole Chair Dashboard follows: the motion form, the required-majority
  * badge, the pass/fail maths and the order motions sit on the floor.
+ *
+ * TISMUN runs a simplified procedure, since most delegates are new to MUN:
+ * debate happens on the General Speakers' List and in Unmoderated Caucuses,
+ * and there is no Moderated Caucus. A future year that wants one back adds a
+ * motion here (with `startsCaucus`) and a caucus tool to go with it.
  */
 
 export type MajorityKind = 'simple' | 'two-thirds';
 
 export type MotionTypeId =
   | 'speaking-time'
-  | 'moderated-caucus'
   | 'unmoderated-caucus'
   | 'set-agenda'
   | 'introduce-resolution'
   | 'introduce-amendment'
-  | 'divide-question'
   | 'close-debate'
   | 'voting-procedure'
   | 'table-topic'
@@ -47,7 +50,7 @@ export interface MotionRule {
   /** Parameters collected when raising this motion. */
   fields: MotionField[];
   /** If set, a passed motion offers a one-click handoff to that caucus tool. */
-  startsCaucus?: 'moderated' | 'unmoderated';
+  startsCaucus?: 'unmoderated';
   /** One line shown under the motion type in the form. */
   hint: string;
 }
@@ -55,12 +58,20 @@ export interface MotionRule {
 export const DEFAULTS = {
   /** General Speakers' List speaking time. */
   speakingTimeSec: 90,
-  moderatedTotalSec: 10 * 60,
-  moderatedSpeakerSec: 60,
   unmoderatedSec: 10 * 60,
   suspendSec: 15 * 60,
   /** Chair can extend a caucus by this much with one click. */
   extensionSec: 5 * 60,
+} as const;
+
+/** The one-tap durations offered when setting up an Unmoderated Caucus. */
+export const UNMODERATED_PRESETS_SEC = [5 * 60, 10 * 60, 15 * 60, 20 * 60] as const;
+
+/** Presenting a draft resolution, and the optional question-and-answer period after it. */
+export const PRESENTATION = {
+  draftSec: 3 * 60,
+  draftPresetsSec: [2 * 60, 3 * 60, 5 * 60],
+  qaSec: 3 * 60,
 } as const;
 
 export const QUORUM = {
@@ -138,25 +149,8 @@ export const MOTIONS: MotionRule[] = [
     hint: 'Opens voting on the draft resolutions on the floor.',
   },
   {
-    id: 'divide-question',
-    label: 'Divide the question',
-    majority: 'simple',
-    disruptiveness: 60,
-    fields: [
-      {
-        key: 'note',
-        label: 'Clauses to separate',
-        kind: 'text',
-        defaultValue: '',
-        required: true,
-        placeholder: 'e.g. Operative clauses 4 and 5',
-      },
-    ],
-    hint: 'Votes on operative clauses separately from the rest of the resolution.',
-  },
-  {
     id: 'unmoderated-caucus',
-    label: 'Unmoderated caucus',
+    label: 'Unmoderated Caucus',
     majority: 'simple',
     disruptiveness: 50,
     startsCaucus: 'unmoderated',
@@ -166,31 +160,11 @@ export const MOTIONS: MotionRule[] = [
         key: 'purpose',
         label: 'Purpose',
         kind: 'text',
-        defaultValue: '',
-        placeholder: 'e.g. Draft resolution writing',
+        defaultValue: 'Editing the draft resolution',
+        placeholder: 'e.g. Editing the draft resolution',
       },
     ],
-    hint: 'Suspends formal debate so delegates can lobby and write freely.',
-  },
-  {
-    id: 'moderated-caucus',
-    label: 'Moderated caucus',
-    majority: 'simple',
-    disruptiveness: 40,
-    startsCaucus: 'moderated',
-    fields: [
-      { key: 'totalTimeSec', label: 'Total time', kind: 'duration', defaultValue: DEFAULTS.moderatedTotalSec },
-      { key: 'speakingTimeSec', label: 'Speaking time', kind: 'duration', defaultValue: DEFAULTS.moderatedSpeakerSec },
-      {
-        key: 'topic',
-        label: 'Topic',
-        kind: 'text',
-        defaultValue: '',
-        required: true,
-        placeholder: 'e.g. Funding mechanisms for early-warning systems',
-      },
-    ],
-    hint: 'Focused debate on one sub-topic, with the chair recognising speakers.',
+    hint: 'Suspends formal debate so delegates can work on the draft resolution together.',
   },
   {
     id: 'speaking-time',

@@ -1,11 +1,11 @@
-import { DEFAULTS, MOTION_BY_ID } from '@/config/rules';
+import { flowFor, type FlowStepId } from '@/config/flows';
+import { DEFAULTS, MOTION_BY_ID, PRESENTATION, type MotionTypeId } from '@/config/rules';
 import { hasQuorum, quorumNeeded } from '@/lib/majority';
 import { formatClock } from '@/lib/time';
-import { presentIds, type ChairData } from './store';
-import type { TimerKey } from './store';
+import { presentIds, type ChairData, type TimerKey } from './store';
 
 /**
- * Guided Mode: what the committee should do next, derived from where it is.
+ * Guided Mode: the committee's order of business, and what to do next.
  *
  * The labels here are the official terms and nothing else — a chair who learns
  * this screen is learning the rules of procedure, not a simplified dialect of
@@ -15,15 +15,12 @@ import type { TimerKey } from './store';
 
 export type GuidedCommand =
   | 'mark-all-present'
-  | 'take-roll-call'
-  | 'timer-toggle'
-  | 'timer-reset'
   | 'gsl-next'
-  | 'mod-next'
-  | 'mod-extend'
-  | 'mod-end'
+  | 'unmod-motion'
   | 'unmod-extend'
-  | 'unmod-end';
+  | 'unmod-end'
+  | 'present-questions'
+  | 'present-end';
 
 export interface GuidedAction {
   label: string;
@@ -32,7 +29,6 @@ export interface GuidedAction {
   icon:
     | 'clipboard'
     | 'play'
-    | 'pause'
     | 'skip'
     | 'plus'
     | 'stop'
@@ -41,9 +37,13 @@ export interface GuidedAction {
     | 'vote'
     | 'users'
     | 'coffee'
-    | 'reset';
+    | 'mic'
+    | 'question'
+    | 'file';
   /** Either a route to open, or a command to run against the session. */
   to?: string;
+  /** With `to: '/chair/motions'`, the motion to have ready in the form. */
+  motion?: MotionTypeId;
   command?: GuidedCommand;
 }
 
@@ -57,13 +57,109 @@ export interface GuidedStage {
   actions: GuidedAction[];
 }
 
-export function guidedStage(state: ChairData): GuidedStage {
+/* ── The order of business ────────────────────────────────────────────────── */
+
+export interface ChecklistStep {
+  id: FlowStepId;
+  /** The official name of this stage of the session. */
+  label: string;
+  hint: string;
+  done: boolean;
+  /** Where the chair goes to do it. */
+  to: string;
+}
+
+const passed = (state: ChairData, type: MotionTypeId): boolean =>
+  state.motions.some((motion) => motion.type === type && motion.status === 'passed');
+
+const decided = (state: ChairData): boolean =>
+  state.resolutions.some((r) => r.status === 'passed' || r.status === 'failed');
+
+/**
+ * Whether each step has happened, read from the session itself rather than
+ * ticked by anyone — so the list cannot disagree with what the room did.
+ */
+function isDone(id: FlowStepId, state: ChairData): boolean {
+  switch (id) {
+    case 'roll-call':
+      return (
+        state.rollCallTakenAt !== null &&
+        hasQuorum(presentIds(state.attendance).length, Object.keys(state.names).length)
+      );
+    case 'agenda':
+      return passed(state, 'set-agenda');
+    case 'present-draft':
+      return state.presentationsHeld > 0;
+    case 'gsl':
+      return state.gsl.currentId !== null || state.gsl.spoken.length > 0;
+    case 'unmod-motion':
+      return passed(state, 'unmoderated-caucus');
+    case 'unmod':
+      return state.unmoderatedHeld > 0;
+    // The loop between the Speakers' List and further caucuses ends when
+    // debate is closed.
+    case 'continue-debate':
+    case 'close-debate':
+      return passed(state, 'close-debate');
+    case 'voting':
+    case 'result':
+      return decided(state);
+  }
+}
+
+const ROUTE: Record<FlowStepId, string> = {
+  'roll-call': '/chair/roll-call',
+  agenda: '/chair/motions',
+  'present-draft': '/chair/presentation',
+  gsl: '/chair/speakers',
+  'unmod-motion': '/chair/unmoderated',
+  unmod: '/chair/unmoderated',
+  'continue-debate': '/chair/speakers',
+  'close-debate': '/chair/motions',
+  voting: '/chair/resolutions',
+  result: '/chair/resolutions',
+};
+
+export function sessionChecklist(state: ChairData, committeeId: string): ChecklistStep[] {
+  const present = presentIds(state.attendance).length;
+  const total = Object.keys(state.names).length;
+
+  return flowFor(committeeId).steps.map((step) => ({
+    id: step.id,
+    label: step.label,
+    // The Roll Call step says where quorum stands, since that is what it waits on.
+    hint:
+      step.id === 'roll-call' && state.rollCallTakenAt !== null
+        ? `${step.hint} ${present} of ${total} present; ${quorumNeeded(total)} needed.`
+        : step.hint,
+    done: isDone(step.id, state),
+    to: ROUTE[step.id],
+  }));
+}
+
+/** The first step not yet done — where the committee actually is. */
+export function currentStepIndex(steps: ChecklistStep[]): number {
+  const index = steps.findIndex((step) => !step.done);
+  return index === -1 ? steps.length - 1 : index;
+}
+
+/* ── What to do now ──────────────────────────────────────────────────────── */
+
+const UNMOD_MOTION: GuidedAction = {
+  label: 'Motion for an Unmoderated Caucus',
+  emphasis: 'primary',
+  icon: 'coffee',
+  command: 'unmod-motion',
+};
+
+export function guidedStage(state: ChairData, committeeId: string): GuidedStage {
   const present = presentIds(state.attendance);
   const total = Object.keys(state.names).length;
   const quorum = hasQuorum(present.length, total);
   const onFloor = state.motions.filter((motion) => motion.status === 'floor');
 
-  /* Voting procedure outranks everything: the committee is mid-vote. */
+  /* Whatever is happening right now outranks the order of business. */
+
   if (state.vote) {
     return {
       stage: 'Voting Procedure',
@@ -81,31 +177,43 @@ export function guidedStage(state: ChairData): GuidedStage {
     };
   }
 
-  if (state.moderated.active) {
-    const speaker = state.moderated.currentDelegationId
-      ? (state.names[state.moderated.currentDelegationId] ?? 'a delegation')
-      : null;
+  if (state.presentation.active) {
+    const presenter = state.presentation.presenterId
+      ? (state.names[state.presentation.presenterId] ?? 'The Main Submitter')
+      : 'The Main Submitter';
+    if (state.presentation.phase === 'questions') {
+      return {
+        stage: 'Question-and-Answer Period',
+        headline: presenter,
+        hint: 'Delegates put questions to the presenting delegation.',
+        timer: { key: 'present', label: 'Questions' },
+        actions: [
+          {
+            label: 'End the question-and-answer period',
+            emphasis: 'primary',
+            icon: 'stop',
+            command: 'present-end',
+          },
+        ],
+      };
+    }
     return {
-      stage: 'Moderated Caucus',
-      headline: state.moderated.topic || 'Moderated Caucus',
-      hint: speaker
-        ? `${speaker} has the floor. ${state.moderated.queue.length} recognised and waiting.`
-        : 'Recognise a delegation to give it the floor.',
-      timer: { key: 'modSpeaker', label: 'Speaking time' },
+      stage: 'Presentation of the Draft Resolution',
+      headline: presenter,
+      hint: 'The Main Submitter presents the draft resolution to the committee.',
+      timer: { key: 'present', label: 'Presentation time' },
       actions: [
-        { label: 'Next Speaker', emphasis: 'primary', icon: 'skip', command: 'mod-next' },
         {
-          label: `Extend the Caucus by ${formatClock(DEFAULTS.extensionSec * 1000)}`,
-          emphasis: 'secondary',
-          icon: 'plus',
-          command: 'mod-extend',
+          label: `Open questions (${formatClock(PRESENTATION.qaSec * 1000)})`,
+          emphasis: 'primary',
+          icon: 'question',
+          command: 'present-questions',
         },
-        { label: 'Close the Caucus', emphasis: 'secondary', icon: 'stop', command: 'mod-end' },
         {
-          label: 'Recognise delegations',
+          label: 'Skip questions and finish',
           emphasis: 'secondary',
-          icon: 'list',
-          to: '/chair/moderated',
+          icon: 'skip',
+          command: 'present-end',
         },
       ],
     };
@@ -118,13 +226,13 @@ export function guidedStage(state: ChairData): GuidedStage {
       hint: 'Formal debate is suspended until the clock runs out.',
       timer: { key: 'unmod', label: 'Time remaining' },
       actions: [
+        { label: 'Close the Caucus', emphasis: 'primary', icon: 'stop', command: 'unmod-end' },
         {
           label: `Extend the Caucus by ${formatClock(DEFAULTS.extensionSec * 1000)}`,
           emphasis: 'secondary',
           icon: 'plus',
           command: 'unmod-extend',
         },
-        { label: 'Close the Caucus', emphasis: 'primary', icon: 'stop', command: 'unmod-end' },
       ],
     };
   }
@@ -170,7 +278,130 @@ export function guidedStage(state: ChairData): GuidedStage {
     };
   }
 
+  /* Otherwise, the next step in this committee's order of business. */
+  const steps = sessionChecklist(state, committeeId);
+  const step = steps[currentStepIndex(steps)];
   const current = state.gsl.queue.find((entry) => entry.id === state.gsl.currentId) ?? null;
+
+  switch (step?.id) {
+    case 'agenda':
+      return {
+        stage: 'Setting the Agenda',
+        headline: 'Setting the Agenda',
+        hint: 'Entertain a Motion to Open / Set the Agenda from the floor.',
+        timer: null,
+        actions: [
+          {
+            label: 'Entertain a Motion to Set the Agenda',
+            emphasis: 'primary',
+            icon: 'gavel',
+            to: '/chair/motions',
+            motion: 'set-agenda',
+          },
+        ],
+      };
+
+    case 'present-draft':
+      return {
+        stage: 'Presentation of the Draft Resolution',
+        headline: 'Presentation of the Draft Resolution',
+        hint: 'The Main Submitter presents the draft resolution, then an optional question-and-answer period.',
+        timer: null,
+        actions: [
+          {
+            label: 'Start the presentation',
+            emphasis: 'primary',
+            icon: 'mic',
+            to: '/chair/presentation',
+          },
+        ],
+      };
+
+    case 'unmod':
+      return {
+        stage: 'Unmoderated Caucus',
+        headline: 'The Motion for an Unmoderated Caucus has passed',
+        hint: 'Open the caucus to start its clock.',
+        timer: null,
+        actions: [
+          {
+            label: 'Open the Unmoderated Caucus',
+            emphasis: 'primary',
+            icon: 'coffee',
+            to: '/chair/unmoderated',
+          },
+        ],
+      };
+
+    case 'close-debate':
+      return {
+        stage: 'Close Debate',
+        headline: 'Close Debate',
+        hint: 'Entertain a Motion to Close Debate once the committee is ready to vote.',
+        timer: null,
+        actions: [
+          {
+            label: 'Entertain a Motion to Close Debate',
+            emphasis: 'primary',
+            icon: 'gavel',
+            to: '/chair/motions',
+            motion: 'close-debate',
+          },
+        ],
+      };
+
+    case 'voting':
+      return {
+        stage: 'Voting Procedure',
+        headline: 'Voting Procedure',
+        hint: 'Vote on any Unfriendly Amendments, then on the Draft Resolution itself.',
+        timer: null,
+        actions: [
+          { label: 'Open Voting Procedure', emphasis: 'primary', icon: 'vote', to: '/chair/resolutions' },
+        ],
+      };
+
+    case 'result': {
+      const last = [...state.resolutions]
+        .filter((r) => r.status === 'passed' || r.status === 'failed')
+        .pop();
+      return {
+        stage: 'Result',
+        headline: last
+          ? `${last.number} ${last.status === 'passed' ? 'passed' : 'failed'}`
+          : 'Result',
+        hint: 'Announce the result to the committee.',
+        timer: null,
+        actions: [
+          { label: 'See the full result', emphasis: 'primary', icon: 'file', to: '/chair/resolutions' },
+          {
+            label: 'Entertain a Motion to Adjourn the Meeting',
+            emphasis: 'secondary',
+            icon: 'gavel',
+            to: '/chair/motions',
+            motion: 'adjourn-meeting',
+          },
+        ],
+      };
+    }
+
+    default:
+      break;
+  }
+
+  /*
+   * The General Speakers' List and Unmoderated Caucuses in between: the heart
+   * of debate. A Motion for an Unmoderated Caucus is what delegates raise most,
+   * so it is always one tap away here.
+   */
+  const closeDebate: GuidedAction = {
+    label: 'Entertain a Motion to Close Debate',
+    emphasis: 'secondary',
+    icon: 'gavel',
+    to: '/chair/motions',
+    motion: 'close-debate',
+  };
+  const debateStarted = step?.id === 'continue-debate';
 
   if (current) {
     const waiting = state.gsl.queue.length - 1;
@@ -184,24 +415,25 @@ export function guidedStage(state: ChairData): GuidedStage {
       timer: { key: 'gsl', label: 'Speaking time' },
       actions: [
         { label: 'Next Speaker', emphasis: 'primary', icon: 'skip', command: 'gsl-next' },
-        { label: 'Entertain a Motion', emphasis: 'secondary', icon: 'gavel', to: '/chair/motions' },
+        UNMOD_MOTION,
         {
           label: 'Manage the Speakers’ List',
           emphasis: 'secondary',
           icon: 'list',
           to: '/chair/speakers',
         },
+        ...(debateStarted ? [closeDebate] : []),
       ],
     };
   }
 
   return {
-    stage: 'In session',
-    headline: 'The committee is in session',
+    stage: 'General Speakers’ List',
+    headline: debateStarted ? 'Back to the General Speakers’ List' : 'General Speakers’ List',
     hint:
       state.gsl.queue.length > 0
-        ? `${state.gsl.queue.length} on the General Speakers’ List. Recognise the first speaker, or entertain a Motion.`
-        : 'Open the General Speakers’ List, or entertain a Motion from the floor.',
+        ? `${state.gsl.queue.length} on the General Speakers’ List. Recognise the first speaker, or entertain a Motion for an Unmoderated Caucus.`
+        : 'Open the General Speakers’ List, or entertain a Motion for an Unmoderated Caucus.',
     timer: null,
     actions: [
       state.gsl.queue.length > 0
@@ -212,115 +444,8 @@ export function guidedStage(state: ChairData): GuidedStage {
             icon: 'list',
             to: '/chair/speakers',
           },
-      { label: 'Entertain a Motion', emphasis: 'secondary', icon: 'gavel', to: '/chair/motions' },
-      { label: 'Moderated Caucus', emphasis: 'secondary', icon: 'users', to: '/chair/moderated' },
-      { label: 'Unmoderated Caucus', emphasis: 'secondary', icon: 'coffee', to: '/chair/unmoderated' },
+      UNMOD_MOTION,
+      ...(debateStarted ? [closeDebate] : []),
     ],
   };
-}
-
-/* ── The order of business ────────────────────────────────────────────────── */
-
-export interface ChecklistStep {
-  id: string;
-  /** The official name of this stage of the session. */
-  label: string;
-  hint: string;
-  done: boolean;
-  /** Where the chair goes to do it. */
-  to: string;
-}
-
-/**
- * The session as a list the chair can see the whole of.
- *
- * Each step is marked done by reading the session rather than by anyone
- * ticking a box, so it cannot disagree with what actually happened: the
- * Roll Call step completes when the roll is taken, the Voting Procedure step
- * when a Draft Resolution has actually been decided.
- */
-export function sessionChecklist(state: ChairData): ChecklistStep[] {
-  const present = presentIds(state.attendance);
-  const total = Object.keys(state.names).length;
-
-  const agendaSet = state.motions.some(
-    (motion) => motion.type === 'set-agenda' && motion.status === 'passed',
-  );
-  const speakersOpened = state.gsl.currentId !== null || state.gsl.spoken.length > 0;
-  const debated =
-    state.log.some((entry) => entry.type === 'caucus') || state.gsl.spoken.length > 0;
-  const resolutionIntroduced = state.resolutions.some(
-    (resolution) => resolution.status !== 'draft',
-  );
-  const voted =
-    state.resolutions.some((r) => r.status === 'passed' || r.status === 'failed') ||
-    state.amendments.some((a) => a.status === 'passed' || a.status === 'failed');
-  const adjourned = state.motions.some(
-    (motion) => motion.type === 'adjourn-meeting' && motion.status === 'passed',
-  );
-
-  return [
-    {
-      id: 'roll-call',
-      label: 'Take the Roll Call',
-      hint: 'Record every delegation as Present, Present and Voting, or Absent.',
-      done: state.rollCallTakenAt !== null,
-      to: '/chair/roll-call',
-    },
-    {
-      id: 'quorum',
-      label: 'Establish Quorum',
-      hint: `${present.length} of ${total} present; ${quorumNeeded(total)} needed to open debate.`,
-      done: hasQuorum(present.length, total),
-      to: '/chair/roll-call',
-    },
-    {
-      id: 'agenda',
-      label: 'Set the Agenda',
-      hint: 'Entertain a Motion to set the order in which the topics are taken.',
-      done: agendaSet,
-      to: '/chair/motions',
-    },
-    {
-      id: 'speakers',
-      label: 'Open the General Speakers’ List',
-      hint: 'Recognise the first speaker to open general debate.',
-      done: speakersOpened,
-      to: '/chair/speakers',
-    },
-    {
-      id: 'debate',
-      label: 'Debate the Topic',
-      hint: 'Moderated and Unmoderated Caucuses, and the Motions that open them.',
-      done: debated,
-      to: '/chair/motions',
-    },
-    {
-      id: 'resolutions',
-      label: 'Introduce Draft Resolutions',
-      hint: 'Record the draft, its Main Submitters and Signatories, then introduce it.',
-      done: resolutionIntroduced,
-      to: '/chair/resolutions',
-    },
-    {
-      id: 'voting',
-      label: 'Voting Procedure',
-      hint: 'Vote on Amendments, then on the Draft Resolution itself.',
-      done: voted,
-      to: '/chair/resolutions',
-    },
-    {
-      id: 'adjourn',
-      label: 'Adjourn the Meeting',
-      hint: 'Entertain a Motion to adjourn once the committee has finished.',
-      done: adjourned,
-      to: '/chair/motions',
-    },
-  ];
-}
-
-/** The first step not yet done — where the committee actually is. */
-export function currentStepIndex(steps: ChecklistStep[]): number {
-  const index = steps.findIndex((step) => !step.done);
-  return index === -1 ? steps.length - 1 : index;
 }

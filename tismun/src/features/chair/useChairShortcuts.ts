@@ -25,8 +25,8 @@ export function useChairShortcuts(openProjector: () => void, enabled = true): vo
       if (isTypingTarget(event.target)) return;
 
       const state = store.getState();
-      const activeTimer: TimerKey = state.moderated.active
-        ? 'modSpeaker'
+      const activeTimer: TimerKey = state.presentation.active
+        ? 'present'
         : state.unmoderated.active
           ? 'unmod'
           : 'gsl';
@@ -50,8 +50,7 @@ export function useChairShortcuts(openProjector: () => void, enabled = true): vo
         case 'n':
         case 'N':
           event.preventDefault();
-          if (state.moderated.active) state.modNext();
-          else if (!state.unmoderated.active) state.gslNext();
+          if (!state.unmoderated.active && !state.presentation.active) state.gslNext();
           break;
         default:
           break;
