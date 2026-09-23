@@ -1,7 +1,7 @@
 import { motion } from 'framer-motion';
 import { Gavel, Info, Landmark, Loader2, Users } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Navigate, useNavigate } from 'react-router-dom';
+import { Link, Navigate, useNavigate } from 'react-router-dom';
 import { GlobeLines } from '@/components/GlobeLines';
 import { HostedBy } from '@/components/HostedBy';
 import { Logo, Wordmark } from '@/components/Logo';
@@ -261,8 +261,13 @@ export function Login() {
             </div>
           ) : null}
 
-          <p className="mt-10 text-xs text-muted lg:hidden">
-            <Wordmark className="text-ink-700" /> · {CONFERENCE.edition}
+          <p className="mt-10 text-xs text-muted">
+            <span className="lg:hidden">
+              <Wordmark className="text-ink-700" /> · {CONFERENCE.edition} ·{' '}
+            </span>
+            <Link to="/privacy" className="rounded underline-offset-4 hover:text-teal-700 hover:underline">
+              Privacy policy and terms
+            </Link>
           </p>
         </motion.div>
       </div>

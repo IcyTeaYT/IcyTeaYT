@@ -7,6 +7,7 @@ import { Committees } from '@/pages/Committees';
 import { AccessDenied, NotFound } from '@/pages/ErrorPages';
 import { Home } from '@/pages/Home';
 import { Login } from '@/pages/Login';
+import { Privacy } from '@/pages/Privacy';
 import { RequireAuth, RequireChair, RequireSecretariat } from '@/routes/guards';
 import { useAuth } from '@/store/auth';
 import { useConference } from '@/store/conference';
@@ -59,6 +60,8 @@ export function App() {
       {booting ? null : (
         <Routes>
           <Route path="/login" element={<Login />} />
+          <Route path="/privacy" element={<Privacy />} />
+          <Route path="/terms" element={<Privacy />} />
 
           {/* The projector runs outside the shell: no nav, no footer, no chrome. */}
           <Route
