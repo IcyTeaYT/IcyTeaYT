@@ -9,7 +9,7 @@ import { findUser } from './_lib/sheets';
  */
 
 export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
-  const missing = requireEnv(env, ['GOOGLE_CLIENT_ID', 'SCHOOL_DOMAIN', 'SESSION_SECRET', 'SHEET_ID']);
+  const missing = requireEnv(env, ['GOOGLE_CLIENT_ID', 'SESSION_SECRET', 'SHEET_ID']);
   if (missing) return fail(missing, 503);
 
   let credential: string | undefined;
@@ -20,15 +20,15 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
   }
   if (!credential) return fail('No sign-in token was supplied.', 400);
 
-  const result = await verifyGoogleIdToken(credential, env.GOOGLE_CLIENT_ID, env.SCHOOL_DOMAIN);
+  const result = await verifyGoogleIdToken(credential, env.GOOGLE_CLIENT_ID, env.SCHOOL_DOMAIN ?? '');
   if (!result.ok) return fail(result.error, result.status);
 
-  // Signing in with a valid school account is not enough: you must also be on
-  // the conference roster, which is the sheet's job to say.
+  // The Users sheet is the list of who may enter. A genuine Google account is
+  // not enough on its own — the email has to be on the roster.
   const user = await findUser(env, result.identity.email);
   if (!user) {
     return fail(
-      'Your school account is not on the conference roster. Contact the Secretariat.',
+      'That email is not on the conference roster. Sign in with the school Google account you were registered with, or contact the Secretariat.',
       403,
     );
   }

@@ -34,12 +34,12 @@ export const CONFERENCE_DATES = {
 } as const;
 
 /**
- * The school Google Workspace domain, e.g. 'tashkentis.uz'.
- * This copy is only used for the hint delegates read on the login page — the
- * binding check happens server-side in functions/api/session.ts using the
- * SCHOOL_DOMAIN secret, which is never exposed to the browser.
+ * Optional school Google Workspace domain, e.g. 'tashkentis.uz'. Only used to
+ * name the domain in the login hint; blank simply leaves the domain out of the
+ * sentence. Whether a domain is actually enforced is decided server-side by
+ * SCHOOL_DOMAIN, and who gets in is decided by the Users sheet.
  */
-export const SCHOOL_DOMAIN = import.meta.env.VITE_SCHOOL_DOMAIN || 'your-school.edu';
+export const SCHOOL_DOMAIN: string = import.meta.env.VITE_SCHOOL_DOMAIN || '';
 
 /** Google OAuth client ID. Public by design; blank disables Google sign-in. */
 export const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || '';
@@ -51,12 +51,12 @@ export const DATA_MODE: 'demo' | 'live' =
 export const COPY = {
   login: {
     heading: `Sign in to ${CONFERENCE.name}`,
-    subtext: 'Use your school account.',
+    subtext: 'Use your school Google account.',
     googleButton: 'Sign in with Google',
     googleNotConfigured: 'Not configured yet',
     googleNotConfiguredHint:
       'Google sign-in switches on once the Secretariat adds the OAuth client ID.',
-    wrongDomain: 'Please sign in with your school account.',
+    wrongDomain: 'Please sign in with your school Google account.',
     demoHeading: 'Demo access',
     demoSubtext: 'Development only. This section disappears in live mode.',
   },

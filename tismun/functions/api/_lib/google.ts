@@ -112,8 +112,10 @@ export async function verifyGoogleIdToken(
     return { ok: false, status: 403, error: 'That Google account has no verified email address.' };
   }
 
-  // The domain gate. `hd` is only present on Workspace accounts, so a personal
-  // gmail.com address fails here rather than on a guessable email suffix.
+  // The optional domain gate. `hd` is only present on Workspace accounts, so a
+  // personal gmail.com address fails here rather than on a guessable email
+  // suffix. With no domain configured this is skipped and the roster alone
+  // decides who gets in.
   if (schoolDomain && payload.hd?.toLowerCase() !== schoolDomain.toLowerCase()) {
     return { ok: false, status: 403, error: 'Please sign in with your school account.' };
   }

@@ -114,13 +114,26 @@ In the Cloudflare Pages project, **Settings → Environment variables**:
 | --- | --- | --- |
 | `VITE_DATA_MODE` | `live` | no |
 | `VITE_GOOGLE_CLIENT_ID` | `1234-abc.apps.googleusercontent.com` | no |
-| `VITE_SCHOOL_DOMAIN` | `tashkentis.uz` | no |
 | `GOOGLE_CLIENT_ID` | same as above | no |
-| `SCHOOL_DOMAIN` | `tashkentis.uz` | no |
 | `SHEET_ID` | `1AbCdEf…` | no |
 | `GOOGLE_SA_EMAIL` | `tismun@project.iam.gserviceaccount.com` | no |
 | `GOOGLE_SA_PRIVATE_KEY` | `-----BEGIN PRIVATE KEY-----\n…` | **yes — Encrypt** |
 | `SESSION_SECRET` | 64+ random chars (`openssl rand -hex 32`) | **yes — Encrypt** |
+
+**Who gets in is decided by the `Users` sheet.** Anyone signing in with Google
+whose email is on it is let in; anyone else is told they are not on the roster.
+It works with any Google account, so put down the address each person will
+actually sign in with.
+
+Two optional extras, if every participant has a school Workspace account:
+
+| Variable | Example | What it does |
+| --- | --- | --- |
+| `SCHOOL_DOMAIN` | `tashkentis.uz` | Refuses any account not on that domain, even before the sheet is checked |
+| `VITE_SCHOOL_DOMAIN` | `tashkentis.uz` | Names the domain in the login hint |
+
+Without them the login page still tells everyone to use their school Google
+account.
 
 Anything starting with `VITE_` is compiled into the JavaScript the browser
 downloads, so it is public by definition. **Never** put the private key or the
@@ -418,7 +431,9 @@ public by design; do not put real delegate assignments on one.
 
 ## For Phase 2, I need from you
 
-1. **The school's Google Workspace domain** — e.g. `tashkentis.uz`.
+1. **Optional: the school's Google Workspace domain** — only if every
+   participant signs in with a school account and you want others refused
+   outright. The sheet already controls who gets in without it.
 2. **The Google Sheet**, laid out as above, shared with the service account as
    Viewer, plus its ID.
 3. **The OAuth client ID**, with the deployed origins registered.

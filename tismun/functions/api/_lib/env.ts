@@ -9,8 +9,13 @@
 export interface Env {
   /** OAuth client ID. Must be the SAME value as VITE_GOOGLE_CLIENT_ID. */
   GOOGLE_CLIENT_ID: string;
-  /** School Workspace domain, e.g. "tashkentis.uz". Checked against the token's `hd`. */
-  SCHOOL_DOMAIN: string;
+  /**
+   * Optional. School Workspace domain, e.g. "tashkentis.uz". When set, only
+   * accounts on that domain may sign in. When left out, access is decided by
+   * the Users sheet alone — whoever's email is on it gets in, whatever account
+   * type it is.
+   */
+  SCHOOL_DOMAIN?: string;
   /** The Google Sheet's ID, taken from its URL. */
   SHEET_ID: string;
   /** Service account address, e.g. tismun-sheets@project.iam.gserviceaccount.com */

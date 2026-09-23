@@ -126,7 +126,7 @@ export function Login() {
         </motion.div>
 
         <p className="mt-12 hidden text-xs text-muted lg:block">
-          Delegates, chairs and the Secretariat sign in with their school account.
+          Delegates, chairs and the Secretariat sign in with their school Google account.
         </p>
       </div>
 
@@ -161,8 +161,17 @@ export function Login() {
 
           <p className="mt-3 flex items-start gap-1.5 text-xs leading-relaxed text-muted">
             <Info size={13} strokeWidth={1.5} className="mt-0.5 shrink-0" />
-            Only <span className="font-medium text-ink-700">@{SCHOOL_DOMAIN}</span> accounts can
-            sign in.
+            {SCHOOL_DOMAIN ? (
+              <span>
+                Sign in with your school Google account —{' '}
+                <span className="font-medium text-ink-700">@{SCHOOL_DOMAIN}</span>.
+              </span>
+            ) : (
+              <span>
+                Sign in with your school Google account — the one the Secretariat registered you
+                with.
+              </span>
+            )}
           </p>
 
           {error ? (
