@@ -79,11 +79,19 @@ export function useLivePush(
 
     const unsubscribe = store.subscribe(schedule);
     const heartbeat = window.setInterval(() => void send(), HEARTBEAT_MS);
+    // Report the moment the tab is back in view, so a laptop waking from sleep
+    // (or a tab brought back to the front) learns straight away if another
+    // device took the committee over in the meantime.
+    const onVisible = () => {
+      if (!document.hidden) void send();
+    };
+    document.addEventListener('visibilitychange', onVisible);
 
     return () => {
       cancelled = true;
       unsubscribe();
       window.clearInterval(heartbeat);
+      document.removeEventListener('visibilitychange', onVisible);
       if (pending.current !== null) window.clearTimeout(pending.current);
       pending.current = null;
     };

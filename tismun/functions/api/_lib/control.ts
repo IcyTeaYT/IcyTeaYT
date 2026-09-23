@@ -31,6 +31,8 @@ export interface ControlRow {
 }
 
 export interface Holder {
+  /** Which tab or device holds it. Only ever shown to that committee's chairs. */
+  deviceId: string;
   name: string | null;
   /** The same account is signed in there: the chair's own other tab or device. */
   sameAccount: boolean;
@@ -83,6 +85,7 @@ export function holderOf(
 ): Holder | null {
   if (!row) return null;
   return {
+    deviceId: row.device_id,
     name: row.holder_name,
     sameAccount: Boolean(
       askerEmail && row.holder_email && row.holder_email.toLowerCase() === askerEmail.toLowerCase(),

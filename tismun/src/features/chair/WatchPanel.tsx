@@ -28,9 +28,10 @@ export function WatchPanel({
   abbreviation: string;
 }) {
   const [confirming, setConfirming] = useState(false);
-  const { holder, summary, serverNow, reason, takingOver } = control;
+  const { holder, summary, serverNow, reason, takingOver, where } = control;
   const who = holder?.name ?? 'Another chair';
   const yours = holder?.sameAccount === true;
+  const otherTab = where === 'tab';
 
   return (
     <div className="mx-auto max-w-2xl space-y-5">
@@ -41,19 +42,24 @@ export function WatchPanel({
           </span>
           <div>
             <h2 className="font-serif text-xl text-ink-900">
-              {yours
-                ? 'You are running this committee somewhere else'
-                : reason === 'taken'
-                  ? 'Another device took over this committee'
-                  : 'This committee is being run on another device'}
+              {otherTab
+                ? reason === 'taken'
+                  ? 'Another tab took over this committee'
+                  : 'This committee is open in another tab'
+                : yours
+                  ? 'You are running this committee somewhere else'
+                  : reason === 'taken'
+                    ? 'Another device took over this committee'
+                    : 'This committee is being run on another device'}
             </h2>
             <p className="mt-2 text-sm leading-relaxed text-muted">
-              {yours
-                ? `You are running ${abbreviation} in another tab or on another device`
-                : `${who} is running ${abbreviation}`}
-              {holder ? ` — active ${ago(serverNow - holder.heartbeatAt)}` : ''}. You can watch
-              here, or take over to run the committee from {yours ? 'this tab' : 'this device'}.
-              Everything carries across exactly as it is, and the other one switches to watching.
+              {otherTab
+                ? `${abbreviation} is being run from another tab of this browser. Only one tab can run a committee at a time. You can watch here, or take over to run it from this tab — everything carries across, and the other tab switches to watching.`
+                : `${
+                    yours
+                      ? `You are running ${abbreviation} in another tab or on another device`
+                      : `${who} is running ${abbreviation}`
+                  }${holder ? ` — active ${ago(serverNow - holder.heartbeatAt)}` : ''}. You can watch here, or take over to run the committee from this device. Everything carries across exactly as it is, and the other one switches to watching.`}
             </p>
           </div>
           <div>
@@ -123,7 +129,7 @@ export function WatchPanel({
         onClose={() => setConfirming(false)}
         onConfirm={() => void control.takeOver()}
         title={`Take over ${abbreviation}?`}
-        body={`${yours ? 'Your other tab or device' : `${who}’s device`} will switch to watching. The session carries across exactly as it is: timers, speakers, motions, resolutions, votes and awards.`}
+        body={`${otherTab ? 'The other tab' : yours ? 'Your other tab or device' : `${who}’s device`} will switch to watching. The session carries across exactly as it is: timers, speakers, motions, resolutions, votes and awards.`}
         confirmLabel="Take over"
       />
     </div>

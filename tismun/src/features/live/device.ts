@@ -11,6 +11,9 @@
  */
 
 const KEY = 'tismun.tabId';
+/** Every tab id this browser has used lately, in localStorage (shared by tabs). */
+const BROWSER_TABS_KEY = 'tismun.browserTabIds';
+const BROWSER_TABS_LIMIT = 30;
 const VALID = /^[\w-]{8,64}$/;
 
 const fresh = (): string =>
@@ -24,7 +27,36 @@ function save(id: string): void {
   } catch {
     /* storage blocked — the id just lasts as long as the page */
   }
+  remember(id);
 }
+
+function browserTabs(): string[] {
+  try {
+    const parsed = JSON.parse(window.localStorage.getItem(BROWSER_TABS_KEY) ?? '[]') as unknown;
+    return Array.isArray(parsed)
+      ? parsed.filter((entry): entry is string => typeof entry === 'string')
+      : [];
+  } catch {
+    return [];
+  }
+}
+
+function remember(id: string): void {
+  try {
+    const ids = [id, ...browserTabs().filter((entry) => entry !== id)].slice(0, BROWSER_TABS_LIMIT);
+    window.localStorage.setItem(BROWSER_TABS_KEY, JSON.stringify(ids));
+  } catch {
+    /* nothing to do */
+  }
+}
+
+/**
+ * Whether an id belongs to a tab of this browser. Only meaningful to a tab
+ * holding the committee's tab lock: then no other tab here is running it, so
+ * a holder with one of these ids is a tab that has since closed.
+ */
+export const isThisBrowsersTab = (id: string | null | undefined): boolean =>
+  Boolean(id) && browserTabs().includes(id as string);
 
 function load(): string {
   try {
@@ -48,6 +80,7 @@ type TabMessage =
 export function initDeviceId(): void {
   if (current) return;
   current = load();
+  remember(current);
   if (typeof BroadcastChannel === 'undefined') return;
 
   const nonce = fresh();

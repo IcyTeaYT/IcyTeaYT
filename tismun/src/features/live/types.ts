@@ -101,6 +101,8 @@ export interface LiveDetail {
 
 /** The device currently running a committee, as another chair's device sees it. */
 export interface ControlHolder {
+  /** The tab or device holding the committee. */
+  deviceId?: string;
   /** The chair's name from the sheet; null on a demo deployment. */
   name: string | null;
   /** Signed in with the same account: the chair's own other tab or device. */
