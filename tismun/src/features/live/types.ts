@@ -2,6 +2,7 @@ import type { TimerState } from '@/lib/timer';
 import type {
   Amendment,
   Attendance,
+  Award,
   LogEntry,
   Motion,
   Resolution,
@@ -36,6 +37,11 @@ export interface LiveSummary {
   resolutionCount: number;
   /** What the committee is voting on, when it is in voting procedure. */
   voteSubject: string | null;
+  /**
+   * Awards given so far, `awardedAt` in server time. Optional because a
+   * committee that last reported before awards existed has none stored.
+   */
+  awards?: Award[];
 }
 
 export interface LiveDelegation {

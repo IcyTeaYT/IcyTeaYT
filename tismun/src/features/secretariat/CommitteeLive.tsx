@@ -4,6 +4,7 @@ import { PageContainer } from '@/components/AppShell';
 import { Flag } from '@/components/Flag';
 import { Badge } from '@/components/ui/Badge';
 import { Card, CardBody, CardHeader } from '@/components/ui/Card';
+import { AWARDS } from '@/config/awards';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { MAJORITY_LABEL, MOTION_BY_ID } from '@/config/rules';
 import {
@@ -238,8 +239,41 @@ export function CommitteeLive() {
             </Card>
           </div>
 
-          {/* Attendance */}
-          <div className="xl:sticky xl:top-24 xl:self-start">
+          <div className="space-y-5 xl:sticky xl:top-24 xl:self-start">
+            {/* Awards */}
+            <Card>
+              <CardHeader
+                label="Awards"
+                title={`${summary?.awards?.length ?? 0} of ${AWARDS.length} given`}
+              />
+              <ul className="divide-y divide-hairline">
+                {AWARDS.map((definition) => {
+                  const award = summary?.awards?.find((entry) => entry.type === definition.type);
+                  return (
+                    <li key={definition.type} className="px-5 py-3">
+                      <p className="label-micro">{definition.label}</p>
+                      {award ? (
+                        <div className="mt-2 flex items-center gap-2.5">
+                          <Flag code={award.countryCode} country={award.country} size="sm" />
+                          <div className="min-w-0">
+                            <p className="truncate text-sm font-medium text-ink-900">
+                              {award.country}
+                            </p>
+                            {award.delegateName ? (
+                              <p className="truncate text-xs text-muted">{award.delegateName}</p>
+                            ) : null}
+                          </div>
+                        </div>
+                      ) : (
+                        <p className="mt-1.5 text-sm text-muted">Not given yet</p>
+                      )}
+                    </li>
+                  );
+                })}
+              </ul>
+            </Card>
+
+            {/* Attendance */}
             <Card>
               <CardHeader
                 label="Attendance"

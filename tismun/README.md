@@ -5,8 +5,9 @@ The conference site for Tashkent International School Model United Nations.
 Delegates sign in with their school account and see their committee, their
 delegation and their background paper. Chairs get a full dashboard for running
 their committee: Roll Call, timers, the General Speakers' List, caucuses,
-Motions, Draft Resolutions, voting, a session log, and a projector display for
-the room. The Secretariat gets a live view of every committee at once.
+Motions, Draft Resolutions, voting, awards, a session log, and a projector
+display for the room. The Secretariat gets a live view of every committee at
+once.
 
 **October 15–16, 2026**, at Tashkent International School.
 
@@ -372,6 +373,13 @@ it was raised. A Draft Resolution or an Unfriendly Amendment is voted on in
 the required majority in view. The chair never has to leave the thing being
 voted on and re-select it somewhere else.
 
+### Awards
+
+**Awards** gives Best Delegate and Honorable Mention, one of each per
+committee, and one delegation cannot hold both. A chair can change or remove an
+award until the closing ceremony; every change is logged. Awards survive
+**Reset session**. The award names live in `src/config/awards.ts`.
+
 | Shortcut | Action |
 | --- | --- |
 | `Space` | Start / pause the timer that is currently in play |
@@ -389,8 +397,9 @@ sync over `BroadcastChannel` (same browser, same machine).
 
 The `SECRETARIAT` role gets a **Conference floor** view: every
 committee at once, with its current status, live timers, who has the floor,
-attendance and quorum, Motions on the floor, Draft Resolutions, and a combined
-session log across the whole conference. Clicking a committee opens a full
+attendance and quorum, Motions on the floor, Draft Resolutions, every
+committee's awards (with a CSV download for printing certificates), and a
+combined session log across the whole conference. Clicking a committee opens a full
 read-only view of it — the same information the chair sees, with no controls.
 
 It refreshes every two seconds. Timers tick smoothly between refreshes because

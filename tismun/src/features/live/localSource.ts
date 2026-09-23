@@ -39,6 +39,7 @@ function readCommittee(committeeId: string): ChairData | null {
     resolutions: state.resolutions ?? [],
     amendments: state.amendments ?? [],
     vote: state.vote ?? null,
+    awards: state.awards ?? [],
     log: state.log ?? [],
   };
 }

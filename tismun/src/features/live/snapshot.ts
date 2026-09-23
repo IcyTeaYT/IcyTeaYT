@@ -90,6 +90,10 @@ export function buildLiveSummary(
     motionsOnFloor: state.motions.filter((motion) => motion.status === 'floor').length,
     resolutionCount: state.resolutions.length,
     voteSubject: state.vote?.subjectLabel ?? null,
+    awards: (state.awards ?? []).map((award) => ({
+      ...award,
+      awardedAt: award.awardedAt + offsetToServer,
+    })),
   };
 }
 

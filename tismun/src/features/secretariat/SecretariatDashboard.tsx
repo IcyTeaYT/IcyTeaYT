@@ -13,6 +13,7 @@ import { cn } from '@/lib/cn';
 import { formatTimeOfDay } from '@/lib/time';
 import { useAuth } from '@/store/auth';
 import { useConference } from '@/store/conference';
+import { AwardsOverview } from './AwardsOverview';
 import { LiveTimer } from './LiveTimer';
 
 const STATUS_TONE: Record<string, 'neutral' | 'teal' | 'warning'> = {
@@ -32,6 +33,7 @@ const LOG_TONE: Record<LogType, 'neutral' | 'teal' | 'warning' | 'success'> = {
   motion: 'warning',
   resolution: 'neutral',
   vote: 'success',
+  award: 'success',
 };
 
 export function SecretariatDashboard() {
@@ -121,6 +123,8 @@ export function SecretariatDashboard() {
           />
         ))}
       </div>
+
+      <AwardsOverview rows={summaries} />
 
       <section className="mt-10">
         <div className="flex items-baseline justify-between gap-4">

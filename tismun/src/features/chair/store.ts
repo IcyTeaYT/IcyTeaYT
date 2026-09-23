@@ -1,5 +1,6 @@
 import { create, type StoreApi, type UseBoundStore } from 'zustand';
 import { persist } from 'zustand/middleware';
+import { AWARD_LABEL, type AwardType } from '@/config/awards';
 import { DEFAULTS, MOTION_BY_ID, VOTING, type MotionTypeId } from '@/config/rules';
 import type { Delegation } from '@/data/source/types';
 import { requiredVotes, resolveVote } from '@/lib/majority';
@@ -8,6 +9,7 @@ import { adjustTimer, createTimer, pauseTimer, resetTimer, startTimer, type Time
 import type {
   Amendment,
   AmendmentStatus,
+  Award,
   Attendance,
   GslState,
   LogEntry,
@@ -45,6 +47,7 @@ export interface ChairState {
   resolutions: Resolution[];
   amendments: Amendment[];
   vote: VoteSession | null;
+  awards: Award[];
   log: LogEntry[];
   soundEnabled: boolean;
 
@@ -122,6 +125,14 @@ export interface ChairState {
   beginSecondRound: () => void;
   closeVote: () => void;
   cancelVote: () => void;
+
+  // Awards
+  /**
+   * Gives the award to a delegation, replacing whoever held it before. A
+   * delegation holding the other award loses that one: nobody holds both.
+   */
+  giveAward: (type: AwardType, delegation: Delegation) => void;
+  removeAward: (type: AwardType) => void;
 }
 
 const emptyGsl = (): GslState => ({
@@ -163,6 +174,7 @@ const initialState = () => ({
   resolutions: [] as Resolution[],
   amendments: [] as Amendment[],
   vote: null as VoteSession | null,
+  awards: [] as Award[],
   log: [] as LogEntry[],
   soundEnabled: false,
 });
@@ -215,7 +227,15 @@ function createChairState(committeeId: string) {
       },
 
       resetSession() {
-        set({ ...initialState(), names: get().names, codes: get().codes, soundEnabled: get().soundEnabled });
+        // Awards survive a reset: they belong to the conference, not to one
+        // session, and a reset between sessions must not quietly revoke them.
+        set({
+          ...initialState(),
+          names: get().names,
+          codes: get().codes,
+          awards: get().awards,
+          soundEnabled: get().soundEnabled,
+        });
         log('session', 'Session reset', `All committee state for ${committeeId.toUpperCase()} was cleared.`);
       },
 
@@ -755,6 +775,48 @@ function createChairState(committeeId: string) {
         set({ vote: null });
         log('vote', `Voting on ${vote.subjectLabel} cancelled`);
       },
+
+      /* ── Awards ────────────────────────────────────────────────────────── */
+
+      giveAward(type, delegation) {
+        const label = AWARD_LABEL[type];
+        const previous = get().awards.find((award) => award.type === type) ?? null;
+        if (previous?.delegationId === delegation.id) return;
+
+        const award: Award = {
+          type,
+          delegationId: delegation.id,
+          country: delegation.country,
+          countryCode: delegation.countryCode || null,
+          delegateName: delegation.delegateName,
+          awardedAt: Date.now(),
+        };
+        set((state) => ({
+          awards: [
+            ...state.awards.filter(
+              (entry) => entry.type !== type && entry.delegationId !== delegation.id,
+            ),
+            award,
+          ],
+        }));
+        log(
+          'award',
+          `${label} awarded to ${delegation.country}`,
+          [
+            delegation.delegateName ? `Delegate: ${delegation.delegateName}.` : '',
+            previous ? `Replaces ${previous.country}.` : '',
+          ]
+            .filter(Boolean)
+            .join(' ') || undefined,
+        );
+      },
+
+      removeAward(type) {
+        const previous = get().awards.find((award) => award.type === type);
+        if (!previous) return;
+        set((state) => ({ awards: state.awards.filter((award) => award.type !== type) }));
+        log('award', `${AWARD_LABEL[type]} withdrawn from ${previous.country}`);
+      },
     };
   };
 }
@@ -852,6 +914,7 @@ export type ChairData = Pick<
   | 'resolutions'
   | 'amendments'
   | 'vote'
+  | 'awards'
   | 'log'
 >;
 

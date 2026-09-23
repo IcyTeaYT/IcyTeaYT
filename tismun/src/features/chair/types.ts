@@ -1,3 +1,4 @@
+import type { AwardType } from '@/config/awards';
 import type { MotionTypeId } from '@/config/rules';
 import type { TimerState } from '@/lib/timer';
 
@@ -138,7 +139,8 @@ export type LogType =
   | 'caucus'
   | 'motion'
   | 'resolution'
-  | 'vote';
+  | 'vote'
+  | 'award';
 
 export const LOG_LABEL: Record<LogType, string> = {
   session: 'Session',
@@ -148,6 +150,7 @@ export const LOG_LABEL: Record<LogType, string> = {
   motion: 'Motion',
   resolution: 'Resolution',
   vote: 'Vote',
+  award: 'Award',
 };
 
 export interface LogEntry {
@@ -166,3 +169,16 @@ export type SessionStatus =
   | 'Moderated caucus'
   | 'Unmoderated caucus'
   | 'Voting procedure';
+
+/**
+ * An award as given. The country and delegate names are copied in at the time,
+ * so the record still reads correctly if the roster changes afterwards.
+ */
+export interface Award {
+  type: AwardType;
+  delegationId: string;
+  country: string;
+  countryCode: string | null;
+  delegateName: string;
+  awardedAt: number;
+}

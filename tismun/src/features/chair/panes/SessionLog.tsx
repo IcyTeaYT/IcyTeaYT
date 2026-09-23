@@ -20,6 +20,7 @@ const TYPE_TONE: Record<LogType, 'neutral' | 'teal' | 'warning' | 'success'> = {
   motion: 'warning',
   resolution: 'neutral',
   vote: 'success',
+  award: 'success',
 };
 
 const FILTERS: (LogType | 'all')[] = [
@@ -30,6 +31,7 @@ const FILTERS: (LogType | 'all')[] = [
   'motion',
   'resolution',
   'vote',
+  'award',
   'session',
 ];
 

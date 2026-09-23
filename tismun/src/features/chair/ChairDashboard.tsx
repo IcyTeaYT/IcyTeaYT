@@ -1,4 +1,5 @@
 import {
+  Award,
   ClipboardCheck,
   Compass,
   Coffee,
@@ -28,6 +29,7 @@ import { useCommittee } from '@/store/conference';
 import { useLivePush } from '@/features/live/useLive';
 import { ChairProvider, useChair, useChairContext, useChairStoreApi } from './context';
 import { buildDisplayState, displayChannelName, type DisplayMessage } from './display';
+import { Awards } from './panes/Awards';
 import { Guided } from './panes/Guided';
 import { ModeratedCaucus } from './panes/ModeratedCaucus';
 import { Motions } from './panes/Motions';
@@ -54,6 +56,7 @@ const SECTIONS: Section[] = [
   { to: '/chair/unmoderated', label: 'Unmoderated Caucus', icon: Coffee },
   { to: '/chair/motions', label: 'Motions', icon: Gavel },
   { to: '/chair/resolutions', label: 'Resolutions', icon: FileText },
+  { to: '/chair/awards', label: 'Awards', icon: Award },
   { to: '/chair/log', label: 'Session Log', icon: ScrollText },
 ];
 
@@ -225,6 +228,7 @@ function DashboardChrome() {
               <Route path="unmoderated" element={<UnmoderatedCaucus />} />
               <Route path="motions" element={<Motions />} />
               <Route path="resolutions" element={<Resolutions />} />
+              <Route path="awards" element={<Awards />} />
               <Route path="log" element={<SessionLog />} />
               <Route path="*" element={<Navigate to="/chair/guided" replace />} />
             </Routes>
@@ -240,7 +244,7 @@ function DashboardChrome() {
           navigate('/chair/guided');
         }}
         title="Reset this committee’s session?"
-        body="Roll call, timers, the speakers’ list, motions, resolutions and votes for this committee will be cleared. The session log is cleared too. This cannot be undone."
+        body="Roll call, timers, the speakers’ list, motions, resolutions and votes for this committee will be cleared. The session log is cleared too. Awards are kept. This cannot be undone."
         confirmLabel="Reset session"
         destructive
       />
