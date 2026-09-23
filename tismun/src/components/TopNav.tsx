@@ -17,6 +17,7 @@ interface NavItem {
 /** Delegates are known by their country; chairs by the committee they run. */
 function subtitleFor(user: NonNullable<ReturnType<typeof useAuth.getState>['user']>): string {
   if (user.title) return user.title;
+  if (user.role === 'SECRETARIAT') return 'Secretariat';
   if (user.country) return user.country;
   if (user.committeeId) return user.committeeId.toUpperCase();
   return 'Unassigned';

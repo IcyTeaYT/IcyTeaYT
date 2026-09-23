@@ -113,7 +113,8 @@ export interface SheetUser {
   Role: string;
   'Committee ID': string;
   Country: string;
-  'Country Code': string;
+  'Country Code'?: string;
+  Title?: string;
 }
 
 export interface SheetCommittee {

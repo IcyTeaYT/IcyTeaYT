@@ -165,11 +165,11 @@ Two tabs, with these headers in row 1:
 
 **Users**
 
-| Email | Full Name | Role | Committee ID | Country | Country Code | Title |
-| --- | --- | --- | --- | --- | --- | --- |
-| amir.nazarov@tashkentis.uz | Amir Nazarov | DELEGATE | ga-2 | China | CN | |
-| yassir@tashkentis.uz | Yassir | CHAIR | ga-2 | | | |
-| kamron.yusupov@tashkentis.uz | Kamron Yusupov | SECRETARIAT | | | | Secretary-General |
+| Email | Full Name | Role | Committee ID | Country |
+| --- | --- | --- | --- | --- |
+| amir.nazarov@tashkentis.uz | Amir Nazarov | DELEGATE | ga-2 | China |
+| yassir@tashkentis.uz | Yassir | CHAIR | ga-2 | |
+| kamron.yusupov@tashkentis.uz | Kamron Yusupov | SECRETARIAT | | |
 
 **Committees**
 
@@ -181,17 +181,18 @@ Notes:
 - `Role` is `DELEGATE`, `CHAIR` or `SECRETARIAT`. Anything unrecognised is
   treated as `DELEGATE`, so a typo can never grant chair access by accident.
   `ADMIN` exists in the type and is ready to be given its own screens.
-- `Title` is optional and only the Secretariat uses it — it is the post shown
-  in the nav and on their dashboard.
 - `Committee ID` is the key joining the two tabs, and also the PDF filename.
   Keep it short and lowercase. This year's are `hrc-russian`, `hrc-1`,
   `hrc-2`, `sc`, `hsc-1`, `hsc-2`, `ga-2` and `ga-3`.
 - `Chairs` is one cell, names separated by semicolons.
-- `Country` and `Country Code` are left blank for chairs.
-- `Country Code` is the ISO 3166-1 two-letter code (`CN`, `GB`, `UZ`) — it
-  draws the flag, so a wrong code shows a blank chip.
-- Headers may carry a parenthetical note — `Country Code (ISO 2-letter)` is read
-  as `Country Code` — so you can annotate the sheet for whoever fills it in.
+- `Country` is left blank for chairs and the Secretariat.
+- **Just type the country's name** — the flag is worked out from it. Formal UN
+  names work too: "Russian Federation", "Viet Nam", "Republic of Korea",
+  "Türkiye", "Côte d'Ivoire". A name it does not recognise still appears in
+  roll call, just with a blank flag. For that rare case you can add a
+  `Country Code` column and type the two-letter code on that row.
+- Headers may carry a note in brackets — `Country (as on the placard)` is read
+  as `Country` — so you can annotate the sheet for whoever fills it in.
 
 `src/data/mock/users.json` and `committees.json` mirror these columns exactly,
 so the mock data is a working example of the format.
@@ -465,7 +466,5 @@ public by design; do not put real delegate assignments on one.
 8. **The delegations** — which country each delegate represents in each
    committee. The committees, chairs and rooms are already the real ones; only
    the delegate lists are still invented.
-9. **Who holds the Secretariat account**, and their post. That row takes the
-   optional `Title` column in the Users tab (e.g. "Secretary-General"); every
-   other row leaves it blank. Add more `SECRETARIAT` rows if more than one
-   person needs the conference-floor view.
+9. **Who holds the Secretariat account.** Add more `SECRETARIAT` rows if more
+   than one person needs the conference-floor view.

@@ -4,1151 +4,895 @@
     "Full Name": "Laziza",
     "Role": "CHAIR",
     "Committee ID": "hrc-russian",
-    "Country": "",
-    "Country Code": "",
-    "Title": ""
+    "Country": ""
   },
   {
     "Email": "nazira.hrcrussian@demo.tis",
     "Full Name": "Nazira",
     "Role": "CHAIR",
     "Committee ID": "hrc-russian",
-    "Country": "",
-    "Country Code": "",
-    "Title": ""
+    "Country": ""
   },
   {
     "Email": "iman.hrcrussian@demo.tis",
     "Full Name": "Iman",
     "Role": "CHAIR",
     "Committee ID": "hrc-russian",
-    "Country": "",
-    "Country Code": "",
-    "Title": ""
+    "Country": ""
   },
   {
     "Email": "amir.nazarov@demo.tis",
     "Full Name": "Amir Nazarov",
     "Role": "DELEGATE",
     "Committee ID": "hrc-russian",
-    "Country": "Armenia",
-    "Country Code": "AM",
-    "Title": ""
+    "Country": "Armenia"
   },
   {
     "Email": "sofia.petrova@demo.tis",
     "Full Name": "Sofia Petrova",
     "Role": "DELEGATE",
     "Committee ID": "hrc-russian",
-    "Country": "Belarus",
-    "Country Code": "BY",
-    "Title": ""
+    "Country": "Belarus"
   },
   {
     "Email": "timur.alimov@demo.tis",
     "Full Name": "Timur Alimov",
     "Role": "DELEGATE",
     "Committee ID": "hrc-russian",
-    "Country": "Georgia",
-    "Country Code": "GE",
-    "Title": ""
+    "Country": "Georgia"
   },
   {
     "Email": "elena.sokolova@demo.tis",
     "Full Name": "Elena Sokolova",
     "Role": "DELEGATE",
     "Committee ID": "hrc-russian",
-    "Country": "Kazakhstan",
-    "Country Code": "KZ",
-    "Title": ""
+    "Country": "Kazakhstan"
   },
   {
     "Email": "jasur.rakhimov@demo.tis",
     "Full Name": "Jasur Rakhimov",
     "Role": "DELEGATE",
     "Committee ID": "hrc-russian",
-    "Country": "Kyrgyzstan",
-    "Country Code": "KG",
-    "Title": ""
+    "Country": "Kyrgyzstan"
   },
   {
     "Email": "maya.fernandes@demo.tis",
     "Full Name": "Maya Fernandes",
     "Role": "DELEGATE",
     "Committee ID": "hrc-russian",
-    "Country": "Latvia",
-    "Country Code": "LV",
-    "Title": ""
+    "Country": "Latvia"
   },
   {
     "Email": "bekzod.usmanov@demo.tis",
     "Full Name": "Bekzod Usmanov",
     "Role": "DELEGATE",
     "Committee ID": "hrc-russian",
-    "Country": "Moldova",
-    "Country Code": "MD",
-    "Title": ""
+    "Country": "Moldova"
   },
   {
     "Email": "anika.nazarov@demo.tis",
     "Full Name": "Anika Nazarov",
     "Role": "DELEGATE",
     "Committee ID": "hrc-russian",
-    "Country": "Mongolia",
-    "Country Code": "MN",
-    "Title": ""
+    "Country": "Mongolia"
   },
   {
     "Email": "ruslan.petrova@demo.tis",
     "Full Name": "Ruslan Petrova",
     "Role": "DELEGATE",
     "Committee ID": "hrc-russian",
-    "Country": "Russian Federation",
-    "Country Code": "RU",
-    "Title": ""
+    "Country": "Russian Federation"
   },
   {
     "Email": "leyla.alimov@demo.tis",
     "Full Name": "Leyla Alimov",
     "Role": "DELEGATE",
     "Committee ID": "hrc-russian",
-    "Country": "Tajikistan",
-    "Country Code": "TJ",
-    "Title": ""
+    "Country": "Tajikistan"
   },
   {
     "Email": "farrukh.sokolova@demo.tis",
     "Full Name": "Farrukh Sokolova",
     "Role": "DELEGATE",
     "Committee ID": "hrc-russian",
-    "Country": "Turkmenistan",
-    "Country Code": "TM",
-    "Title": ""
+    "Country": "Turkmenistan"
   },
   {
     "Email": "nadia.rakhimov@demo.tis",
     "Full Name": "Nadia Rakhimov",
     "Role": "DELEGATE",
     "Committee ID": "hrc-russian",
-    "Country": "Ukraine",
-    "Country Code": "UA",
-    "Title": ""
+    "Country": "Ukraine"
   },
   {
     "Email": "otabek.fernandes@demo.tis",
     "Full Name": "Otabek Fernandes",
     "Role": "DELEGATE",
     "Committee ID": "hrc-russian",
-    "Country": "Uzbekistan",
-    "Country Code": "UZ",
-    "Title": ""
+    "Country": "Uzbekistan"
   },
   {
     "Email": "zhanel.hrc1@demo.tis",
     "Full Name": "Zhanel",
     "Role": "CHAIR",
     "Committee ID": "hrc-1",
-    "Country": "",
-    "Country Code": "",
-    "Title": ""
+    "Country": ""
   },
   {
     "Email": "sanzhar.hrc1@demo.tis",
     "Full Name": "Sanzhar",
     "Role": "CHAIR",
     "Committee ID": "hrc-1",
-    "Country": "",
-    "Country Code": "",
-    "Title": ""
+    "Country": ""
   },
   {
     "Email": "irina.usmanov@demo.tis",
     "Full Name": "Irina Usmanov",
     "Role": "DELEGATE",
     "Committee ID": "hrc-1",
-    "Country": "Argentina",
-    "Country Code": "AR",
-    "Title": ""
+    "Country": "Argentina"
   },
   {
     "Email": "sardor.nazarov@demo.tis",
     "Full Name": "Sardor Nazarov",
     "Role": "DELEGATE",
     "Committee ID": "hrc-1",
-    "Country": "Belgium",
-    "Country Code": "BE",
-    "Title": ""
+    "Country": "Belgium"
   },
   {
     "Email": "yulia.petrova@demo.tis",
     "Full Name": "Yulia Petrova",
     "Role": "DELEGATE",
     "Committee ID": "hrc-1",
-    "Country": "Brazil",
-    "Country Code": "BR",
-    "Title": ""
+    "Country": "Brazil"
   },
   {
     "Email": "javohir.alimov@demo.tis",
     "Full Name": "Javohir Alimov",
     "Role": "DELEGATE",
     "Committee ID": "hrc-1",
-    "Country": "France",
-    "Country Code": "FR",
-    "Title": ""
+    "Country": "France"
   },
   {
     "Email": "kamola.sokolova@demo.tis",
     "Full Name": "Kamola Sokolova",
     "Role": "DELEGATE",
     "Committee ID": "hrc-1",
-    "Country": "Gambia",
-    "Country Code": "GM",
-    "Title": ""
+    "Country": "Gambia"
   },
   {
     "Email": "alisher.rakhimov@demo.tis",
     "Full Name": "Alisher Rakhimov",
     "Role": "DELEGATE",
     "Committee ID": "hrc-1",
-    "Country": "Germany",
-    "Country Code": "DE",
-    "Title": ""
+    "Country": "Germany"
   },
   {
     "Email": "diyora.fernandes@demo.tis",
     "Full Name": "Diyora Fernandes",
     "Role": "DELEGATE",
     "Committee ID": "hrc-1",
-    "Country": "India",
-    "Country Code": "IN",
-    "Title": ""
+    "Country": "India"
   },
   {
     "Email": "ethan.usmanov@demo.tis",
     "Full Name": "Ethan Usmanov",
     "Role": "DELEGATE",
     "Committee ID": "hrc-1",
-    "Country": "Japan",
-    "Country Code": "JP",
-    "Title": ""
+    "Country": "Japan"
   },
   {
     "Email": "chloe.nazarov@demo.tis",
     "Full Name": "Chloe Nazarov",
     "Role": "DELEGATE",
     "Committee ID": "hrc-1",
-    "Country": "Kenya",
-    "Country Code": "KE",
-    "Title": ""
+    "Country": "Kenya"
   },
   {
     "Email": "jiwoo.petrova@demo.tis",
     "Full Name": "Ji-woo Petrova",
     "Role": "DELEGATE",
     "Committee ID": "hrc-1",
-    "Country": "Malaysia",
-    "Country Code": "MY",
-    "Title": ""
+    "Country": "Malaysia"
   },
   {
     "Email": "rahul.alimov@demo.tis",
     "Full Name": "Rahul Alimov",
     "Role": "DELEGATE",
     "Committee ID": "hrc-1",
-    "Country": "Morocco",
-    "Country Code": "MA",
-    "Title": ""
+    "Country": "Morocco"
   },
   {
     "Email": "mateo.sokolova@demo.tis",
     "Full Name": "Mateo Sokolova",
     "Role": "DELEGATE",
     "Committee ID": "hrc-1",
-    "Country": "Qatar",
-    "Country Code": "QA",
-    "Title": ""
+    "Country": "Qatar"
   },
   {
     "Email": "hana.rakhimov@demo.tis",
     "Full Name": "Hana Rakhimov",
     "Role": "DELEGATE",
     "Committee ID": "hrc-1",
-    "Country": "South Africa",
-    "Country Code": "ZA",
-    "Title": ""
+    "Country": "South Africa"
   },
   {
     "Email": "lukas.fernandes@demo.tis",
     "Full Name": "Lukas Fernandes",
     "Role": "DELEGATE",
     "Committee ID": "hrc-1",
-    "Country": "Viet Nam",
-    "Country Code": "VN",
-    "Title": ""
+    "Country": "Viet Nam"
   },
   {
     "Email": "dilafruz.hrc2@demo.tis",
     "Full Name": "Dilafruz",
     "Role": "CHAIR",
     "Committee ID": "hrc-2",
-    "Country": "",
-    "Country Code": "",
-    "Title": ""
+    "Country": ""
   },
   {
     "Email": "yana.hrc2@demo.tis",
     "Full Name": "Yana",
     "Role": "CHAIR",
     "Committee ID": "hrc-2",
-    "Country": "",
-    "Country Code": "",
-    "Title": ""
+    "Country": ""
   },
   {
     "Email": "maryam.hrc2@demo.tis",
     "Full Name": "Maryam",
     "Role": "CHAIR",
     "Committee ID": "hrc-2",
-    "Country": "",
-    "Country Code": "",
-    "Title": ""
+    "Country": ""
   },
   {
     "Email": "priya.usmanov@demo.tis",
     "Full Name": "Priya Usmanov",
     "Role": "DELEGATE",
     "Committee ID": "hrc-2",
-    "Country": "Australia",
-    "Country Code": "AU",
-    "Title": ""
+    "Country": "Australia"
   },
   {
     "Email": "noah.nazarov@demo.tis",
     "Full Name": "Noah Nazarov",
     "Role": "DELEGATE",
     "Committee ID": "hrc-2",
-    "Country": "Bangladesh",
-    "Country Code": "BD",
-    "Title": ""
+    "Country": "Bangladesh"
   },
   {
     "Email": "amina.petrova@demo.tis",
     "Full Name": "Amina Petrova",
     "Role": "DELEGATE",
     "Committee ID": "hrc-2",
-    "Country": "Canada",
-    "Country Code": "CA",
-    "Title": ""
+    "Country": "Canada"
   },
   {
     "Email": "yusuf.alimov@demo.tis",
     "Full Name": "Yusuf Alimov",
     "Role": "DELEGATE",
     "Committee ID": "hrc-2",
-    "Country": "Chile",
-    "Country Code": "CL",
-    "Title": ""
+    "Country": "Chile"
   },
   {
     "Email": "zoya.sokolova@demo.tis",
     "Full Name": "Zoya Sokolova",
     "Role": "DELEGATE",
     "Committee ID": "hrc-2",
-    "Country": "Egypt",
-    "Country Code": "EG",
-    "Title": ""
+    "Country": "Egypt"
   },
   {
     "Email": "emil.rakhimov@demo.tis",
     "Full Name": "Emil Rakhimov",
     "Role": "DELEGATE",
     "Committee ID": "hrc-2",
-    "Country": "Ethiopia",
-    "Country Code": "ET",
-    "Title": ""
+    "Country": "Ethiopia"
   },
   {
     "Email": "sanjar.fernandes@demo.tis",
     "Full Name": "Sanjar Fernandes",
     "Role": "DELEGATE",
     "Committee ID": "hrc-2",
-    "Country": "Indonesia",
-    "Country Code": "ID",
-    "Title": ""
+    "Country": "Indonesia"
   },
   {
     "Email": "madina.usmanov@demo.tis",
     "Full Name": "Madina Usmanov",
     "Role": "DELEGATE",
     "Committee ID": "hrc-2",
-    "Country": "Italy",
-    "Country Code": "IT",
-    "Title": ""
+    "Country": "Italy"
   },
   {
     "Email": "artur.nazarov@demo.tis",
     "Full Name": "Artur Nazarov",
     "Role": "DELEGATE",
     "Committee ID": "hrc-2",
-    "Country": "Mexico",
-    "Country Code": "MX",
-    "Title": ""
+    "Country": "Mexico"
   },
   {
     "Email": "laila.petrova@demo.tis",
     "Full Name": "Laila Petrova",
     "Role": "DELEGATE",
     "Committee ID": "hrc-2",
-    "Country": "Netherlands",
-    "Country Code": "NL",
-    "Title": ""
+    "Country": "Netherlands"
   },
   {
     "Email": "daniyar.alimov@demo.tis",
     "Full Name": "Daniyar Alimov",
     "Role": "DELEGATE",
     "Committee ID": "hrc-2",
-    "Country": "Nigeria",
-    "Country Code": "NG",
-    "Title": ""
+    "Country": "Nigeria"
   },
   {
     "Email": "vera.sokolova@demo.tis",
     "Full Name": "Vera Sokolova",
     "Role": "DELEGATE",
     "Committee ID": "hrc-2",
-    "Country": "Norway",
-    "Country Code": "NO",
-    "Title": ""
+    "Country": "Norway"
   },
   {
     "Email": "omar.rakhimov@demo.tis",
     "Full Name": "Omar Rakhimov",
     "Role": "DELEGATE",
     "Committee ID": "hrc-2",
-    "Country": "Pakistan",
-    "Country Code": "PK",
-    "Title": ""
+    "Country": "Pakistan"
   },
   {
     "Email": "aisha.fernandes@demo.tis",
     "Full Name": "Aisha Fernandes",
     "Role": "DELEGATE",
     "Committee ID": "hrc-2",
-    "Country": "Philippines",
-    "Country Code": "PH",
-    "Title": ""
+    "Country": "Philippines"
   },
   {
     "Email": "natalia.sc@demo.tis",
     "Full Name": "Natalia",
     "Role": "CHAIR",
     "Committee ID": "sc",
-    "Country": "",
-    "Country Code": "",
-    "Title": ""
+    "Country": ""
   },
   {
     "Email": "hollansa.sc@demo.tis",
     "Full Name": "Hollansa",
     "Role": "CHAIR",
     "Committee ID": "sc",
-    "Country": "",
-    "Country Code": "",
-    "Title": ""
+    "Country": ""
   },
   {
     "Email": "marco.usmanov@demo.tis",
     "Full Name": "Marco Usmanov",
     "Role": "DELEGATE",
     "Committee ID": "sc",
-    "Country": "China",
-    "Country Code": "CN",
-    "Title": ""
+    "Country": "China"
   },
   {
     "Email": "seoyeon.nazarov@demo.tis",
     "Full Name": "Seo-yeon Nazarov",
     "Role": "DELEGATE",
     "Committee ID": "sc",
-    "Country": "France",
-    "Country Code": "FR",
-    "Title": ""
+    "Country": "France"
   },
   {
     "Email": "ishaan.petrova@demo.tis",
     "Full Name": "Ishaan Petrova",
     "Role": "DELEGATE",
     "Committee ID": "sc",
-    "Country": "Russian Federation",
-    "Country Code": "RU",
-    "Title": ""
+    "Country": "Russian Federation"
   },
   {
     "Email": "clara.alimov@demo.tis",
     "Full Name": "Clara Alimov",
     "Role": "DELEGATE",
     "Committee ID": "sc",
-    "Country": "United Kingdom",
-    "Country Code": "GB",
-    "Title": ""
+    "Country": "United Kingdom"
   },
   {
     "Email": "tariq.sokolova@demo.tis",
     "Full Name": "Tariq Sokolova",
     "Role": "DELEGATE",
     "Committee ID": "sc",
-    "Country": "United States",
-    "Country Code": "US",
-    "Title": ""
+    "Country": "United States"
   },
   {
     "Email": "nina.rakhimov@demo.tis",
     "Full Name": "Nina Rakhimov",
     "Role": "DELEGATE",
     "Committee ID": "sc",
-    "Country": "Algeria",
-    "Country Code": "DZ",
-    "Title": ""
+    "Country": "Algeria"
   },
   {
     "Email": "bobur.fernandes@demo.tis",
     "Full Name": "Bobur Fernandes",
     "Role": "DELEGATE",
     "Committee ID": "sc",
-    "Country": "Denmark",
-    "Country Code": "DK",
-    "Title": ""
+    "Country": "Denmark"
   },
   {
     "Email": "freya.usmanov@demo.tis",
     "Full Name": "Freya Usmanov",
     "Role": "DELEGATE",
     "Committee ID": "sc",
-    "Country": "Greece",
-    "Country Code": "GR",
-    "Title": ""
+    "Country": "Greece"
   },
   {
     "Email": "karim.nazarov@demo.tis",
     "Full Name": "Karim Nazarov",
     "Role": "DELEGATE",
     "Committee ID": "sc",
-    "Country": "Guyana",
-    "Country Code": "GY",
-    "Title": ""
+    "Country": "Guyana"
   },
   {
     "Email": "shokhrukh.petrova@demo.tis",
     "Full Name": "Shokhrukh Petrova",
     "Role": "DELEGATE",
     "Committee ID": "sc",
-    "Country": "Pakistan",
-    "Country Code": "PK",
-    "Title": ""
+    "Country": "Pakistan"
   },
   {
     "Email": "valeria.alimov@demo.tis",
     "Full Name": "Valeria Alimov",
     "Role": "DELEGATE",
     "Committee ID": "sc",
-    "Country": "Panama",
-    "Country Code": "PA",
-    "Title": ""
+    "Country": "Panama"
   },
   {
     "Email": "aziz.sokolova@demo.tis",
     "Full Name": "Aziz Sokolova",
     "Role": "DELEGATE",
     "Committee ID": "sc",
-    "Country": "Republic of Korea",
-    "Country Code": "KR",
-    "Title": ""
+    "Country": "Republic of Korea"
   },
   {
     "Email": "mira.rakhimov@demo.tis",
     "Full Name": "Mira Rakhimov",
     "Role": "DELEGATE",
     "Committee ID": "sc",
-    "Country": "Sierra Leone",
-    "Country Code": "SL",
-    "Title": ""
+    "Country": "Sierra Leone"
   },
   {
     "Email": "doston.fernandes@demo.tis",
     "Full Name": "Doston Fernandes",
     "Role": "DELEGATE",
     "Committee ID": "sc",
-    "Country": "Slovenia",
-    "Country Code": "SI",
-    "Title": ""
+    "Country": "Slovenia"
   },
   {
     "Email": "polina.usmanov@demo.tis",
     "Full Name": "Polina Usmanov",
     "Role": "DELEGATE",
     "Committee ID": "sc",
-    "Country": "Somalia",
-    "Country Code": "SO",
-    "Title": ""
+    "Country": "Somalia"
   },
   {
     "Email": "timur.hsc1@demo.tis",
     "Full Name": "Timur",
     "Role": "CHAIR",
     "Committee ID": "hsc-1",
-    "Country": "",
-    "Country Code": "",
-    "Title": ""
+    "Country": ""
   },
   {
     "Email": "martin.hsc1@demo.tis",
     "Full Name": "Martin",
     "Role": "CHAIR",
     "Committee ID": "hsc-1",
-    "Country": "",
-    "Country Code": "",
-    "Title": ""
+    "Country": ""
   },
   {
     "Email": "nikita.nazarov@demo.tis",
     "Full Name": "Nikita Nazarov",
     "Role": "DELEGATE",
     "Committee ID": "hsc-1",
-    "Country": "China",
-    "Country Code": "CN",
-    "Title": ""
+    "Country": "China"
   },
   {
     "Email": "sabina.petrova@demo.tis",
     "Full Name": "Sabina Petrova",
     "Role": "DELEGATE",
     "Committee ID": "hsc-1",
-    "Country": "France",
-    "Country Code": "FR",
-    "Title": ""
+    "Country": "France"
   },
   {
     "Email": "hugo.alimov@demo.tis",
     "Full Name": "Hugo Alimov",
     "Role": "DELEGATE",
     "Committee ID": "hsc-1",
-    "Country": "Russian Federation",
-    "Country Code": "RU",
-    "Title": ""
+    "Country": "Russian Federation"
   },
   {
     "Email": "anvar.sokolova@demo.tis",
     "Full Name": "Anvar Sokolova",
     "Role": "DELEGATE",
     "Committee ID": "hsc-1",
-    "Country": "United Kingdom",
-    "Country Code": "GB",
-    "Title": ""
+    "Country": "United Kingdom"
   },
   {
     "Email": "eleanor.rakhimov@demo.tis",
     "Full Name": "Eleanor Rakhimov",
     "Role": "DELEGATE",
     "Committee ID": "hsc-1",
-    "Country": "United States",
-    "Country Code": "US",
-    "Title": ""
+    "Country": "United States"
   },
   {
     "Email": "rustam.fernandes@demo.tis",
     "Full Name": "Rustam Fernandes",
     "Role": "DELEGATE",
     "Committee ID": "hsc-1",
-    "Country": "Chile",
-    "Country Code": "CL",
-    "Title": ""
+    "Country": "Chile"
   },
   {
     "Email": "dilfuza.usmanov@demo.tis",
     "Full Name": "Dilfuza Usmanov",
     "Role": "DELEGATE",
     "Committee ID": "hsc-1",
-    "Country": "Egypt",
-    "Country Code": "EG",
-    "Title": ""
+    "Country": "Egypt"
   },
   {
     "Email": "jonas.nazarov@demo.tis",
     "Full Name": "Jonas Nazarov",
     "Role": "DELEGATE",
     "Committee ID": "hsc-1",
-    "Country": "Ghana",
-    "Country Code": "GH",
-    "Title": ""
+    "Country": "Ghana"
   },
   {
     "Email": "yasmin.petrova@demo.tis",
     "Full Name": "Yasmin Petrova",
     "Role": "DELEGATE",
     "Committee ID": "hsc-1",
-    "Country": "Ireland",
-    "Country Code": "IE",
-    "Title": ""
+    "Country": "Ireland"
   },
   {
     "Email": "temur.alimov@demo.tis",
     "Full Name": "Temur Alimov",
     "Role": "DELEGATE",
     "Committee ID": "hsc-1",
-    "Country": "Romania",
-    "Country Code": "RO",
-    "Title": ""
+    "Country": "Romania"
   },
   {
     "Email": "alina.sokolova@demo.tis",
     "Full Name": "Alina Sokolova",
     "Role": "DELEGATE",
     "Committee ID": "hsc-1",
-    "Country": "Venezuela",
-    "Country Code": "VE",
-    "Title": ""
+    "Country": "Venezuela"
   },
   {
     "Email": "david.hsc2@demo.tis",
     "Full Name": "David",
     "Role": "CHAIR",
     "Committee ID": "hsc-2",
-    "Country": "",
-    "Country Code": "",
-    "Title": ""
+    "Country": ""
   },
   {
     "Email": "nigmat.hsc2@demo.tis",
     "Full Name": "Nigmat",
     "Role": "CHAIR",
     "Committee ID": "hsc-2",
-    "Country": "",
-    "Country Code": "",
-    "Title": ""
+    "Country": ""
   },
   {
     "Email": "sohail.rakhimov@demo.tis",
     "Full Name": "Sohail Rakhimov",
     "Role": "DELEGATE",
     "Committee ID": "hsc-2",
-    "Country": "China",
-    "Country Code": "CN",
-    "Title": ""
+    "Country": "China"
   },
   {
     "Email": "greta.fernandes@demo.tis",
     "Full Name": "Greta Fernandes",
     "Role": "DELEGATE",
     "Committee ID": "hsc-2",
-    "Country": "France",
-    "Country Code": "FR",
-    "Title": ""
+    "Country": "France"
   },
   {
     "Email": "iskandar.usmanov@demo.tis",
     "Full Name": "Iskandar Usmanov",
     "Role": "DELEGATE",
     "Committee ID": "hsc-2",
-    "Country": "Russian Federation",
-    "Country Code": "RU",
-    "Title": ""
+    "Country": "Russian Federation"
   },
   {
     "Email": "malak.nazarov@demo.tis",
     "Full Name": "Malak Nazarov",
     "Role": "DELEGATE",
     "Committee ID": "hsc-2",
-    "Country": "United Kingdom",
-    "Country Code": "GB",
-    "Title": ""
+    "Country": "United Kingdom"
   },
   {
     "Email": "viktor.petrova@demo.tis",
     "Full Name": "Viktor Petrova",
     "Role": "DELEGATE",
     "Committee ID": "hsc-2",
-    "Country": "United States",
-    "Country Code": "US",
-    "Title": ""
+    "Country": "United States"
   },
   {
     "Email": "nargiza.alimov@demo.tis",
     "Full Name": "Nargiza Alimov",
     "Role": "DELEGATE",
     "Committee ID": "hsc-2",
-    "Country": "Chile",
-    "Country Code": "CL",
-    "Title": ""
+    "Country": "Chile"
   },
   {
     "Email": "felix.sokolova@demo.tis",
     "Full Name": "Felix Sokolova",
     "Role": "DELEGATE",
     "Committee ID": "hsc-2",
-    "Country": "Egypt",
-    "Country Code": "EG",
-    "Title": ""
+    "Country": "Egypt"
   },
   {
     "Email": "zainab.rakhimov@demo.tis",
     "Full Name": "Zainab Rakhimov",
     "Role": "DELEGATE",
     "Committee ID": "hsc-2",
-    "Country": "Ghana",
-    "Country Code": "GH",
-    "Title": ""
+    "Country": "Ghana"
   },
   {
     "Email": "aron.fernandes@demo.tis",
     "Full Name": "Aron Fernandes",
     "Role": "DELEGATE",
     "Committee ID": "hsc-2",
-    "Country": "Ireland",
-    "Country Code": "IE",
-    "Title": ""
+    "Country": "Ireland"
   },
   {
     "Email": "kristina.usmanov@demo.tis",
     "Full Name": "Kristina Usmanov",
     "Role": "DELEGATE",
     "Committee ID": "hsc-2",
-    "Country": "Romania",
-    "Country Code": "RO",
-    "Title": ""
+    "Country": "Romania"
   },
   {
     "Email": "shahzod.nazarov@demo.tis",
     "Full Name": "Shahzod Nazarov",
     "Role": "DELEGATE",
     "Committee ID": "hsc-2",
-    "Country": "Venezuela",
-    "Country Code": "VE",
-    "Title": ""
+    "Country": "Venezuela"
   },
   {
     "Email": "yassir.ga2@demo.tis",
     "Full Name": "Yassir",
     "Role": "CHAIR",
     "Committee ID": "ga-2",
-    "Country": "",
-    "Country Code": "",
-    "Title": ""
+    "Country": ""
   },
   {
     "Email": "damirbek.ga2@demo.tis",
     "Full Name": "Damirbek",
     "Role": "CHAIR",
     "Committee ID": "ga-2",
-    "Country": "",
-    "Country Code": "",
-    "Title": ""
+    "Country": ""
   },
   {
     "Email": "jihoo.ga2@demo.tis",
     "Full Name": "Jihoo",
     "Role": "CHAIR",
     "Committee ID": "ga-2",
-    "Country": "",
-    "Country Code": "",
-    "Title": ""
+    "Country": ""
   },
   {
     "Email": "emma.petrova@demo.tis",
     "Full Name": "Emma Petrova",
     "Role": "DELEGATE",
     "Committee ID": "ga-2",
-    "Country": "Bangladesh",
-    "Country Code": "BD",
-    "Title": ""
+    "Country": "Bangladesh"
   },
   {
     "Email": "bakhtiyor.alimov@demo.tis",
     "Full Name": "Bakhtiyor Alimov",
     "Role": "DELEGATE",
     "Committee ID": "ga-2",
-    "Country": "Brazil",
-    "Country Code": "BR",
-    "Title": ""
+    "Country": "Brazil"
   },
   {
     "Email": "layla.sokolova@demo.tis",
     "Full Name": "Layla Sokolova",
     "Role": "DELEGATE",
     "Committee ID": "ga-2",
-    "Country": "China",
-    "Country Code": "CN",
-    "Title": ""
+    "Country": "China"
   },
   {
     "Email": "pavel.rakhimov@demo.tis",
     "Full Name": "Pavel Rakhimov",
     "Role": "DELEGATE",
     "Committee ID": "ga-2",
-    "Country": "Colombia",
-    "Country Code": "CO",
-    "Title": ""
+    "Country": "Colombia"
   },
   {
     "Email": "gulnora.fernandes@demo.tis",
     "Full Name": "Gulnora Fernandes",
     "Role": "DELEGATE",
     "Committee ID": "ga-2",
-    "Country": "Germany",
-    "Country Code": "DE",
-    "Title": ""
+    "Country": "Germany"
   },
   {
     "Email": "arman.usmanov@demo.tis",
     "Full Name": "Arman Usmanov",
     "Role": "DELEGATE",
     "Committee ID": "ga-2",
-    "Country": "India",
-    "Country Code": "IN",
-    "Title": ""
+    "Country": "India"
   },
   {
     "Email": "stella.nazarov@demo.tis",
     "Full Name": "Stella Nazarov",
     "Role": "DELEGATE",
     "Committee ID": "ga-2",
-    "Country": "Jordan",
-    "Country Code": "JO",
-    "Title": ""
+    "Country": "Jordan"
   },
   {
     "Email": "ibrahim.petrova@demo.tis",
     "Full Name": "Ibrahim Petrova",
     "Role": "DELEGATE",
     "Committee ID": "ga-2",
-    "Country": "Kenya",
-    "Country Code": "KE",
-    "Title": ""
+    "Country": "Kenya"
   },
   {
     "Email": "katya.alimov@demo.tis",
     "Full Name": "Katya Alimov",
     "Role": "DELEGATE",
     "Committee ID": "ga-2",
-    "Country": "Nigeria",
-    "Country Code": "NG",
-    "Title": ""
+    "Country": "Nigeria"
   },
   {
     "Email": "jahongir.sokolova@demo.tis",
     "Full Name": "Jahongir Sokolova",
     "Role": "DELEGATE",
     "Committee ID": "ga-2",
-    "Country": "Poland",
-    "Country Code": "PL",
-    "Title": ""
+    "Country": "Poland"
   },
   {
     "Email": "rosa.rakhimov@demo.tis",
     "Full Name": "Rosa Rakhimov",
     "Role": "DELEGATE",
     "Committee ID": "ga-2",
-    "Country": "Saudi Arabia",
-    "Country Code": "SA",
-    "Title": ""
+    "Country": "Saudi Arabia"
   },
   {
     "Email": "murod.fernandes@demo.tis",
     "Full Name": "Murod Fernandes",
     "Role": "DELEGATE",
     "Committee ID": "ga-2",
-    "Country": "Türkiye",
-    "Country Code": "TR",
-    "Title": ""
+    "Country": "Türkiye"
   },
   {
     "Email": "amir.kaur@demo.tis",
     "Full Name": "Amir Kaur",
     "Role": "DELEGATE",
     "Committee ID": "ga-2",
-    "Country": "United States",
-    "Country Code": "US",
-    "Title": ""
+    "Country": "United States"
   },
   {
     "Email": "anika.kaur@demo.tis",
     "Full Name": "Anika Kaur",
     "Role": "DELEGATE",
     "Committee ID": "ga-2",
-    "Country": "Uzbekistan",
-    "Country Code": "UZ",
-    "Title": ""
+    "Country": "Uzbekistan"
   },
   {
     "Email": "yuna.ga3@demo.tis",
     "Full Name": "Yuna",
     "Role": "CHAIR",
     "Committee ID": "ga-3",
-    "Country": "",
-    "Country Code": "",
-    "Title": ""
+    "Country": ""
   },
   {
     "Email": "sally.ga3@demo.tis",
     "Full Name": "Sally",
     "Role": "CHAIR",
     "Committee ID": "ga-3",
-    "Country": "",
-    "Country Code": "",
-    "Title": ""
+    "Country": ""
   },
   {
     "Email": "gee.ga3@demo.tis",
     "Full Name": "Gee",
     "Role": "CHAIR",
     "Committee ID": "ga-3",
-    "Country": "",
-    "Country Code": "",
-    "Title": ""
+    "Country": ""
   },
   {
     "Email": "sardor.kaur@demo.tis",
     "Full Name": "Sardor Kaur",
     "Role": "DELEGATE",
     "Committee ID": "ga-3",
-    "Country": "Australia",
-    "Country Code": "AU",
-    "Title": ""
+    "Country": "Australia"
   },
   {
     "Email": "chloe.kaur@demo.tis",
     "Full Name": "Chloe Kaur",
     "Role": "DELEGATE",
     "Committee ID": "ga-3",
-    "Country": "Bolivia",
-    "Country Code": "BO",
-    "Title": ""
+    "Country": "Bolivia"
   },
   {
     "Email": "noah.kaur@demo.tis",
     "Full Name": "Noah Kaur",
     "Role": "DELEGATE",
     "Committee ID": "ga-3",
-    "Country": "Fiji",
-    "Country Code": "FJ",
-    "Title": ""
+    "Country": "Fiji"
   },
   {
     "Email": "artur.kaur@demo.tis",
     "Full Name": "Artur Kaur",
     "Role": "DELEGATE",
     "Committee ID": "ga-3",
-    "Country": "France",
-    "Country Code": "FR",
-    "Title": ""
+    "Country": "France"
   },
   {
     "Email": "seoyeon.kaur@demo.tis",
     "Full Name": "Seo-yeon Kaur",
     "Role": "DELEGATE",
     "Committee ID": "ga-3",
-    "Country": "Iraq",
-    "Country Code": "IQ",
-    "Title": ""
+    "Country": "Iraq"
   },
   {
     "Email": "karim.kaur@demo.tis",
     "Full Name": "Karim Kaur",
     "Role": "DELEGATE",
     "Committee ID": "ga-3",
-    "Country": "Japan",
-    "Country Code": "JP",
-    "Title": ""
+    "Country": "Japan"
   },
   {
     "Email": "nikita.kaur@demo.tis",
     "Full Name": "Nikita Kaur",
     "Role": "DELEGATE",
     "Committee ID": "ga-3",
-    "Country": "Kiribati",
-    "Country Code": "KI",
-    "Title": ""
+    "Country": "Kiribati"
   },
   {
     "Email": "jonas.kaur@demo.tis",
     "Full Name": "Jonas Kaur",
     "Role": "DELEGATE",
     "Committee ID": "ga-3",
-    "Country": "Maldives",
-    "Country Code": "MV",
-    "Title": ""
+    "Country": "Maldives"
   },
   {
     "Email": "malak.kaur@demo.tis",
     "Full Name": "Malak Kaur",
     "Role": "DELEGATE",
     "Committee ID": "ga-3",
-    "Country": "New Zealand",
-    "Country Code": "NZ",
-    "Title": ""
+    "Country": "New Zealand"
   },
   {
     "Email": "shahzod.kaur@demo.tis",
     "Full Name": "Shahzod Kaur",
     "Role": "DELEGATE",
     "Committee ID": "ga-3",
-    "Country": "Peru",
-    "Country Code": "PE",
-    "Title": ""
+    "Country": "Peru"
   },
   {
     "Email": "stella.kaur@demo.tis",
     "Full Name": "Stella Kaur",
     "Role": "DELEGATE",
     "Committee ID": "ga-3",
-    "Country": "Senegal",
-    "Country Code": "SN",
-    "Title": ""
+    "Country": "Senegal"
   },
   {
     "Email": "sofia.ibragimov@demo.tis",
     "Full Name": "Sofia Ibragimov",
     "Role": "DELEGATE",
     "Committee ID": "ga-3",
-    "Country": "Sweden",
-    "Country Code": "SE",
-    "Title": ""
+    "Country": "Sweden"
   },
   {
     "Email": "ruslan.ibragimov@demo.tis",
     "Full Name": "Ruslan Ibragimov",
     "Role": "DELEGATE",
     "Committee ID": "ga-3",
-    "Country": "Tuvalu",
-    "Country Code": "TV",
-    "Title": ""
+    "Country": "Tuvalu"
   },
   {
     "Email": "yulia.ibragimov@demo.tis",
     "Full Name": "Yulia Ibragimov",
     "Role": "DELEGATE",
     "Committee ID": "ga-3",
-    "Country": "Viet Nam",
-    "Country Code": "VN",
-    "Title": ""
+    "Country": "Viet Nam"
   },
   {
     "Email": "kamron.yusupov@demo.tis",
     "Full Name": "Kamron Yusupov",
     "Role": "SECRETARIAT",
     "Committee ID": "",
-    "Country": "",
-    "Country Code": "",
-    "Title": "Secretary-General"
+    "Country": ""
   },
   {
     "Email": "unassigned.delegate@demo.tis",
     "Full Name": "Sardor Nematov",
     "Role": "DELEGATE",
     "Committee ID": "",
-    "Country": "",
-    "Country Code": "",
-    "Title": ""
+    "Country": ""
   }
 ]

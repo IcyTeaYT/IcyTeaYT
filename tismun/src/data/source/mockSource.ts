@@ -1,6 +1,6 @@
 import committeeRowsJson from '../mock/committees.json';
 import userRowsJson from '../mock/users.json';
-import { rowToCommittee, rowToUser } from './normalise';
+import { delegationId, rowToCommittee, rowToUser } from './normalise';
 import type { Committee, CommitteeRow, DataSource, Delegation, User, UserRow } from './types';
 
 /**
@@ -32,9 +32,9 @@ export const mockSource: DataSource = {
 
   async getRoster(committeeId) {
     return users
-      .filter((u) => u.committeeId === committeeId && u.role === 'DELEGATE' && u.countryCode)
+      .filter((u) => u.committeeId === committeeId && u.role === 'DELEGATE' && u.country)
       .map<Delegation>((u) => ({
-        id: `${committeeId}:${u.countryCode}`,
+        id: delegationId(committeeId, u.country ?? '', u.countryCode),
         country: u.country ?? '',
         countryCode: u.countryCode ?? '',
         delegateName: u.fullName,

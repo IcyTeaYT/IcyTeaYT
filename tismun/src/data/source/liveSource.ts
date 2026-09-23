@@ -1,4 +1,4 @@
-import { rowToCommittee, rowToUser } from './normalise';
+import { delegationId, rowToCommittee, rowToUser } from './normalise';
 import type { Committee, CommitteeRow, DataSource, Delegation, User, UserRow } from './types';
 
 /**
@@ -60,9 +60,9 @@ export const liveSource: DataSource = {
     const rows = await api<UserRow[]>(`/api/roster/${encodeURIComponent(committeeId)}`);
     return rows
       .map(rowToUser)
-      .filter((u) => u.countryCode)
+      .filter((u) => u.country)
       .map<Delegation>((u) => ({
-        id: `${committeeId}:${u.countryCode}`,
+        id: delegationId(committeeId, u.country ?? '', u.countryCode),
         country: u.country ?? '',
         countryCode: u.countryCode ?? '',
         delegateName: u.fullName,

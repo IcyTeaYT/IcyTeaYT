@@ -202,8 +202,6 @@ for (const c of committees) {
       Role: 'CHAIR',
       'Committee ID': c.id,
       Country: '',
-      'Country Code': '',
-      Title: '',
     });
   }
 
@@ -215,8 +213,6 @@ for (const c of committees) {
       Role: 'DELEGATE',
       'Committee ID': c.id,
       Country: country,
-      'Country Code': code,
-      Title: '',
     });
   }
 }
@@ -232,8 +228,6 @@ for (const c of committees) {
     Role: 'SECRETARIAT',
     'Committee ID': '',
     Country: '',
-    'Country Code': '',
-    Title: 'Secretary-General',
   });
 }
 
@@ -244,8 +238,6 @@ userRows.push({
   Role: 'DELEGATE',
   'Committee ID': '',
   Country: '',
-  'Country Code': '',
-  Title: '',
 });
 
 const emails = userRows.map((r) => r.Email);
