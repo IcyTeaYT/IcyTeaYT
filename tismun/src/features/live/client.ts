@@ -122,10 +122,17 @@ export const claimControl = (
     body: JSON.stringify({ deviceId, force }),
   });
 
-/** Who holds a committee, and what it looks like — for a watching device. */
-export const fetchControl = (committeeId: string, deviceId: string): Promise<ControlStatus | null> =>
+/**
+ * Who holds a committee, and what it looks like — for a watching device. With
+ * `withState`, also the full session as last reported, for reading it back.
+ */
+export const fetchControl = (
+  committeeId: string,
+  deviceId: string,
+  withState = false,
+): Promise<ControlStatus | null> =>
   call<ControlStatus>(
-    `/api/control/${encodeURIComponent(committeeId)}?device=${encodeURIComponent(deviceId)}`,
+    `/api/control/${encodeURIComponent(committeeId)}?device=${encodeURIComponent(deviceId)}${withState ? '&state=1' : ''}`,
   );
 
 export const fetchOverview = (): Promise<LiveOverview | null> => call<LiveOverview>('/api/live');

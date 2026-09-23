@@ -7,6 +7,7 @@ import {
   Gavel,
   ListOrdered,
   Loader2,
+  Lock,
   Mic,
   Monitor,
   MonitorCheck,
@@ -25,8 +26,12 @@ import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { createChannel } from '@/lib/broadcast';
 import { cn } from '@/lib/cn';
-import { useAuth } from '@/store/auth';
+import { chairCommitteeOf, useAuth } from '@/store/auth';
 import { useCommittee } from '@/store/conference';
+import { fetchControl } from '@/features/live/client';
+import { deviceId } from '@/features/live/device';
+import { fromHandover } from '@/features/live/handover';
+import { clockOffset } from '@/features/live/serverClock';
 import { useCommitteeControl } from '@/features/live/useControl';
 import { useLivePush } from '@/features/live/useLive';
 import { ChairProvider, useChair, useChairContext, useChairStoreApi } from './context';
@@ -75,7 +80,8 @@ function useProjectorBroadcast() {
 
   useEffect(() => {
     const channel = createChannel<DisplayMessage>(displayChannelName(committee.id));
-    const publish = () => channel.post({ kind: 'state', state: buildDisplayState(store.getState(), committee) });
+    const publish = () =>
+      channel.post({ kind: 'state', state: buildDisplayState(store.getState(), committee) });
 
     // Any state change republishes; the payload carries timer STATE, so the
     // projector keeps counting smoothly between messages on its own.
@@ -291,7 +297,7 @@ function DashboardChrome() {
 
 export function ChairDashboard() {
   const user = useAuth((state) => state.user);
-  const committee = useCommittee(user?.committeeId);
+  const committee = useCommittee(chairCommitteeOf(user));
 
   if (!committee) {
     return (
@@ -306,9 +312,79 @@ export function ChairDashboard() {
     );
   }
 
+  // From Day 2 a Day 1 chair can still open their committee, but only to read
+  // it back: the server no longer lets them change it.
+  const readOnly = user?.access.chairOf !== committee.id;
+
   return (
     <ChairProvider committee={committee}>
-      <DashboardChrome />
+      {readOnly ? <ReadOnlyDashboard /> : <DashboardChrome />}
     </ChairProvider>
+  );
+}
+
+/**
+ * A Day 1 committee on Day 2: read-only. The session as its chairs left it is
+ * fetched from the server — so it opens on any device, not only the laptop it
+ * was run on — and the Session Log can still be read and exported. Nothing
+ * here can change it, and the server would refuse if anything tried.
+ */
+function ReadOnlyDashboard() {
+  const { committee } = useChairContext();
+  const store = useChairStoreApi();
+  const [source, setSource] = useState<'loading' | 'server' | 'device'>('loading');
+
+  useEffect(() => {
+    let cancelled = false;
+    void fetchControl(committee.id, deviceId(), true).then((status) => {
+      if (cancelled) return;
+      const data = fromHandover(status?.state, clockOffset());
+      if (data) {
+        store.setState(data);
+        setSource('server');
+      } else {
+        setSource('device');
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [committee.id, store]);
+
+  return (
+    <div className="mx-auto max-w-[1400px] px-5 pb-16 pt-7 sm:px-6">
+      <header className="border-b border-hairline pb-6">
+        <div className="flex flex-wrap items-center gap-3">
+          <p className="label-micro">Chair Dashboard</p>
+          <Badge tone="neutral">
+            <Lock size={11} strokeWidth={1.5} />
+            Day 1 — read-only
+          </Badge>
+        </div>
+        <h1 className="mt-2.5 font-serif text-[26px] leading-tight text-ink-900 sm:text-[30px]">
+          {committee.name}
+        </h1>
+        <p className="mt-1.5 max-w-2xl text-sm text-muted">
+          Day 1 is over, so this committee can no longer be changed. Its session log is here to read
+          and export.
+          {source === 'device'
+            ? ' No copy was found on the server, so this is what this device kept.'
+            : ''}
+        </p>
+      </header>
+
+      <div className="mt-6">
+        {source === 'loading' ? (
+          <Card>
+            <div className="flex items-center gap-3 px-5 py-10 text-sm text-muted">
+              <Loader2 size={16} strokeWidth={1.5} className="animate-spin" />
+              Loading the session log…
+            </div>
+          </Card>
+        ) : (
+          <SessionLog />
+        )}
+      </div>
+    </div>
   );
 }

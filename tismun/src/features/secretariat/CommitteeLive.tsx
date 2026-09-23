@@ -82,7 +82,7 @@ export function CommitteeLive() {
           />
         </Card>
       ) : (
-        <div className="mt-7 grid gap-5 xl:grid-cols-[minmax(0,1fr)_340px]">
+        <div className="mt-7 grid grid-cols-[minmax(0,1fr)] gap-5 xl:grid-cols-[minmax(0,1fr)_340px]">
           <div className="space-y-5">
             {/* Floor */}
             <Card>

@@ -110,11 +110,13 @@ export function SessionLog() {
       }
     >
       <Card>
+        {/* On a phone the filters drop below the title and scroll sideways. */}
         <CardHeader
+          className="flex-col items-stretch gap-3 sm:flex-row sm:items-start sm:gap-4"
           label="Timeline"
           title={`${entries.length} ${entries.length === 1 ? 'entry' : 'entries'}`}
           action={
-            <div className="no-scrollbar flex max-w-full gap-1.5 overflow-x-auto">
+            <div className="no-scrollbar flex min-w-0 max-w-full gap-1.5 overflow-x-auto">
               {FILTERS.map((option) => (
                 <button
                   key={option}

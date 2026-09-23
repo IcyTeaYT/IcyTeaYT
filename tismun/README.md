@@ -167,11 +167,11 @@ Two tabs, with these headers in row 1:
 
 **Users**
 
-| Email | Full Name | Role | Committee ID | Country |
-| --- | --- | --- | --- | --- |
-| amir.nazarov@tashkentis.uz | Amir Nazarov | DELEGATE | ga-2 | China |
-| yassir@tashkentis.uz | Yassir | CHAIR | ga-2 | |
-| kamron.yusupov@tashkentis.uz | Kamron Yusupov | SECRETARIAT | | |
+| Email | Full Name | Role | Committee ID | Country | Emergency Role | Emergency Country |
+| --- | --- | --- | --- | --- | --- | --- |
+| amir.nazarov@tashkentis.uz | Amir Nazarov | DELEGATE | ga-2 | China | DELEGATE | India |
+| yassir@tashkentis.uz | Yassir | CHAIR | ga-2 | | DELEGATE | India |
+| kamron.yusupov@tashkentis.uz | Kamron Yusupov | SECRETARIAT | | | CHAIR | |
 
 **Committees**
 
@@ -193,6 +193,12 @@ Notes:
   "Türkiye", "Côte d'Ivoire". A name it does not recognise still appears in
   roll call, just with a blank flag. For that rare case you can add a
   `Country Code` column and type the two-letter code on that row.
+- `Emergency Role` and `Emergency Country` are Day 2. `DELEGATE` plus a
+  country puts someone in that country's Emergency Session team (a country with
+  the role left blank counts as `DELEGATE`); `CHAIR` makes them an Emergency
+  Session chair. Both blank: not in the Emergency Session. `Role`, `Committee
+  ID` and `Country` stay the Day 1 assignment — see
+  [Roles by day](#roles-by-day).
 - Headers may carry a note in brackets — `Country (as on the placard)` is read
   as `Country` — so you can annotate the sheet for whoever fills it in.
 
@@ -212,9 +218,11 @@ the browser cannot reach them:
   has lost.
 - A valid school account is not enough — the address must also be on the roster.
 - `/api/roster/:committeeId` is the only endpoint returning other people's
-  records. It requires the caller's **sheet role** to be `CHAIR` *and* the
-  committee asked for to be their own. A delegate calling it by hand gets a 403;
+  records. It requires the caller to chair that committee **today** (or, from
+  Day 2, to have chaired it on Day 1). A delegate calling it by hand gets a 403;
   so does a chair asking about another committee.
+- Who may run which committee is worked out on every request from the Sheet and
+  the server's clock — see [Roles by day](#roles-by-day).
 - The Sheet ID and the service-account key exist only on the server.
 
 ---
@@ -479,6 +487,28 @@ the General Speakers' List, Motion for an Unmoderated Caucus (purpose "Writing
 the draft resolution"), back to the GSL or another caucus, Register the Draft
 Resolution once delegates submit one, its Presentation, debate and amendments,
 Close Debate, Voting Procedure and the Result.
+
+### Roles by day
+
+A person's powers change when Day 2 begins (`focusFrom`, or the Secretariat's
+**Switch to Day 2 now**). The server works this out on every request, from the
+Sheet and its own clock, and refuses anything else with a 403 — the browser is
+only told the answer (`src/lib/access.ts`, shared by both).
+
+| | Day 1 | Day 2 |
+| --- | --- | --- |
+| Day 1 chair | Runs their committee | Their committee is **read-only**: Session Log and export, badge "Day 1 — read-only". Runs the Emergency Session only if marked `CHAIR` for it |
+| Emergency Session chair | Their Day 1 role, nothing more | Runs the Emergency Session |
+| Secretariat | Oversight of every committee | Oversight, always — plus the Emergency Session if marked `CHAIR` |
+| Delegate | Their committee | Their committee, or the Emergency Session |
+
+Anyone with two ways in on Day 2 gets a switcher in the top bar, set to the
+one they need that day: a Day 1 chair who is an Emergency delegate sees **Day 2
+· Emergency Session** / **Day 1 Dashboard**; a Secretariat member who chairs the
+Emergency Session sees **Emergency Session (Chair)** / **Secretariat Overview**
+and lands on the chair's seat, with the release controls one tap away. Keep at
+least one Secretariat account with no Emergency Role, so someone is always on
+oversight only.
 
 The overrides and their record live in two D1 tables, `conference_flags` and
 `conference_events`, created on first use — there is no migration to run.

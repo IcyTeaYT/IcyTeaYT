@@ -89,5 +89,13 @@ export const useAuth = create<AuthState>((set) => ({
   },
 }));
 
-export const isChair = (user: User | null): boolean => user?.role === 'CHAIR';
-export const isSecretariat = (user: User | null): boolean => user?.role === 'SECRETARIAT';
+/** Has a Chair Dashboard to open — one they run now, or a Day 1 one to read back. */
+export const isChair = (user: User | null): boolean =>
+  Boolean(user?.access.chairOf || user?.access.readOnlyChairOf);
+
+/** Oversees the conference. Kept on both days, whatever else the account does. */
+export const isSecretariat = (user: User | null): boolean => user?.access.secretariat === true;
+
+/** The committee whose dashboard this account opens: the one it runs, else the Day 1 one it reads. */
+export const chairCommitteeOf = (user: User | null): string | null =>
+  user?.access.chairOf ?? user?.access.readOnlyChairOf ?? null;

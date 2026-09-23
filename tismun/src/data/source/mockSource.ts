@@ -1,4 +1,5 @@
 import { conferenceStatus, isEmergency, type FocusMode, type ReleaseMode } from '@/config/emergency';
+import { accessFor } from '@/lib/access';
 import { readJson, writeJson } from '@/lib/storage';
 import committeeRowsJson from '../mock/committees.json';
 import userRowsJson from '../mock/users.json';
@@ -90,7 +91,17 @@ const OVERRIDES: Record<OverrideAction, { patch: Partial<DemoEmergency>; label: 
 
 export const mockSource: DataSource = {
   async getMe(email) {
-    return byEmail.get(email.trim().toLowerCase()) ?? null;
+    const user = byEmail.get(email.trim().toLowerCase());
+    if (!user) return null;
+    // What the server would say: the same rules, with this browser standing in
+    // for the server's clock.
+    return {
+      ...user,
+      access: accessFor(
+        { role: user.role, committeeId: user.committeeId, emergencyRole: user.emergency?.role ?? null },
+        status().day2,
+      ),
+    };
   },
 
   async getCommittees() {

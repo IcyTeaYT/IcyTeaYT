@@ -6,6 +6,7 @@
 
 /** Roles come from the "Role" column of the sheet. Add new ones here. */
 import type { ConferenceStatus } from '@/config/emergency';
+import type { Access } from '@/lib/access';
 
 export const ROLES = ['DELEGATE', 'CHAIR', 'SECRETARIAT', 'ADMIN'] as const;
 export type Role = (typeof ROLES)[number];
@@ -27,6 +28,12 @@ export interface User {
    * for a country (known in advance), or as one of its chairs.
    */
   emergency: EmergencyAssignment | null;
+  /**
+   * What this account may do right now — which committee it may run, which it
+   * may read, and whether it oversees the conference. Worked out by the server
+   * from the sheet and its own clock; it changes when Day 2 begins.
+   */
+  access: Access;
 }
 
 export interface EmergencyAssignment {
@@ -133,6 +140,8 @@ export interface UserRow {
   'Emergency Role'?: string;
   /** The country an Emergency Session delegate represents. */
   'Emergency Country'?: string;
+  /** Added by /api/me: what the account may do right now. Not a sheet column. */
+  Access?: Access;
 }
 
 export interface CommitteeRow {

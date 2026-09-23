@@ -6,11 +6,13 @@ import {
   readControl,
   validDeviceId,
 } from '../_lib/control';
-import { describeDbError, guardWrite } from '../_lib/live';
+import { describeDbError, guardRead, guardWrite } from '../_lib/live';
 
 /**
  * GET  /api/control/:committeeId?device=… — who is running the committee, and
  *      what it looks like right now, for a chair's device that is watching.
+ *      With `&state=1`, also the full session as last reported — for a Day 1
+ *      chair reading their committee back on Day 2, or the Secretariat.
  * POST /api/control/:committeeId — claim the committee for this device.
  *      `{ deviceId, force }`: without force the claim only succeeds when nobody
  *      holds it, the claim has lapsed, or this device already holds it. With
@@ -27,10 +29,13 @@ export const onRequestGet: PagesFunction<Env, 'committeeId'> = async ({ request,
   const committeeId = paramOf(params.committeeId);
   if (!env.DB) return json({ configured: false, serverNow });
 
-  const guard = await guardWrite(request, env, committeeId);
+  // Anyone who may view the committee: its chairs, read-only chairs, the Secretariat.
+  const guard = await guardRead(request, env, committeeId);
   if (!guard.ok) return fail(guard.error, guard.status);
 
-  const deviceId = new URL(request.url).searchParams.get('device');
+  const url = new URL(request.url);
+  const deviceId = url.searchParams.get('device');
+  const withState = url.searchParams.get('state') === '1';
 
   try {
     await ensureControlTable(env.DB);
@@ -47,6 +52,7 @@ export const onRequestGet: PagesFunction<Env, 'committeeId'> = async ({ request,
       holder: holderOf(row, serverNow, guard.user?.Email),
       isYou: Boolean(row && deviceId && row.device_id === deviceId),
       summary: summaryRow ? (JSON.parse(summaryRow.summary) as unknown) : null,
+      ...(withState ? { state: row?.state ? (JSON.parse(row.state) as unknown) : null } : {}),
     });
   } catch (error) {
     return json({ configured: false, serverNow, error: describeDbError(error) });

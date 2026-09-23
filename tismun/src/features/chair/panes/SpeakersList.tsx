@@ -134,7 +134,7 @@ export function SpeakersList() {
         </>
       }
     >
-      <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_340px]">
+      <div className="grid grid-cols-[minmax(0,1fr)] gap-5 xl:grid-cols-[minmax(0,1fr)_340px]">
         <div className="space-y-5">
           {/* Current speaker */}
           <Card>

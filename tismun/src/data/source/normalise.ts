@@ -1,3 +1,4 @@
+import { accessFor } from '@/lib/access';
 import { countryCodeFor } from '@/lib/countryCodes';
 import {
   ROLES,
@@ -25,8 +26,14 @@ export function rowToUser(row: UserRow): User {
   const code = clean(row['Country Code']).toUpperCase() || countryCodeFor(country) || '';
   const committeeId = clean(row['Committee ID']);
   const title = clean(row.Title);
+  const emergency = emergencyOf(row);
   return {
-    emergency: emergencyOf(row),
+    emergency,
+    // The server's answer when it gave one (live mode); otherwise Day 1 rules,
+    // until the demo source works out the day for itself.
+    access:
+      row.Access ??
+      accessFor({ role: row.Role, committeeId: row['Committee ID'], emergencyRole: emergency?.role ?? null }, false),
     email: clean(row.Email).toLowerCase(),
     fullName: clean(row['Full Name']),
     role: toRole(row.Role),

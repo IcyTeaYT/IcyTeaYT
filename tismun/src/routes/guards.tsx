@@ -15,8 +15,9 @@ export function RequireAuth({ children }: { children: ReactNode }) {
 }
 
 /**
- * The Chair Dashboard is chairs only. In live mode this is belt-and-braces:
- * the roster endpoint enforces the same rule server-side, so a delegate who
+ * The Chair Dashboard is for whoever chairs a committee right now — or, from
+ * Day 2, a Day 1 chair reading theirs back. In live mode this is belt-and-
+ * braces: every endpoint enforces the same rule server-side, so a delegate who
  * forced the route would still get a 403 and no data.
  */
 export function RequireChair({ children }: { children: ReactNode }) {
@@ -24,7 +25,7 @@ export function RequireChair({ children }: { children: ReactNode }) {
   const status = useAuth((state) => state.status);
 
   if (status === 'booting') return null;
-  if (!isChair(user) || !user?.committeeId) return <Navigate to="/denied" replace />;
+  if (!isChair(user)) return <Navigate to="/denied" replace />;
   return <>{children}</>;
 }
 

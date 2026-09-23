@@ -7,13 +7,15 @@ import {
   Landmark,
   Loader2,
   MapPin,
+  Siren,
   Users,
 } from 'lucide-react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, Navigate, useNavigate } from 'react-router-dom';
 import { PageContainer } from '@/components/AppShell';
 import { Flag } from '@/components/Flag';
 import { ConferenceCountdown } from '@/components/ConferenceCountdown';
 import { EmergencyCard } from '@/components/emergency/EmergencyCard';
+import { LockedTopic } from '@/components/emergency/ReleaseCountdown';
 import { GlobeLines } from '@/components/GlobeLines';
 import { PaperActions } from '@/components/PaperActions';
 import { Badge } from '@/components/ui/Badge';
@@ -42,10 +44,17 @@ export function Home() {
 
   if (!user) return null;
 
+  // A member of the Secretariat who chairs the Emergency Session starts Day 2
+  // in the chair; the switcher in the nav takes them to the conference floor.
+  const chairsEmergencyToday = user.access.chairOf === emergencySession.committeeId;
+  if (chairsEmergencyToday && user.access.secretariat) return <Navigate to="/chair" replace />;
+
   const emergencyDelegate = user.emergency?.role === 'DELEGATE' && emergency !== null;
-  // From Day 2, an Emergency Session delegate's day is the Emergency Session:
-  // it leads, and their Day 1 committee steps back.
-  const focus = emergencyDelegate && day2 && emergency !== null;
+  // From Day 2, an Emergency Session delegate's — or chair's — day is the
+  // Emergency Session: it leads, and their Day 1 committee steps back.
+  const focus =
+    (emergencyDelegate && day2 && emergency !== null) ||
+    (chairsEmergencyToday && emergency !== null);
 
   return (
     <>
@@ -67,7 +76,9 @@ export function Home() {
           </motion.h1>
           <motion.p className="mt-3 max-w-xl text-sm text-muted sm:text-base" {...enter(0.1)}>
             {focus
-              ? `Good morning, ${firstNameOf(user)}. The Emergency Session is your committee today.`
+              ? chairsEmergencyToday
+                ? `Good morning, ${firstNameOf(user)}. You chair the Emergency Session today.`
+                : `Good morning, ${firstNameOf(user)}. The Emergency Session is your committee today.`
               : COPY.home.subtext}
           </motion.p>
         </div>
@@ -77,7 +88,11 @@ export function Home() {
         {focus && emergency ? (
           <>
             <motion.div {...enter(0.14)}>
-              <EmergencyCard committee={emergency} user={user} primary />
+              {chairsEmergencyToday ? (
+                <EmergencyChairCard committee={emergency} />
+              ) : (
+                <EmergencyCard committee={emergency} user={user} primary />
+              )}
             </motion.div>
             {committee ? (
               <motion.section className="mt-10" {...enter(0.2)}>
@@ -89,6 +104,26 @@ export function Home() {
         ) : (
           <>
             <Day1Home user={user} committee={committee} emergencyDelegate={emergencyDelegate} />
+            {user.emergency?.role === 'CHAIR' && emergency && !user.access.secretariat ? (
+              <motion.div className="mt-8" {...enter(0.3)}>
+                <Card>
+                  <CardBody className="flex items-start gap-4 px-6 py-5">
+                    <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-control bg-teal-50 text-teal-700">
+                      <Siren size={18} strokeWidth={1.5} />
+                    </span>
+                    <div>
+                      <p className="font-medium text-ink-900">
+                        On Day 2 you chair the Emergency Session
+                      </p>
+                      <p className="mt-1 text-sm leading-relaxed text-muted">
+                        Your Chair Dashboard for it opens on {emergencySession.releaseLabel}, in{' '}
+                        {emergency.room}.
+                      </p>
+                    </div>
+                  </CardBody>
+                </Card>
+              </motion.div>
+            ) : null}
             {emergencyDelegate && emergency ? (
               <motion.section className="mt-10" {...enter(0.3)}>
                 <div className="mb-4 flex flex-wrap items-baseline justify-between gap-2">
@@ -228,12 +263,15 @@ function Day1Home({
                       <Gavel size={22} strokeWidth={1.5} />
                     </span>
                     <p className="mt-4 text-sm leading-relaxed text-muted">
-                      You are chairing {committee.abbreviation}. The dashboard runs roll call,
-                      timers, motions, resolutions and voting for your committee.
+                      {user.access.chairOf === committee.id
+                        ? `You are chairing ${committee.abbreviation}. The dashboard runs roll call, timers, motions, resolutions and voting for your committee.`
+                        : `Day 1 is over, so ${committee.abbreviation} is read-only now. Its session log is still there to read and export.`}
                     </p>
                   </div>
                   <Button variant="primary" onClick={() => navigate('/chair')}>
-                    Open Chair Dashboard
+                    {user.access.chairOf === committee.id
+                      ? 'Open Chair Dashboard'
+                      : 'Open your Day 1 dashboard'}
                     <ArrowRight size={15} strokeWidth={1.5} />
                   </Button>
                 </CardBody>
@@ -308,7 +346,69 @@ function Day1Compact({ committee, user }: { committee: Committee; user: User }) 
             </p>
           </div>
         </div>
-        <PaperActions committee={committee} size="sm" className="flex shrink-0 flex-wrap gap-2" />
+        <div className="flex shrink-0 flex-wrap gap-2">
+          {user.access.readOnlyChairOf === committee.id ? (
+            <Link
+              to="/chair"
+              className="inline-flex h-8 items-center gap-1.5 rounded-control border border-hairline px-3 text-sm font-medium text-ink-700 hover:bg-ink-50"
+            >
+              <Gavel size={14} strokeWidth={1.5} />
+              Day 1 dashboard
+            </Link>
+          ) : null}
+          <PaperActions committee={committee} size="sm" className="flex flex-wrap gap-2" />
+        </div>
+      </CardBody>
+    </Card>
+  );
+}
+
+/** For whoever chairs the Emergency Session, on Day 2. */
+function EmergencyChairCard({ committee }: { committee: Committee }) {
+  const navigate = useNavigate();
+  const topics = committee.topics.filter(Boolean);
+  return (
+    <Card className="border-teal-200 ring-1 ring-inset ring-teal-100">
+      <CardBody className="space-y-5 px-6 py-7">
+        <div className="flex items-center gap-2.5">
+          <span className="inline-flex h-8 w-8 items-center justify-center rounded-control bg-teal-50 text-teal-700">
+            <Siren size={16} strokeWidth={1.5} />
+          </span>
+          <p className="label-micro">Your role today · Chair</p>
+        </div>
+        <h2 className="font-serif text-[26px] leading-tight text-ink-900 sm:text-[30px]">
+          {committee.name}
+        </h2>
+        <p className="flex flex-wrap gap-x-6 gap-y-1 text-sm text-ink-700">
+          <span className="inline-flex items-center gap-2">
+            <MapPin size={15} strokeWidth={1.5} className="text-ink-400" />
+            {committee.room}
+          </span>
+          <span className="inline-flex items-center gap-2">
+            <Gavel size={15} strokeWidth={1.5} className="text-ink-400" />
+            {committee.chairs.join(', ')}
+          </span>
+        </p>
+        {committee.locked ? (
+          <LockedTopic />
+        ) : (
+          <div className="space-y-2">
+            {topics.map((topic) => (
+              <p key={topic} className="text-[15px] font-medium leading-relaxed text-ink-900">
+                {topic}
+              </p>
+            ))}
+          </div>
+        )}
+        <div className="flex flex-wrap gap-2">
+          <Button variant="primary" onClick={() => navigate('/chair')}>
+            Open the Chair Dashboard
+            <ArrowRight size={15} strokeWidth={1.5} />
+          </Button>
+          <Button variant="secondary" onClick={() => navigate(`/committees/${committee.id}`)}>
+            Every delegation
+          </Button>
+        </div>
       </CardBody>
     </Card>
   );

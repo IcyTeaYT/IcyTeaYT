@@ -130,6 +130,8 @@ export interface ControlStatus {
   holder?: ControlHolder | null;
   isYou?: boolean;
   summary?: LiveSummary | null;
+  /** With `state=1`: the full session as last reported, in server time. */
+  state?: unknown;
   error?: string;
 }
 

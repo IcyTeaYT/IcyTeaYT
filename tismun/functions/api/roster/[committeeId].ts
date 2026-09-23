@@ -1,6 +1,7 @@
 import { fail, json, requireEnv, type Env } from '../_lib/env';
 import { currentUser } from '../_lib/session';
-import { EMERGENCY_ID, emergencyRoleOf, emergencyRoster } from '../_lib/emergency';
+import { accessOf } from '../_lib/access';
+import { EMERGENCY_ID, emergencyRoster } from '../_lib/emergency';
 import { readTab, readUsers, USERS_TAB, type SheetUser } from '../_lib/sheets';
 
 /**
@@ -10,9 +11,10 @@ import { readTab, readUsers, USERS_TAB, type SheetUser } from '../_lib/sheets';
  * one that has to be strict:
  *
  *   • the caller must hold a valid session;
- *   • the caller's role in the sheet must be CHAIR — not a claim from the
- *     browser, and not something the cookie asserts;
- *   • the committee asked for must be the caller's OWN committee.
+ *   • the caller must chair the committee asked for — per the sheet and the
+ *     server's clock, not a claim from the browser or the cookie: their Day 1
+ *     committee on Day 1 (read-only from Day 2), or the Emergency Session on
+ *     Day 2 if the sheet makes them its chair.
  *
  * A delegate who calls this by hand gets a 403. A chair who asks for another
  * committee's roster gets the same 403.
@@ -27,21 +29,15 @@ export const onRequestGet: PagesFunction<Env, 'committeeId'> = async ({ request,
   const committeeId = Array.isArray(params.committeeId) ? params.committeeId[0] : params.committeeId;
   if (!committeeId) return fail('No committee was requested.', 400);
 
-  // The Emergency Session's delegations come from the Emergency columns, and
-  // its chairs are whoever the sheet marks as Emergency Session chairs.
-  if (committeeId === EMERGENCY_ID) {
-    if (emergencyRoleOf(user) !== 'CHAIR') {
-      return fail('Only the Emergency Session chairs can view its roster.', 403);
-    }
-    return json(emergencyRoster(await readUsers(env)));
-  }
-
-  if ((user.Role ?? '').trim().toUpperCase() !== 'CHAIR') {
-    return fail('Only chairs can view a committee roster.', 403);
-  }
-  if ((user['Committee ID'] ?? '').trim() !== committeeId) {
+  // A chair's own committee — the one they run now, or from Day 2 the Day 1
+  // committee they chaired — worked out from the sheet and the server's clock.
+  const access = await accessOf(env, user);
+  if (access.chairOf !== committeeId && access.readOnlyChairOf !== committeeId) {
     return fail('You can only view the roster of your own committee.', 403);
   }
+
+  // The Emergency Session's delegations come from the Emergency columns.
+  if (committeeId === EMERGENCY_ID) return json(emergencyRoster(await readUsers(env)));
 
   const rows = (await readTab(env, USERS_TAB)) as unknown as SheetUser[];
   const roster = rows.filter(

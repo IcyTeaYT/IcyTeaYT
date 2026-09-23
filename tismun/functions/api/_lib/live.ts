@@ -1,6 +1,7 @@
 import { isLiveMode, type Env } from './env';
 import { currentUser } from './session';
-import { EMERGENCY_ID, emergencyRoleOf } from './emergency';
+import { canRun, canView } from '../../../src/lib/access';
+import { accessOf } from './access';
 import type { SheetUser } from './sheets';
 
 /**
@@ -19,7 +20,12 @@ export type Guard =
 
 const allow: Guard = { ok: true, user: null };
 
-/** Only a chair may report their OWN committee's session. */
+/**
+ * Only the account that may RUN a committee right now may report it: its
+ * Day 1 chairs on Day 1, and on Day 2 only the Emergency Session's chairs,
+ * for the Emergency Session. Worked out from the sheet and the server's clock
+ * on every request.
+ */
 export async function guardWrite(
   request: Request,
   env: Env,
@@ -30,22 +36,19 @@ export async function guardWrite(
   const user = await currentUser(request, env);
   if (!user) return { ok: false, status: 401, error: 'Not signed in.' };
 
-  if (committeeId === EMERGENCY_ID) {
-    return emergencyRoleOf(user) === 'CHAIR'
-      ? { ok: true, user }
-      : { ok: false, status: 403, error: 'Only the Emergency Session chairs can report it.' };
+  const access = await accessOf(env, user);
+  if (canRun(access, committeeId)) return { ok: true, user };
+  if (access.readOnlyChairOf === committeeId) {
+    return { ok: false, status: 403, error: 'Day 1 is over: this committee is read-only now.' };
   }
-
-  if ((user.Role ?? '').trim().toUpperCase() !== 'CHAIR') {
-    return { ok: false, status: 403, error: 'Only chairs can report a committee session.' };
-  }
-  if ((user['Committee ID'] ?? '').trim() !== committeeId) {
-    return { ok: false, status: 403, error: 'You can only report your own committee.' };
-  }
-  return { ok: true, user };
+  return { ok: false, status: 403, error: 'You cannot run this committee.' };
 }
 
-/** The Secretariat sees every committee; a chair sees only their own. */
+/**
+ * The Secretariat sees every committee; a chair sees the one they run, and
+ * from Day 2 the Day 1 committee they chaired, read-only. With no committee
+ * named, the question is about the whole conference: Secretariat only.
+ */
 export async function guardRead(
   request: Request,
   env: Env,
@@ -56,13 +59,9 @@ export async function guardRead(
   const user = await currentUser(request, env);
   if (!user) return { ok: false, status: 401, error: 'Not signed in.' };
 
-  const role = (user.Role ?? '').trim().toUpperCase();
-  if (role === 'SECRETARIAT' || role === 'ADMIN') return { ok: true, user };
-
-  if (committeeId && role === 'CHAIR' && (user['Committee ID'] ?? '').trim() === committeeId) {
-    return { ok: true, user };
-  }
-  if (committeeId === EMERGENCY_ID && emergencyRoleOf(user) === 'CHAIR') return { ok: true, user };
+  const access = await accessOf(env, user);
+  if (access.secretariat) return { ok: true, user };
+  if (committeeId && canView(access, committeeId)) return { ok: true, user };
   return { ok: false, status: 403, error: 'Live session state is for the Secretariat.' };
 }
 

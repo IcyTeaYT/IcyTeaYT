@@ -246,7 +246,9 @@ export function EmergencyPanel() {
               <p className="label-micro">Overrides</p>
               {admin.events.length === 0 ? (
                 <p className="mt-2 text-sm text-muted">
-                  None — everything is following the schedule.
+                  {admin.status.releaseMode === 'auto' && admin.status.focusMode === 'auto'
+                    ? 'None — everything is following the schedule.'
+                    : 'None recorded.'}
                 </p>
               ) : (
                 <ol className="mt-2 divide-y divide-hairline rounded-card border border-hairline">

@@ -47,7 +47,7 @@ export function RollCall() {
         </>
       }
     >
-      <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_300px]">
+      <div className="grid grid-cols-[minmax(0,1fr)] gap-5 xl:grid-cols-[minmax(0,1fr)_300px]">
         <Card>
           <CardHeader
             label="Delegations"

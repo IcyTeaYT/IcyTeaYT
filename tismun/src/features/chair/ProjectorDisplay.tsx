@@ -24,7 +24,8 @@ const STALE_AFTER_MS = 20_000;
 
 export function ProjectorDisplay() {
   const user = useAuth((state) => state.user);
-  const committee = useCommittee(user?.committeeId);
+  // Only a committee this account runs right now has anything to project.
+  const committee = useCommittee(user?.access.chairOf);
   const [snapshot, setSnapshot] = useState<DisplayState | null>(null);
   const [receivedAt, setReceivedAt] = useState<number | null>(null);
   const [now, setNow] = useState(() => Date.now());
