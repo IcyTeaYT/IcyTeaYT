@@ -48,6 +48,13 @@ export function App() {
     return () => window.clearTimeout(timer);
   }, [restore, loadCommittees]);
 
+  // Someone who opens the site signed out gets no committees (the live API
+  // needs a session), so load them again as soon as anyone signs in.
+  const userEmail = useAuth((state) => state.user?.email ?? null);
+  useEffect(() => {
+    if (userEmail && useConference.getState().committees.length === 0) void loadCommittees();
+  }, [userEmail, loadCommittees]);
+
   const booting = !(minimumElapsed && dataReady);
 
   return (

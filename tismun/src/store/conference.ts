@@ -3,8 +3,9 @@ import { dataSource } from '@/data/source';
 import type { Committee } from '@/data/source/types';
 
 /**
- * Committee information, loaded once per session. Public to every role, so it
- * is safe to keep a single shared copy in memory.
+ * Committee information, shared by every role, so one copy lives in memory.
+ * In live mode the API needs a session, so App loads it again after sign-in:
+ * the first load on a signed-out visit is refused.
  */
 
 interface ConferenceState {
@@ -24,6 +25,7 @@ export const useConference = create<ConferenceState>((set) => ({
   async load() {
     // Several components mount at once on first paint; they share one request.
     inFlight ??= (async () => {
+      set({ loaded: false });
       try {
         const committees = await dataSource.getCommittees();
         set({ committees, loaded: true, error: null });

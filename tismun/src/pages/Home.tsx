@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { ArrowRight, DoorOpen, FileText, Gavel, Landmark, MapPin, Users } from 'lucide-react';
+import { ArrowRight, DoorOpen, FileText, Gavel, Landmark, Loader2, MapPin, Users } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { PageContainer } from '@/components/AppShell';
 import { Flag } from '@/components/Flag';
@@ -13,7 +13,7 @@ import { CONFERENCE, COPY } from '@/config/conference';
 import { firstNameOf } from '@/data/source';
 import { formatDateRange } from '@/lib/conferenceDates';
 import { isSecretariat, useAuth } from '@/store/auth';
-import { useCommittee } from '@/store/conference';
+import { useCommittee, useConference } from '@/store/conference';
 
 const enter = (delay: number) => ({
   initial: { opacity: 0, y: 10 },
@@ -24,6 +24,7 @@ const enter = (delay: number) => ({
 export function Home() {
   const user = useAuth((state) => state.user);
   const committee = useCommittee(user?.committeeId);
+  const committeesLoaded = useConference((state) => state.loaded);
   const navigate = useNavigate();
 
   if (!user) return null;
@@ -70,6 +71,13 @@ export function Home() {
                 Open the conference floor
                 <ArrowRight size={15} strokeWidth={1.5} />
               </Button>
+            </CardBody>
+          </Card>
+        ) : !committee && user.committeeId && !committeesLoaded ? (
+          <Card className="max-w-xl">
+            <CardBody className="flex items-center gap-3 px-6 py-7 text-sm text-muted">
+              <Loader2 size={16} strokeWidth={1.5} className="animate-spin" />
+              Loading your committee…
             </CardBody>
           </Card>
         ) : !committee ? (
