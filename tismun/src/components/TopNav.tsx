@@ -60,7 +60,7 @@ export function TopNav() {
             className="shrink-0 rounded-control transition-opacity duration-200 hover:opacity-80"
             aria-label="TISMUN home"
           >
-            <Logo className="h-10 w-auto" />
+            <Logo className="h-9 w-auto" />
           </Link>
 
           <nav className="hidden items-center gap-7 sm:flex" aria-label="Main">

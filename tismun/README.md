@@ -300,7 +300,8 @@ tismun/
 │   └── live/               Live session sync for the Secretariat (D1)
 ├── migrations/             D1 schema
 ├── public/
-│   ├── logo.png            The TISMUN logo
+│   ├── logo.png            The TISMUN logo (globe and wordmark)
+│   ├── logo-mark.png       The globe alone, used as the browser-tab icon
 │   ├── tis-logo.png        The host school's logo, always secondary
 │   ├── papers/             Background papers, one per committee
 │   └── _redirects          SPA fallback for Cloudflare Pages

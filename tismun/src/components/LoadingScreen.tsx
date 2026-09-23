@@ -27,7 +27,7 @@ export function LoadingScreen({ visible, complete }: { visible: boolean; complet
               animate={{ opacity: 1, scale: 1 }}
               transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
             >
-              <Logo priority className="h-auto w-[180px] sm:w-[240px]" />
+              <Logo priority className="h-auto w-[240px] sm:w-[320px]" />
             </motion.div>
           </div>
 

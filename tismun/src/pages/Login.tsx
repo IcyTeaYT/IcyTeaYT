@@ -106,7 +106,7 @@ export function Login() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
         >
-          <Logo className="h-auto w-[148px] sm:w-[180px]" priority />
+          <Logo className="h-auto w-[200px] sm:w-[240px]" priority />
         </motion.div>
 
         <motion.div

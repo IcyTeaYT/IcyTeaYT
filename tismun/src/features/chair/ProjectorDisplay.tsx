@@ -70,7 +70,7 @@ export function ProjectorDisplay() {
           </p>
           <h1 className="mt-[0.6vh] truncate font-serif text-[2.6vw] leading-tight text-white">{title}</h1>
         </div>
-        {/* The logo PNG carries a white background, so on ink it goes in a chip. */}
+        {/* The slate wordmark vanishes on ink, so the logo goes in a white chip. */}
         <div className="shrink-0 rounded-card bg-white px-[1.2vw] py-[0.8vh]">
           <img src="/logo.png" alt={CONFERENCE.name} className="h-[5vh] w-auto" />
         </div>
