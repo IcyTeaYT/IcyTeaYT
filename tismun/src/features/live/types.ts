@@ -103,6 +103,8 @@ export interface LiveDetail {
 export interface ControlHolder {
   /** The chair's name from the sheet; null on a demo deployment. */
   name: string | null;
+  /** Signed in with the same account: the chair's own other tab or device. */
+  sameAccount?: boolean;
   heartbeatAt: number;
   /** The claim has lapsed: that device has gone quiet, so anyone may pick it up. */
   stale: boolean;

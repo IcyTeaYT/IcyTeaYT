@@ -23,6 +23,7 @@ export interface ControlRow {
   committee_id: string;
   device_id: string;
   holder_name: string | null;
+  holder_email: string | null;
   heartbeat_at: number;
   /** The last reported session, as JSON, in server time. */
   state: string | null;
@@ -31,6 +32,8 @@ export interface ControlRow {
 
 export interface Holder {
   name: string | null;
+  /** The same account is signed in there: the chair's own other tab or device. */
+  sameAccount: boolean;
   heartbeatAt: number;
   /** True when the claim has lapsed and anyone may pick the committee up. */
   stale: boolean;
@@ -50,12 +53,19 @@ export async function ensureControlTable(db: D1Database): Promise<void> {
          committee_id    TEXT PRIMARY KEY,
          device_id       TEXT NOT NULL,
          holder_name     TEXT,
+         holder_email    TEXT,
          heartbeat_at    INTEGER NOT NULL,
          state           TEXT,
          state_device_id TEXT
        )`,
     )
     .run();
+  // Tables created before holder_email existed get it added. On any other
+  // table the column is already there and SQLite says so; that is fine.
+  await db
+    .prepare('ALTER TABLE committee_control ADD COLUMN holder_email TEXT')
+    .run()
+    .catch(() => undefined);
   ensured = true;
 }
 
@@ -66,10 +76,17 @@ export async function readControl(db: D1Database, committeeId: string): Promise<
     .first<ControlRow>();
 }
 
-export function holderOf(row: ControlRow | null, now: number): Holder | null {
+export function holderOf(
+  row: ControlRow | null,
+  now: number,
+  askerEmail: string | null | undefined,
+): Holder | null {
   if (!row) return null;
   return {
     name: row.holder_name,
+    sameAccount: Boolean(
+      askerEmail && row.holder_email && row.holder_email.toLowerCase() === askerEmail.toLowerCase(),
+    ),
     heartbeatAt: row.heartbeat_at,
     stale: now - row.heartbeat_at > CONTROL_TTL_MS,
   };

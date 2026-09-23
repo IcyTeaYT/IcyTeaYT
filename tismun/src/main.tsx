@@ -2,8 +2,12 @@ import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { App } from './App';
 import { isDemoMode } from './data/source';
+import { initDeviceId } from './features/live/device';
 import { isGoogleConfigured, loadGoogleIdentity } from './lib/googleAuth';
 import './index.css';
+
+// Settle this tab's device id before anything asks for it.
+initDeviceId();
 
 // Start fetching Google's sign-in script now, while the splash screen plays,
 // so the button is ready the moment the sign-in page appears.

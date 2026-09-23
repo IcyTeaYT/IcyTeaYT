@@ -389,8 +389,9 @@ award until the closing ceremony; every change is logged. Awards survive
 
 ### Several chairs, one committee
 
-One device runs a committee at a time. The first chair to open the Chair
-Dashboard runs it; any other chair of that committee who opens it sees a
+One device runs a committee at a time — and every browser tab counts as its
+own device, so a second tab or window on the same laptop watches too. The first
+chair to open the Chair Dashboard runs it; any other chair of that committee who opens it sees a
 watch-only view — who is running it, who has the floor, the timer — and a
 **Take over** button. Taking over carries the whole session across (timers
 keep running with the right time left) and switches the other device to

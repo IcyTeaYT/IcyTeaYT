@@ -30,6 +30,7 @@ export function WatchPanel({
   const [confirming, setConfirming] = useState(false);
   const { holder, summary, serverNow, reason, takingOver } = control;
   const who = holder?.name ?? 'Another chair';
+  const yours = holder?.sameAccount === true;
 
   return (
     <div className="mx-auto max-w-2xl space-y-5">
@@ -40,15 +41,19 @@ export function WatchPanel({
           </span>
           <div>
             <h2 className="font-serif text-xl text-ink-900">
-              {reason === 'taken'
-                ? 'Another device took over this committee'
-                : 'This committee is being run on another device'}
+              {yours
+                ? 'You are running this committee somewhere else'
+                : reason === 'taken'
+                  ? 'Another device took over this committee'
+                  : 'This committee is being run on another device'}
             </h2>
             <p className="mt-2 text-sm leading-relaxed text-muted">
-              {who} is running {abbreviation}
+              {yours
+                ? `You are running ${abbreviation} in another tab or on another device`
+                : `${who} is running ${abbreviation}`}
               {holder ? ` — active ${ago(serverNow - holder.heartbeatAt)}` : ''}. You can watch
-              here, or take over to run the committee from this device. Everything carries across
-              exactly as it is, and the other device switches to watching.
+              here, or take over to run the committee from {yours ? 'this tab' : 'this device'}.
+              Everything carries across exactly as it is, and the other one switches to watching.
             </p>
           </div>
           <div>
@@ -118,7 +123,7 @@ export function WatchPanel({
         onClose={() => setConfirming(false)}
         onConfirm={() => void control.takeOver()}
         title={`Take over ${abbreviation}?`}
-        body={`${who}’s device will switch to watching. The session carries across exactly as it is: timers, speakers, motions, resolutions, votes and awards.`}
+        body={`${yours ? 'Your other tab or device' : `${who}’s device`} will switch to watching. The session carries across exactly as it is: timers, speakers, motions, resolutions, votes and awards.`}
         confirmLabel="Take over"
       />
     </div>

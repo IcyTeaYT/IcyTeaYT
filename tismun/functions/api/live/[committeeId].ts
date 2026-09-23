@@ -79,10 +79,11 @@ export const onRequestPost: PagesFunction<Env, 'committeeId'> = async ({ request
     await ensureControlTable(env.DB);
     const claim = await env.DB.prepare(
       `INSERT INTO committee_control
-         (committee_id, device_id, holder_name, heartbeat_at, state, state_device_id)
-       VALUES (?1, ?2, ?3, ?4, ?5, ?2)
+         (committee_id, device_id, holder_name, holder_email, heartbeat_at, state, state_device_id)
+       VALUES (?1, ?2, ?3, ?6, ?4, ?5, ?2)
        ON CONFLICT(committee_id) DO UPDATE SET
          holder_name = excluded.holder_name,
+         holder_email = excluded.holder_email,
          heartbeat_at = excluded.heartbeat_at,
          state = COALESCE(excluded.state, committee_control.state),
          state_device_id = CASE WHEN excluded.state IS NULL
@@ -95,13 +96,19 @@ export const onRequestPost: PagesFunction<Env, 'committeeId'> = async ({ request
         guard.user?.['Full Name']?.trim() || null,
         serverNow,
         body.chairState ? JSON.stringify(body.chairState) : null,
+        guard.user?.Email?.trim() || null,
       )
       .run();
 
     if (!claim.meta.changes) {
       const row = await readControl(env.DB, committeeId);
       return json(
-        { configured: true, serverNow, locked: true, holder: holderOf(row, serverNow) },
+        {
+          configured: true,
+          serverNow,
+          locked: true,
+          holder: holderOf(row, serverNow, guard.user?.Email),
+        },
         409,
       );
     }
