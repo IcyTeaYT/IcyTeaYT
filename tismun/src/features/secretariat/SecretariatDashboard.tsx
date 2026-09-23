@@ -14,12 +14,14 @@ import { formatTimeOfDay } from '@/lib/time';
 import { useAuth } from '@/store/auth';
 import { useConference } from '@/store/conference';
 import { AwardsOverview } from './AwardsOverview';
+import { EmergencyPanel } from './EmergencyPanel';
 import { LiveTimer } from './LiveTimer';
 
 const STATUS_TONE: Record<string, 'neutral' | 'teal' | 'warning'> = {
   'Not in session': 'neutral',
   'In session': 'teal',
   'General Speakers’ List': 'teal',
+  'Crisis Briefing': 'teal',
   'Presentation of the Draft Resolution': 'teal',
   'Question-and-Answer Period': 'teal',
   'Unmoderated Caucus': 'teal',
@@ -111,6 +113,8 @@ export function SecretariatDashboard() {
           </div>
         </div>
       ) : null}
+
+      <EmergencyPanel />
 
       <div className="mt-7 grid gap-5 lg:grid-cols-2 xl:grid-cols-3">
         {summaries.map(({ committee, summary }) => (

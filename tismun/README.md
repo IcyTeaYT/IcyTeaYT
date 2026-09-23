@@ -440,6 +440,49 @@ sync over `BroadcastChannel` (same browser, same machine).
 
 ---
 
+## Emergency Session (Day 2)
+
+A ninth committee, `emergency`, sits on Day 2. Its topic and background paper
+are a surprise; delegates know their Emergency Session country in advance.
+
+**Release is automatic.** At `releaseAt` in `src/config/emergency.ts`
+(16 October, 08:30 Tashkent) the server unlocks the topic by itself — nobody
+presses anything. Every check uses the **server's** clock, so changing a
+device's date does nothing. Open pages ask every 30 seconds and show the topic
+without a refresh, marked **New**. The Secretariat has **Release now** and
+**Un-release** on the conference floor purely as a backup, plus **Switch to
+Day 2 now**; each needs confirming and is recorded with who did it.
+
+**Nothing leaks early.** Before release the API removes the topic, description
+and paper link from the Emergency Session **on the server**, so they are in no
+response, in no JavaScript file, and at no guessable address. The paper is not
+in `/public`: it lives in Google Drive, shared only with the service account,
+and `/api/papers/emergency` streams it after checking the session and the
+release time — asked for early, it answers 403. Demo mode ships only a
+placeholder topic.
+
+**Your delegation.** Several delegates from different Day 1 committees
+represent one country together. Each sees their own country's team — names and
+Day 1 committees, never email addresses — worked out on the server, so no one
+can see another country's roster. It shows as soon as countries are assigned,
+even while the topic is locked. The Emergency Session chairs and the Secretariat
+see every delegation.
+
+**Day 2 focus.** From `focusFrom` the Emergency Session becomes an Emergency
+Session delegate's main card ("Day 2 — Emergency Session"), their Day 1
+committee moves below, and the Committees page pins it first as "Your
+committee today". Everyone else keeps their normal view.
+
+**Its own order of business.** No draft resolution exists beforehand, so Guided
+Mode follows a different flow: Roll Call, the chairs' Crisis Briefing (5:00),
+the General Speakers' List, Motion for an Unmoderated Caucus (purpose "Writing
+the draft resolution"), back to the GSL or another caucus, Register the Draft
+Resolution once delegates submit one, its Presentation, debate and amendments,
+Close Debate, Voting Procedure and the Result.
+
+The overrides and their record live in two D1 tables, `conference_flags` and
+`conference_events`, created on first use — there is no migration to run.
+
 ## Secretariat
 
 The `SECRETARIAT` role gets a **Conference floor** view: every

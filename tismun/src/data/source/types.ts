@@ -5,6 +5,8 @@
  */
 
 /** Roles come from the "Role" column of the sheet. Add new ones here. */
+import type { ConferenceStatus } from '@/config/emergency';
+
 export const ROLES = ['DELEGATE', 'CHAIR', 'SECRETARIAT', 'ADMIN'] as const;
 export type Role = (typeof ROLES)[number];
 
@@ -20,6 +22,34 @@ export interface User {
   country: string | null;
   /** ISO 3166-1 alpha-2, uppercase. null when there is no country. */
   countryCode: string | null;
+  /**
+   * The Emergency Session on Day 2, if this person takes part: as a delegate
+   * for a country (known in advance), or as one of its chairs.
+   */
+  emergency: EmergencyAssignment | null;
+}
+
+export interface EmergencyAssignment {
+  role: 'DELEGATE' | 'CHAIR';
+  /** The country this person represents in the Emergency Session. Delegates only. */
+  country: string | null;
+  countryCode: string | null;
+}
+
+/** One member of an Emergency Session delegation. Never carries an email address. */
+export interface DelegationMember {
+  fullName: string;
+  /** The committee they sit in on Day 1, so teammates can place each other. */
+  day1CommitteeId: string | null;
+  day1Role: 'DELEGATE' | 'CHAIR' | 'SECRETARIAT';
+  you: boolean;
+}
+
+/** A country's Emergency Session delegation: the people representing it together. */
+export interface EmergencyDelegation {
+  country: string;
+  countryCode: string | null;
+  members: DelegationMember[];
 }
 
 export interface Committee {
@@ -31,6 +61,11 @@ export interface Committee {
   room: string;
   backgroundPaperUrl: string;
   description: string;
+  /**
+   * The Emergency Session before release: the server has removed its topic,
+   * description and paper, and only its name, room and chairs are known.
+   */
+  locked: boolean;
 }
 
 /** One seat in a committee — what a chair needs to run the room. */
@@ -54,6 +89,20 @@ export interface DataSource {
    * committee — enforced server-side in live mode.
    */
   getRoster(committeeId: string): Promise<Delegation[]>;
+  /**
+   * The signed-in delegate's own Emergency Session delegation — their country
+   * and teammates, worked out by the server. null for anyone not representing
+   * a country in the Emergency Session.
+   */
+  getMyDelegation(): Promise<EmergencyDelegation | null>;
+  /** Every Emergency Session delegation. Its chairs and the Secretariat only. */
+  getAllDelegations(): Promise<EmergencyDelegation[]>;
+  /** Where the conference stands on the server's clock: release and Day 2. */
+  getConferenceStatus(): Promise<ConferenceStatus>;
+  /** Secretariat only: the release status and every override made. */
+  getEmergencyAdmin(): Promise<EmergencyAdmin>;
+  /** Secretariat only: a backup override of the schedule. */
+  setEmergencyOverride(action: OverrideAction): Promise<EmergencyAdmin>;
   /**
    * Demo mode only: the list the login page's user picker is built from.
    * Undefined in live mode, where you may never enumerate users.
@@ -80,6 +129,10 @@ export interface UserRow {
   'Country Code'?: string;
   /** Optional on-screen post, e.g. "Secretary-General". Not needed. */
   Title?: string;
+  /** Blank: not in the Emergency Session. DELEGATE or CHAIR otherwise. */
+  'Emergency Role'?: string;
+  /** The country an Emergency Session delegate represents. */
+  'Emergency Country'?: string;
 }
 
 export interface CommitteeRow {
@@ -93,4 +146,30 @@ export interface CommitteeRow {
   Room: string;
   'Background Paper URL': string;
   Description: string;
+  /** Set by the server on the Emergency Session until its topic is released. */
+  Locked?: string;
+}
+
+export type OverrideAction =
+  | 'release-now'
+  | 'unrelease'
+  | 'release-auto'
+  | 'day2-now'
+  | 'day2-hold'
+  | 'day2-auto';
+
+export interface ConferenceEvent {
+  id: string;
+  at: number;
+  action: OverrideAction | string;
+  detail: string | null;
+  byName: string | null;
+}
+
+export interface EmergencyAdmin {
+  status: ConferenceStatus;
+  /** false without the live-sync database: the schedule applies, with no overrides. */
+  overridesAvailable: boolean;
+  events: ConferenceEvent[];
+  error?: string;
 }

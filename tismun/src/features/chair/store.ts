@@ -45,6 +45,8 @@ export interface ChairState {
   presentation: PresentationState;
   /** How many draft resolution presentations have been completed. */
   presentationsHeld: number;
+  /** How many crisis briefings the chairs have given. */
+  briefingsHeld: number;
   /** How many Unmoderated Caucuses have been opened. */
   unmoderatedHeld: number;
   motions: Motion[];
@@ -88,7 +90,12 @@ export interface ChairState {
   unmodEnd: () => void;
 
   // Presentation of a draft resolution
-  presentStart: (input: { resolutionId: string | null; presenterId: string | null; durationSec: number }) => void;
+  presentStart: (input: {
+    kind: PresentationState['kind'];
+    resolutionId: string | null;
+    presenterId: string | null;
+    durationSec: number;
+  }) => void;
   /** Move straight on to the question-and-answer period, on a fresh clock. */
   presentOpenQuestions: (durationSec: number) => void;
   /** Finish — whether or not there was a question-and-answer period. */
@@ -156,6 +163,7 @@ const emptyUnmoderated = (): UnmoderatedState => ({
 
 export const emptyPresentation = (): PresentationState => ({
   active: false,
+  kind: 'draft',
   resolutionId: null,
   presenterId: null,
   phase: 'presenting',
@@ -171,6 +179,7 @@ const initialState = () => ({
   unmoderated: emptyUnmoderated(),
   presentation: emptyPresentation(),
   presentationsHeld: 0,
+  briefingsHeld: 0,
   unmoderatedHeld: 0,
   motions: [] as Motion[],
   resolutions: [] as Resolution[],
@@ -434,10 +443,11 @@ function createChairState(committeeId: string) {
 
       /* ── Presentation of a draft resolution ────────────────────────────── */
 
-      presentStart({ resolutionId, presenterId, durationSec }) {
+      presentStart({ kind, resolutionId, presenterId, durationSec }) {
         set({
           presentation: {
             active: true,
+            kind,
             resolutionId,
             presenterId,
             phase: 'presenting',
@@ -445,6 +455,10 @@ function createChairState(committeeId: string) {
             timer: startTimer(createTimer(durationSec * 1000), Date.now()),
           },
         });
+        if (kind === 'briefing') {
+          log('presentation', 'Crisis briefing opened by the Chair', `Briefing time ${formatClock(durationSec * 1000)}.`);
+          return;
+        }
         const resolution = get().resolutions.find((entry) => entry.id === resolutionId);
         log(
           'presentation',
@@ -469,13 +483,18 @@ function createChairState(committeeId: string) {
       presentEnd() {
         const current = get().presentation;
         if (!current.active) return;
-        set((state) => ({
-          presentation: emptyPresentation(),
-          presentationsHeld: state.presentationsHeld + 1,
-        }));
+        set((state) =>
+          current.kind === 'briefing'
+            ? { presentation: emptyPresentation(), briefingsHeld: state.briefingsHeld + 1 }
+            : { presentation: emptyPresentation(), presentationsHeld: state.presentationsHeld + 1 },
+        );
         log(
           'presentation',
-          current.phase === 'questions'
+          current.kind === 'briefing'
+            ? current.phase === 'questions'
+              ? 'Crisis briefing questions closed'
+              : 'Crisis briefing finished'
+            : current.phase === 'questions'
             ? 'Question-and-answer period closed'
             : 'Presentation finished — no question-and-answer period',
         );
@@ -896,6 +915,7 @@ export type ChairData = Pick<
   | 'unmoderated'
   | 'presentation'
   | 'presentationsHeld'
+  | 'briefingsHeld'
   | 'unmoderatedHeld'
   | 'motions'
   | 'resolutions'
@@ -908,8 +928,9 @@ export type ChairData = Pick<
 export function sessionStatusOf(state: ChairData): SessionStatus {
   if (state.vote) return 'Voting Procedure';
   if (state.presentation?.active) {
-    return state.presentation.phase === 'questions'
-      ? 'Question-and-Answer Period'
+    if (state.presentation.phase === 'questions') return 'Question-and-Answer Period';
+    return state.presentation.kind === 'briefing'
+      ? 'Crisis Briefing'
       : 'Presentation of the Draft Resolution';
   }
   if (state.unmoderated.active) return 'Unmoderated Caucus';

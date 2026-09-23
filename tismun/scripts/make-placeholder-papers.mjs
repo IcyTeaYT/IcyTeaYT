@@ -125,7 +125,7 @@ function buildContent(c) {
   rule(width, 0.8, HAIRLINE);
 
   // Topics
-  for (const [index, topic] of [c['Topic 1'], c['Topic 2']].entries()) {
+  for (const [index, topic] of [c['Topic 1'], c['Topic 2']].filter(Boolean).entries()) {
     y -= 34;
     text(`TOPIC ${index + 1}`, { font: 'F5', size: 8.5, color: TEAL, tc: 1.4 });
     y -= 21;
@@ -206,7 +206,14 @@ function buildPdf(content) {
 }
 
 for (const c of committees) {
+  // Named after the committee's Background Paper URL, so the demo Emergency
+  // Session placeholder becomes emergency-demo.pdf. The REAL Emergency Session
+  // paper never goes in /public: it is served from Google Drive by
+  // functions/api/papers/[committeeId].ts, and only after release.
+  const url = c['Background Paper URL'] ?? '';
+  if (!url.startsWith('/papers/')) continue;
+  const file = url.slice('/papers/'.length);
   const pdf = buildPdf(buildContent(c));
-  writeFileSync(join(OUT, `${c['Committee ID']}.pdf`), pdf);
-  console.log(`${c['Committee ID'].padEnd(8)} ${(pdf.length / 1024).toFixed(1)} KB`);
+  writeFileSync(join(OUT, file), pdf);
+  console.log(`${file.padEnd(22)} ${(pdf.length / 1024).toFixed(1)} KB`);
 }

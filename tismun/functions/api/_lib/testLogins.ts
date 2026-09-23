@@ -26,6 +26,9 @@ const TEST_ACCOUNTS: Record<TestRole, SheetUser> = {
     Role: 'DELEGATE',
     'Committee ID': TEST_COMMITTEE_ID,
     Country: 'Uzbekistan',
+    // Also in the Emergency Session on Day 2, so it can be tried out too.
+    'Emergency Role': 'DELEGATE',
+    'Emergency Country': 'Uzbekistan',
   },
   chair: {
     Email: 'testchair@tismun.test',
@@ -40,6 +43,8 @@ const TEST_ACCOUNTS: Record<TestRole, SheetUser> = {
     Role: 'SECRETARIAT',
     'Committee ID': '',
     Country: '',
+    // Chairs the Emergency Session on Day 2, as the real Secretariat does.
+    'Emergency Role': 'CHAIR',
   },
 };
 
@@ -56,4 +61,12 @@ export function testAccountByEmail(env: Env, email: string): SheetUser | null {
   if (!testLoginsEnabled(env)) return null;
   const needle = email.trim().toLowerCase();
   return Object.values(TEST_ACCOUNTS).find((account) => account.Email === needle) ?? null;
+}
+
+/**
+ * The Users tab plus the test accounts, while test logins are on — so a test
+ * delegate appears in their own Emergency Session delegation.
+ */
+export function withTestAccounts(env: Env, users: SheetUser[]): SheetUser[] {
+  return testLoginsEnabled(env) ? [...users, ...Object.values(TEST_ACCOUNTS)] : users;
 }

@@ -217,10 +217,16 @@ for (const c of committees) {
   }
 }
 
-// The Secretariat: one account, no committee of its own, oversees all of them.
-{
+// The Secretariat: no committee of their own; they oversee all of them. Two
+// of them also chair the Emergency Session on Day 2, and one stays on
+// oversight only.
+const secretariat = [
+  ['Kamron Yusupov', 'CHAIR'],
+  ['Aziza Karimova', 'CHAIR'],
+  ['Malika Tursunova', ''],
+];
+for (const [fullName, emergencyRole] of secretariat) {
   const slug = (s) => s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z]/g, '');
-  const fullName = 'Kamron Yusupov';
   const [first, ...rest] = fullName.split(' ');
   userRows.push({
     Email: `${slug(first)}.${slug(rest.join(''))}@demo.tis`,
@@ -228,6 +234,7 @@ for (const c of committees) {
     Role: 'SECRETARIAT',
     'Committee ID': '',
     Country: '',
+    'Emergency Role': emergencyRole,
   });
 }
 
@@ -238,6 +245,59 @@ userRows.push({
   Role: 'DELEGATE',
   'Committee ID': '',
   Country: '',
+});
+
+/* ── The Emergency Session (Day 2) ─────────────────────────────────────────
+ * Every row gets the two Emergency columns. Countries are assigned in
+ * advance, and each is a team drawn from different Day 1 committees.
+ */
+for (const row of userRows) {
+  row['Emergency Role'] ??= '';
+  row['Emergency Country'] ??= '';
+}
+const byEmail = (email) => userRows.find((r) => r.Email === email);
+const delegateOf = (committeeId, index) =>
+  userRows.filter((r) => r.Role === 'DELEGATE' && r['Committee ID'] === committeeId)[index];
+const represent = (row, country) => {
+  row['Emergency Role'] = 'DELEGATE';
+  row['Emergency Country'] = country;
+};
+
+// Two Day 1 chairs become Emergency Session delegates.
+represent(byEmail('yassir.ga2@demo.tis'), 'India');
+represent(byEmail('laziza.hrcrussian@demo.tis'), 'Brazil');
+// India — four people from four committees.
+represent(delegateOf('hrc-1', 0), 'India');
+represent(delegateOf('sc', 0), 'India');
+represent(delegateOf('ga-3', 0), 'India');
+// Brazil — three.
+represent(delegateOf('hrc-2', 0), 'Brazil');
+represent(delegateOf('hsc-2', 0), 'Brazil');
+// Japan — four.
+represent(delegateOf('hrc-1', 1), 'Japan');
+represent(delegateOf('hrc-2', 1), 'Japan');
+represent(delegateOf('ga-2', 0), 'Japan');
+represent(delegateOf('hsc-2', 1), 'Japan');
+// Norway — one delegate on their own.
+represent(delegateOf('ga-3', 1), 'Norway');
+// One Day 1 delegate chairs the Emergency Session on Day 2.
+const delegateTurnedChair = delegateOf('hsc-1', 0);
+delegateTurnedChair['Emergency Role'] = 'CHAIR';
+
+committeeRows.push({
+  'Committee ID': 'emergency',
+  Name: 'Emergency Session',
+  Abbreviation: 'ES',
+  // A PLACEHOLDER. This file ships to every browser in demo mode, so the real
+  // topic must never be written here — it goes in the Committees tab of the
+  // Google Sheet, which only the server reads.
+  'Topic 1': 'Demo placeholder topic — the real Emergency Session topic lives only in the Google Sheet',
+  'Topic 2': '',
+  Chairs: ['Kamron Yusupov', 'Aziza Karimova', delegateTurnedChair['Full Name']].join('; '),
+  Room: 'Auditorium',
+  'Background Paper URL': '/papers/emergency-demo.pdf',
+  Description:
+    'Demo placeholder. On the day, this is where the Emergency Session description appears once the topic is released.',
 });
 
 const emails = userRows.map((r) => r.Email);

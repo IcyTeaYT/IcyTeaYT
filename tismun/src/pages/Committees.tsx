@@ -8,15 +8,32 @@ import { Badge } from '@/components/ui/Badge';
 import { Card, CardBody } from '@/components/ui/Card';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { Input } from '@/components/ui/Field';
+import { LockedTopic } from '@/components/emergency/ReleaseCountdown';
 import { COPY } from '@/config/conference';
+import { emergencySession, isEmergency } from '@/config/emergency';
 import type { Committee } from '@/data/source/types';
 import { useAuth } from '@/store/auth';
 import { useConference } from '@/store/conference';
+import { useConferenceStatus } from '@/store/conferenceStatus';
 
 export function Committees() {
   const committees = useConference((state) => state.committees);
   const user = useAuth((state) => state.user);
+  const day2 = useConferenceStatus((state) => state.status?.day2 ?? false);
   const [query, setQuery] = useState('');
+
+  // An Emergency Session delegate's committee today is the Emergency Session:
+  // from Day 2 it leads the list; before that it is marked for Day 2.
+  const inEmergency = user?.emergency?.role === 'DELEGATE';
+  const badgeFor = (committee: Committee): string | null => {
+    if (isEmergency(committee.id) && inEmergency) {
+      return day2 ? 'Your committee today' : 'Your Day 2 committee';
+    }
+    if (committee.id === user?.committeeId) {
+      return inEmergency && day2 ? 'Your Day 1 committee' : COPY.committees.yourCommittee;
+    }
+    return null;
+  };
 
   const ordered = useMemo(() => {
     const needle = query.trim().toLowerCase();
@@ -27,12 +44,13 @@ export function Committees() {
         .toLowerCase()
         .includes(needle);
 
+    // The committee the delegate sits in TODAY always leads.
+    const today = inEmergency && day2 ? emergencySession.committeeId : user?.committeeId;
     return [...committees].filter(matches).sort((a, b) => {
-      // The delegate's own committee always leads.
-      const mine = Number(b.id === user?.committeeId) - Number(a.id === user?.committeeId);
+      const mine = Number(b.id === today) - Number(a.id === today);
       return mine !== 0 ? mine : a.name.localeCompare(b.name);
     });
-  }, [committees, query, user?.committeeId]);
+  }, [committees, query, user?.committeeId, inEmergency, day2]);
 
   return (
     <PageContainer>
@@ -64,12 +82,17 @@ export function Committees() {
 
       {ordered.length === 0 ? (
         <Card className="mt-8">
-          <EmptyState icon={Search} title={COPY.committees.noResults} body="Try a shorter search." />
+          <EmptyState
+            icon={Search}
+            title={COPY.committees.noResults}
+            body="Try a shorter search."
+          />
         </Card>
       ) : (
         <div className="mt-8 grid gap-5 lg:grid-cols-2">
           {ordered.map((committee, index) => {
-            const mine = committee.id === user?.committeeId;
+            const badge = badgeFor(committee);
+            const mine = badge !== null;
             return (
               <motion.div
                 key={committee.id}
@@ -99,11 +122,13 @@ export function Committees() {
                           </Link>
                         </h2>
                       </div>
-                      {mine ? <Badge tone="teal">{COPY.committees.yourCommittee}</Badge> : null}
+                      {badge ? <Badge tone="teal">{badge}</Badge> : null}
                     </div>
 
+                    {committee.locked ? <LockedTopic compact /> : null}
+
                     <ol className="space-y-2.5">
-                      {committee.topics.map((topic, topicIndex) => (
+                      {committee.topics.filter(Boolean).map((topic, topicIndex) => (
                         <li key={topic} className="flex gap-3">
                           <span className="mt-0.5 shrink-0 text-[11px] font-semibold tabular-nums text-teal-600">
                             {String(topicIndex + 1).padStart(2, '0')}
@@ -124,7 +149,13 @@ export function Committees() {
                           {committee.room}
                         </span>
                       </div>
-                      <PaperActions committee={committee} size="sm" className="flex flex-wrap gap-2" />
+                      {committee.locked ? null : (
+                        <PaperActions
+                          committee={committee}
+                          size="sm"
+                          className="flex flex-wrap gap-2"
+                        />
+                      )}
                     </div>
                   </CardBody>
                 </Card>

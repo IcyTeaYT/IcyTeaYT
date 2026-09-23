@@ -24,6 +24,7 @@ const CHAIR_DATA_KEYS = [
   'unmoderated',
   'presentation',
   'presentationsHeld',
+  'briefingsHeld',
   'unmoderatedHeld',
   'motions',
   'resolutions',
@@ -97,8 +98,9 @@ export function fromHandover(raw: unknown, offsetToServer: number): ChairData | 
       attendance: data.attendance ?? {},
       gsl: data.gsl,
       unmoderated: data.unmoderated,
-      presentation: data.presentation ?? emptyPresentation(),
+      presentation: { ...emptyPresentation(), ...data.presentation },
       presentationsHeld: data.presentationsHeld ?? 0,
+      briefingsHeld: data.briefingsHeld ?? 0,
       unmoderatedHeld: data.unmoderatedHeld ?? 0,
       // Sent by a device on an older version, the session may still hold
       // motion types that have since been removed from the rules.

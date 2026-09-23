@@ -17,7 +17,14 @@ import { testAccountByEmail } from './testLogins';
  */
 
 const TOKEN_ENDPOINT = 'https://oauth2.googleapis.com/token';
-const SCOPE = 'https://www.googleapis.com/auth/spreadsheets.readonly';
+/**
+ * Read the sheet, and read the Emergency Session background paper from Google
+ * Drive — both read-only, and both only files shared with the service account.
+ */
+const SCOPE = [
+  'https://www.googleapis.com/auth/spreadsheets.readonly',
+  'https://www.googleapis.com/auth/drive.readonly',
+].join(' ');
 
 export const USERS_TAB = 'Users';
 export const COMMITTEES_TAB = 'Committees';
@@ -36,7 +43,7 @@ interface CacheEntry {
 const sheetCache = new Map<string, CacheEntry>();
 let tokenCache: { token: string; expiresAt: number } | null = null;
 
-async function getAccessToken(env: Env): Promise<string> {
+export async function getAccessToken(env: Env): Promise<string> {
   if (tokenCache && tokenCache.expiresAt > Date.now() + 30_000) return tokenCache.token;
 
   const now = Math.floor(Date.now() / 1000);
@@ -116,6 +123,10 @@ export interface SheetUser {
   Country: string;
   'Country Code'?: string;
   Title?: string;
+  /** Blank: not in the Emergency Session. DELEGATE or CHAIR otherwise. */
+  'Emergency Role'?: string;
+  /** The country an Emergency Session delegate represents. */
+  'Emergency Country'?: string;
 }
 
 export interface SheetCommittee {
@@ -138,6 +149,11 @@ export async function findUser(env: Env, email: string): Promise<SheetUser | nul
   const rows = (await readTab(env, USERS_TAB)) as unknown as SheetUser[];
   const needle = email.trim().toLowerCase();
   return rows.find((row) => (row.Email ?? '').trim().toLowerCase() === needle) ?? null;
+}
+
+/** Every row of the Users tab. */
+export async function readUsers(env: Env): Promise<SheetUser[]> {
+  return (await readTab(env, USERS_TAB)) as unknown as SheetUser[];
 }
 
 export async function readCommittees(env: Env): Promise<SheetCommittee[]> {

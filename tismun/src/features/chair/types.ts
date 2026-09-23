@@ -38,6 +38,11 @@ export interface UnmoderatedState {
  */
 export interface PresentationState {
   active: boolean;
+  /**
+   * 'draft': a delegation presents a draft resolution. 'briefing': the chairs
+   * present the Emergency Session topic — the crisis briefing.
+   */
+  kind: 'draft' | 'briefing';
   /** The draft resolution being presented, if it is on file. */
   resolutionId: string | null;
   /** The presenting delegation — normally the Main Submitter. */
@@ -170,6 +175,7 @@ export type SessionStatus =
   | 'Not in session'
   | 'In session'
   | 'General Speakers’ List'
+  | 'Crisis Briefing'
   | 'Presentation of the Draft Resolution'
   | 'Question-and-Answer Period'
   | 'Unmoderated Caucus'

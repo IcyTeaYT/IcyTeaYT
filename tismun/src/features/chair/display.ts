@@ -54,7 +54,12 @@ export function buildDisplayState(state: ChairState, committee: Committee): Disp
       speakerName: nameOf(state.presentation.presenterId),
       speakerCode: codeOf(state.presentation.presenterId),
       primary: {
-        label: state.presentation.phase === 'questions' ? 'Questions' : 'Presentation time',
+        label:
+          state.presentation.phase === 'questions'
+            ? 'Questions'
+            : state.presentation.kind === 'briefing'
+              ? 'Briefing time'
+              : 'Presentation time',
         timer: state.presentation.timer,
       },
       secondary: null,

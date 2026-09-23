@@ -1,5 +1,7 @@
 import { fail, json, requireEnv, type Env } from './_lib/env';
 import { currentUser } from './_lib/session';
+import { readStatus } from './_lib/conference';
+import { publicCommittee } from './_lib/emergency';
 import { readCommittees } from './_lib/sheets';
 
 /**
@@ -16,5 +18,8 @@ export const onRequestGet: PagesFunction<Env> = async ({ request, env }) => {
   const user = await currentUser(request, env);
   if (!user) return fail('Not signed in.', 401);
 
-  return json(await readCommittees(env));
+  // The Emergency Session's topic, description and paper are removed here,
+  // server-side, until they are released.
+  const [committees, status] = await Promise.all([readCommittees(env), readStatus(env)]);
+  return json(committees.map((row) => publicCommittee(row, status)));
 };

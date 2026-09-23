@@ -1,21 +1,92 @@
+import { conferenceStatus, isEmergency, type FocusMode, type ReleaseMode } from '@/config/emergency';
+import { readJson, writeJson } from '@/lib/storage';
 import committeeRowsJson from '../mock/committees.json';
 import userRowsJson from '../mock/users.json';
-import { delegationId, rowToCommittee, rowToUser } from './normalise';
-import type { Committee, CommitteeRow, DataSource, Delegation, User, UserRow } from './types';
+import { delegationId, mergeDelegations, rowToCommittee, rowToUser } from './normalise';
+import type {
+  Committee,
+  CommitteeRow,
+  ConferenceEvent,
+  DataSource,
+  Delegation,
+  DelegationMember,
+  EmergencyAdmin,
+  EmergencyDelegation,
+  OverrideAction,
+  User,
+  UserRow,
+} from './types';
 
 /**
- * Phase 1 data source. Reads the JSON in ../mock, which is laid out exactly
- * like the planned Google Sheet, so the live source can reuse ./normalise.ts
- * without a second mapping.
+ * Demo data source. Reads the JSON in ../mock, which is laid out exactly like
+ * the Google Sheet, so the live source can reuse ./normalise.ts without a
+ * second mapping.
+ *
+ * The Emergency Session follows the same rules here as on the server — locked
+ * until its release time, delegations worked out from the Emergency columns —
+ * so it can be tried out in demo mode. Two differences, both because a demo
+ * has no server: "the server's clock" is this browser's, and the Secretariat's
+ * overrides are kept in this browser. The mock JSON only ever holds a
+ * placeholder topic, never the real one, since it ships to every browser.
  */
 
 const userRows = userRowsJson as unknown as UserRow[];
 const committeeRows = committeeRowsJson as unknown as CommitteeRow[];
 
 const users: User[] = userRows.map(rowToUser);
-const committees: Committee[] = committeeRows.map(rowToCommittee);
-
 const byEmail = new Map(users.map((u) => [u.email, u]));
+
+/** Must match the key the auth store remembers the demo account under. */
+const DEMO_EMAIL_KEY = 'tismun.demo-email';
+const DEMO_EMERGENCY_KEY = 'tismun.demo.emergency';
+
+interface DemoEmergency {
+  release: ReleaseMode;
+  focus: FocusMode;
+  events: ConferenceEvent[];
+}
+
+const readDemo = (): DemoEmergency => {
+  const stored = readJson<Partial<DemoEmergency> | null>(DEMO_EMERGENCY_KEY, null);
+  return { release: stored?.release ?? 'auto', focus: stored?.focus ?? 'auto', events: stored?.events ?? [] };
+};
+
+const status = () => {
+  const demo = readDemo();
+  return conferenceStatus(Date.now(), demo.release, demo.focus);
+};
+
+/** The same stripping the server does before release. */
+function visible(row: CommitteeRow): Committee {
+  const committee = rowToCommittee(row);
+  if (!isEmergency(committee.id) || status().released) return committee;
+  return { ...committee, topics: ['', ''], description: '', backgroundPaperUrl: '', locked: true };
+}
+
+const me = (): User | null => byEmail.get(readJson<string>(DEMO_EMAIL_KEY, '')) ?? null;
+
+function delegationFor(country: string, askerEmail: string | null): EmergencyDelegation {
+  const members = users
+    .filter((u) => u.emergency?.role === 'DELEGATE' && u.emergency.country?.toLowerCase() === country.toLowerCase())
+    .map<DelegationMember>((u) => ({
+      fullName: u.fullName,
+      day1CommitteeId: u.committeeId,
+      day1Role: u.role === 'CHAIR' ? 'CHAIR' : u.role === 'DELEGATE' ? 'DELEGATE' : 'SECRETARIAT',
+      you: u.email === askerEmail,
+    }))
+    .sort((a, b) => Number(b.you) - Number(a.you) || a.fullName.localeCompare(b.fullName));
+  const code = users.find((u) => u.emergency?.country === country)?.emergency?.countryCode ?? null;
+  return { country, countryCode: code, members };
+}
+
+const OVERRIDES: Record<OverrideAction, { patch: Partial<DemoEmergency>; label: string }> = {
+  'release-now': { patch: { release: 'released' }, label: 'Emergency Session topic released early' },
+  unrelease: { patch: { release: 'locked' }, label: 'Emergency Session topic un-released (locked)' },
+  'release-auto': { patch: { release: 'auto' }, label: 'Topic release returned to the schedule' },
+  'day2-now': { patch: { focus: 'on' }, label: 'Switched to Day 2 early' },
+  'day2-hold': { patch: { focus: 'off' }, label: 'Day 2 held back — Day 1 continues' },
+  'day2-auto': { patch: { focus: 'auto' }, label: 'Day 2 returned to the schedule' },
+};
 
 export const mockSource: DataSource = {
   async getMe(email) {
@@ -23,24 +94,67 @@ export const mockSource: DataSource = {
   },
 
   async getCommittees() {
-    return committees;
+    return committeeRows.map(visible);
   },
 
   async getCommittee(id) {
-    return committees.find((c) => c.id === id) ?? null;
+    const row = committeeRows.find((entry) => entry['Committee ID'] === id);
+    return row ? visible(row) : null;
   },
 
   async getRoster(committeeId) {
-    return users
-      .filter((u) => u.committeeId === committeeId && u.role === 'DELEGATE' && u.country)
-      .map<Delegation>((u) => ({
-        id: delegationId(committeeId, u.country ?? '', u.countryCode),
-        country: u.country ?? '',
-        countryCode: u.countryCode ?? '',
+    const seats = isEmergency(committeeId)
+      ? users
+          .filter((u) => u.emergency?.role === 'DELEGATE' && u.emergency.country)
+          .map((u) => ({ u, country: u.emergency?.country ?? '', code: u.emergency?.countryCode ?? null }))
+      : users
+          .filter((u) => u.committeeId === committeeId && u.role === 'DELEGATE' && u.country)
+          .map((u) => ({ u, country: u.country ?? '', code: u.countryCode }));
+    return mergeDelegations(
+      seats.map<Delegation>(({ u, country, code }) => ({
+        id: delegationId(committeeId, country, code),
+        country,
+        countryCode: code ?? '',
         delegateName: u.fullName,
         email: u.email,
-      }))
-      .sort((a, b) => a.country.localeCompare(b.country));
+      })),
+    );
+  },
+
+  async getMyDelegation() {
+    const user = me();
+    if (user?.emergency?.role !== 'DELEGATE' || !user.emergency.country) return null;
+    return delegationFor(user.emergency.country, user.email);
+  },
+
+  async getAllDelegations() {
+    const countries = [
+      ...new Set(users.map((u) => u.emergency?.country).filter((c): c is string => Boolean(c))),
+    ].sort((a, b) => a.localeCompare(b));
+    return countries.map((country) => delegationFor(country, null));
+  },
+
+  async getConferenceStatus() {
+    return status();
+  },
+
+  async getEmergencyAdmin(): Promise<EmergencyAdmin> {
+    return { status: status(), overridesAvailable: true, events: readDemo().events };
+  },
+
+  async setEmergencyOverride(action) {
+    const demo = readDemo();
+    const { patch, label } = OVERRIDES[action];
+    const user = me();
+    const event: ConferenceEvent = {
+      id: `demo-${Date.now()}`,
+      at: Date.now(),
+      action,
+      detail: label,
+      byName: user?.fullName ?? null,
+    };
+    writeJson(DEMO_EMERGENCY_KEY, { ...demo, ...patch, events: [event, ...demo.events].slice(0, 20) });
+    return { status: status(), overridesAvailable: true, events: readDemo().events };
   },
 
   async listDemoUsers() {

@@ -86,5 +86,16 @@
     "Room": "Room 511",
     "Background Paper URL": "/papers/ga-3.pdf",
     "Description": "The Social, Humanitarian and Cultural Committee of the General Assembly. Its resolutions are not binding, which makes consensus-building the whole exercise: delegates must find language broad enough to attract signatures and precise enough to mean something."
+  },
+  {
+    "Committee ID": "emergency",
+    "Name": "Emergency Session",
+    "Abbreviation": "ES",
+    "Topic 1": "Demo placeholder topic — the real Emergency Session topic lives only in the Google Sheet",
+    "Topic 2": "",
+    "Chairs": "Kamron Yusupov; Aziza Karimova; Nikita Nazarov",
+    "Room": "Auditorium",
+    "Background Paper URL": "/papers/emergency-demo.pdf",
+    "Description": "Demo placeholder. On the day, this is where the Emergency Session description appears once the topic is released."
   }
 ]

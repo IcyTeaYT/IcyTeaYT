@@ -1,5 +1,6 @@
 import { isLiveMode, type Env } from './env';
 import { currentUser } from './session';
+import { EMERGENCY_ID, emergencyRoleOf } from './emergency';
 import type { SheetUser } from './sheets';
 
 /**
@@ -29,6 +30,12 @@ export async function guardWrite(
   const user = await currentUser(request, env);
   if (!user) return { ok: false, status: 401, error: 'Not signed in.' };
 
+  if (committeeId === EMERGENCY_ID) {
+    return emergencyRoleOf(user) === 'CHAIR'
+      ? { ok: true, user }
+      : { ok: false, status: 403, error: 'Only the Emergency Session chairs can report it.' };
+  }
+
   if ((user.Role ?? '').trim().toUpperCase() !== 'CHAIR') {
     return { ok: false, status: 403, error: 'Only chairs can report a committee session.' };
   }
@@ -55,6 +62,7 @@ export async function guardRead(
   if (committeeId && role === 'CHAIR' && (user['Committee ID'] ?? '').trim() === committeeId) {
     return { ok: true, user };
   }
+  if (committeeId === EMERGENCY_ID && emergencyRoleOf(user) === 'CHAIR') return { ok: true, user };
   return { ok: false, status: 403, error: 'Live session state is for the Secretariat.' };
 }
 

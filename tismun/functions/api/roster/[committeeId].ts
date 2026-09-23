@@ -1,6 +1,7 @@
 import { fail, json, requireEnv, type Env } from '../_lib/env';
 import { currentUser } from '../_lib/session';
-import { readTab, USERS_TAB, type SheetUser } from '../_lib/sheets';
+import { EMERGENCY_ID, emergencyRoleOf, emergencyRoster } from '../_lib/emergency';
+import { readTab, readUsers, USERS_TAB, type SheetUser } from '../_lib/sheets';
 
 /**
  * GET /api/roster/:committeeId — every delegation in one committee.
@@ -25,6 +26,15 @@ export const onRequestGet: PagesFunction<Env, 'committeeId'> = async ({ request,
 
   const committeeId = Array.isArray(params.committeeId) ? params.committeeId[0] : params.committeeId;
   if (!committeeId) return fail('No committee was requested.', 400);
+
+  // The Emergency Session's delegations come from the Emergency columns, and
+  // its chairs are whoever the sheet marks as Emergency Session chairs.
+  if (committeeId === EMERGENCY_ID) {
+    if (emergencyRoleOf(user) !== 'CHAIR') {
+      return fail('Only the Emergency Session chairs can view its roster.', 403);
+    }
+    return json(emergencyRoster(await readUsers(env)));
+  }
 
   if ((user.Role ?? '').trim().toUpperCase() !== 'CHAIR') {
     return fail('Only chairs can view a committee roster.', 403);

@@ -1,5 +1,6 @@
 import { ExternalLink, FileText, Plus, Trash2, Vote as VoteIcon } from 'lucide-react';
 import { useMemo, useState } from 'react';
+import { useLocation } from 'react-router-dom';
 import { Flag } from '@/components/Flag';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
@@ -50,8 +51,12 @@ export function Resolutions() {
   const setAmendmentStatus = useChair((state) => state.setAmendmentStatus);
   const removeAmendment = useChair((state) => state.removeAmendment);
 
+  // Guided Mode's "Register the draft resolution" opens straight onto the form.
+  const location = useLocation();
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [creating, setCreating] = useState(false);
+  const [creating, setCreating] = useState(
+    () => (location.state as { create?: boolean } | null)?.create === true,
+  );
 
   const selected = resolutions.find((resolution) => resolution.id === selectedId) ?? null;
 

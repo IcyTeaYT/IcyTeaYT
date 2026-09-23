@@ -72,6 +72,9 @@ export const PRESENTATION = {
   draftSec: 3 * 60,
   draftPresetsSec: [2 * 60, 3 * 60, 5 * 60],
   qaSec: 3 * 60,
+  /** The chairs presenting the Emergency Session topic: the crisis briefing. */
+  briefingSec: 5 * 60,
+  briefingPresetsSec: [3 * 60, 5 * 60, 10 * 60],
 } as const;
 
 export const QUORUM = {

@@ -11,6 +11,7 @@ import { Privacy } from '@/pages/Privacy';
 import { RequireAuth, RequireChair, RequireSecretariat } from '@/routes/guards';
 import { useAuth } from '@/store/auth';
 import { useConference } from '@/store/conference';
+import { useConferenceStatusPolling } from '@/store/conferenceStatus';
 
 /**
  * The chair tools are a large slice of the app that only chairs ever open, so
@@ -54,6 +55,10 @@ export function App() {
   useEffect(() => {
     if (userEmail && useConference.getState().committees.length === 0) void loadCommittees();
   }, [userEmail, loadCommittees]);
+
+  // Whether the Emergency Session topic is out and Day 2 has begun, on the
+  // server's clock, checked every thirty seconds.
+  useConferenceStatusPolling();
 
   const booting = !(minimumElapsed && dataReady);
 

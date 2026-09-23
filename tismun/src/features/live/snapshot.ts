@@ -32,7 +32,12 @@ function timersOf(state: ChairData): {
     );
     return {
       primary: {
-        label: state.presentation.phase === 'questions' ? 'Questions' : 'Presentation time',
+        label:
+          state.presentation.phase === 'questions'
+            ? 'Questions'
+            : state.presentation.kind === 'briefing'
+              ? 'Briefing time'
+              : 'Presentation time',
         timer: state.presentation.timer,
       },
       secondary: null,
@@ -86,8 +91,7 @@ export function buildLiveSummary(
     presentAndVoting: presentAndVotingIds(state.attendance).length,
     total,
     quorum: hasQuorum(present.length, total),
-    rollCallTakenAt:
-      state.rollCallTakenAt === null ? null : state.rollCallTakenAt + offsetToServer,
+    rollCallTakenAt: state.rollCallTakenAt === null ? null : state.rollCallTakenAt + offsetToServer,
     currentSpeaker: speakerId
       ? { country: state.names[speakerId] ?? '—', countryCode: state.codes[speakerId] ?? null }
       : null,
@@ -133,6 +137,8 @@ export function buildLiveSnapshot(
     resolutions: state.resolutions,
     amendments: state.amendments,
     vote: state.vote,
-    log: state.log.slice(0, LOG_WINDOW).map((entry) => ({ ...entry, at: entry.at + offsetToServer })),
+    log: state.log
+      .slice(0, LOG_WINDOW)
+      .map((entry) => ({ ...entry, at: entry.at + offsetToServer })),
   };
 }

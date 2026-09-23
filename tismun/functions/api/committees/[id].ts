@@ -1,5 +1,7 @@
 import { fail, json, requireEnv, type Env } from '../_lib/env';
 import { currentUser } from '../_lib/session';
+import { readStatus } from '../_lib/conference';
+import { publicCommittee } from '../_lib/emergency';
 import { readCommittees } from '../_lib/sheets';
 
 /** GET /api/committees/:id — one committee's public information. */
@@ -14,5 +16,5 @@ export const onRequestGet: PagesFunction<Env, 'id'> = async ({ request, env, par
   const committee = (await readCommittees(env)).find((entry) => entry['Committee ID'] === id);
   if (!committee) return fail('No such committee.', 404);
 
-  return json(committee);
+  return json(publicCommittee(committee, await readStatus(env)));
 };

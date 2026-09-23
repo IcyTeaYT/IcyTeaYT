@@ -113,7 +113,11 @@ export function Guided() {
   const onFloor = motions.filter((motion) => motion.status === 'floor').length;
 
   const perform = (action: GuidedAction) => {
-    if (action.to) navigate(action.to, action.motion ? { state: { motion: action.motion } } : undefined);
+    if (action.to) {
+      navigate(action.to, {
+        state: action.motion ? { motion: action.motion } : action.create ? { create: true } : undefined,
+      });
+    }
     else if (action.command === 'unmod-motion') setMotionOpen(true);
     else if (action.command) runCommand(store.getState(), action.command);
   };

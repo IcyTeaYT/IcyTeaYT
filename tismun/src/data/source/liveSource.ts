@@ -1,5 +1,16 @@
-import { delegationId, rowToCommittee, rowToUser } from './normalise';
-import type { Committee, CommitteeRow, DataSource, Delegation, User, UserRow } from './types';
+import type { ConferenceStatus } from '@/config/emergency';
+import { delegationId, mergeDelegations, rowToCommittee, rowToUser } from './normalise';
+import type {
+  Committee,
+  CommitteeRow,
+  DataSource,
+  Delegation,
+  EmergencyAdmin,
+  EmergencyDelegation,
+  OverrideAction,
+  User,
+  UserRow,
+} from './types';
 
 /**
  * Phase 2 data source. Every call hits a Cloudflare Pages Function in
@@ -58,17 +69,51 @@ export const liveSource: DataSource = {
   /** 403s unless the session belongs to a chair of exactly this committee. */
   async getRoster(committeeId: string): Promise<Delegation[]> {
     const rows = await api<UserRow[]>(`/api/roster/${encodeURIComponent(committeeId)}`);
-    return rows
-      .map(rowToUser)
-      .filter((u) => u.country)
-      .map<Delegation>((u) => ({
-        id: delegationId(committeeId, u.country ?? '', u.countryCode),
-        country: u.country ?? '',
-        countryCode: u.countryCode ?? '',
-        delegateName: u.fullName,
-        email: u.email,
-      }))
-      .sort((a, b) => a.country.localeCompare(b.country));
+    return mergeDelegations(
+      rows
+        .map(rowToUser)
+        .filter((u) => u.country)
+        .map<Delegation>((u) => ({
+          id: delegationId(committeeId, u.country ?? '', u.countryCode),
+          country: u.country ?? '',
+          countryCode: u.countryCode ?? '',
+          delegateName: u.fullName,
+          email: u.email,
+        })),
+    );
+  },
+
+  /** Worked out by the server: only the caller's own country, and no emails. */
+  async getMyDelegation(): Promise<EmergencyDelegation | null> {
+    return api<EmergencyDelegation | null>('/api/delegation');
+  },
+
+  /** 403s unless the caller chairs the Emergency Session or is the Secretariat. */
+  async getAllDelegations(): Promise<EmergencyDelegation[]> {
+    return api<EmergencyDelegation[]>('/api/delegations');
+  },
+
+  async getConferenceStatus(): Promise<ConferenceStatus> {
+    return api<ConferenceStatus>('/api/conference');
+  },
+
+  async getEmergencyAdmin(): Promise<EmergencyAdmin> {
+    return api<EmergencyAdmin>('/api/emergency');
+  },
+
+  async setEmergencyOverride(action: OverrideAction): Promise<EmergencyAdmin> {
+    const response = await fetch('/api/emergency', {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+      body: JSON.stringify({ action }),
+    });
+    if (!response.ok) {
+      const body = (await response.json().catch(() => null)) as { error?: string } | null;
+      throw new ApiError(body?.error ?? 'The override could not be saved.', response.status);
+    }
+    const body = (await response.json()) as { status: ConferenceStatus; events: EmergencyAdmin['events'] };
+    return { status: body.status, events: body.events, overridesAvailable: true };
   },
 
   // listDemoUsers is deliberately absent: enumerating users is a demo-only

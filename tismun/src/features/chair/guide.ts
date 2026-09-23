@@ -44,6 +44,8 @@ export interface GuidedAction {
   to?: string;
   /** With `to: '/chair/motions'`, the motion to have ready in the form. */
   motion?: MotionTypeId;
+  /** With `to: '/chair/resolutions'`, open the form for a new draft resolution. */
+  create?: boolean;
   command?: GuidedCommand;
 }
 
@@ -88,17 +90,25 @@ function isDone(id: FlowStepId, state: ChairData): boolean {
       );
     case 'agenda':
       return passed(state, 'set-agenda');
+    case 'crisis-briefing':
+      return state.briefingsHeld > 0;
     case 'present-draft':
       return state.presentationsHeld > 0;
+    case 'register-draft':
+    // In the Emergency Session, the loop of speeches and caucuses before a
+    // draft exists ends when one is submitted and registered.
+    case 'continue-writing':
+      return state.resolutions.length > 0;
     case 'gsl':
       return state.gsl.currentId !== null || state.gsl.spoken.length > 0;
     case 'unmod-motion':
       return passed(state, 'unmoderated-caucus');
     case 'unmod':
       return state.unmoderatedHeld > 0;
-    // The loop between the Speakers' List and further caucuses ends when
-    // debate is closed.
+    // The loop between the Speakers' List, further caucuses and amendments
+    // ends when debate is closed.
     case 'continue-debate':
+    case 'debate-amendments':
     case 'close-debate':
       return passed(state, 'close-debate');
     case 'voting':
@@ -110,7 +120,11 @@ function isDone(id: FlowStepId, state: ChairData): boolean {
 const ROUTE: Record<FlowStepId, string> = {
   'roll-call': '/chair/roll-call',
   agenda: '/chair/motions',
+  'crisis-briefing': '/chair/presentation',
   'present-draft': '/chair/presentation',
+  'register-draft': '/chair/resolutions',
+  'continue-writing': '/chair/speakers',
+  'debate-amendments': '/chair/speakers',
   gsl: '/chair/speakers',
   'unmod-motion': '/chair/unmoderated',
   unmod: '/chair/unmoderated',
@@ -151,6 +165,7 @@ const UNMOD_MOTION: GuidedAction = {
   icon: 'coffee',
   command: 'unmod-motion',
 };
+const UNMOD_MOTION_SECONDARY: GuidedAction = { ...UNMOD_MOTION, emphasis: 'secondary' };
 
 export function guidedStage(state: ChairData, committeeId: string): GuidedStage {
   const present = presentIds(state.attendance);
@@ -192,6 +207,28 @@ export function guidedStage(state: ChairData, committeeId: string): GuidedStage 
             label: 'End the question-and-answer period',
             emphasis: 'primary',
             icon: 'stop',
+            command: 'present-end',
+          },
+        ],
+      };
+    }
+    if (state.presentation.kind === 'briefing') {
+      return {
+        stage: 'Crisis Briefing',
+        headline: 'The chairs present the topic',
+        hint: 'Brief the committee on the crisis. Questions may follow.',
+        timer: { key: 'present', label: 'Briefing time' },
+        actions: [
+          {
+            label: `Open questions (${formatClock(PRESENTATION.qaSec * 1000)})`,
+            emphasis: 'primary',
+            icon: 'question',
+            command: 'present-questions',
+          },
+          {
+            label: 'Finish the briefing',
+            emphasis: 'secondary',
+            icon: 'skip',
             command: 'present-end',
           },
         ],
@@ -246,7 +283,12 @@ export function guidedStage(state: ChairData, committeeId: string): GuidedStage 
       timer: null,
       actions: [
         { label: 'Open Roll Call', emphasis: 'primary', icon: 'clipboard', to: '/chair/roll-call' },
-        { label: 'Mark all Present', emphasis: 'secondary', icon: 'users', command: 'mark-all-present' },
+        {
+          label: 'Mark all Present',
+          emphasis: 'secondary',
+          icon: 'users',
+          command: 'mark-all-present',
+        },
       ],
     };
   }
@@ -258,7 +300,12 @@ export function guidedStage(state: ChairData, committeeId: string): GuidedStage 
       hint: `${present.length} of ${total} delegations are present; ${quorumNeeded(total)} are needed to open debate.`,
       timer: null,
       actions: [
-        { label: 'Return to Roll Call', emphasis: 'primary', icon: 'clipboard', to: '/chair/roll-call' },
+        {
+          label: 'Return to Roll Call',
+          emphasis: 'primary',
+          icon: 'clipboard',
+          to: '/chair/roll-call',
+        },
       ],
     };
   }
@@ -298,6 +345,40 @@ export function guidedStage(state: ChairData, committeeId: string): GuidedStage 
             to: '/chair/motions',
             motion: 'set-agenda',
           },
+        ],
+      };
+
+    case 'crisis-briefing':
+      return {
+        stage: 'Crisis Briefing',
+        headline: 'Crisis Briefing',
+        hint: 'The chairs present the Emergency Session topic to the committee.',
+        timer: null,
+        actions: [
+          {
+            label: 'Start the crisis briefing',
+            emphasis: 'primary',
+            icon: 'mic',
+            to: '/chair/presentation',
+          },
+        ],
+      };
+
+    case 'register-draft':
+      return {
+        stage: 'Register the Draft Resolution',
+        headline: 'A draft resolution has been submitted?',
+        hint: 'Record its title, Main Submitter and co-submitters, and a link to the document. Nothing is pre-loaded.',
+        timer: null,
+        actions: [
+          {
+            label: 'Register the draft resolution',
+            emphasis: 'primary',
+            icon: 'file',
+            to: '/chair/resolutions',
+            create: true,
+          },
+          UNMOD_MOTION_SECONDARY,
         ],
       };
 
@@ -357,7 +438,12 @@ export function guidedStage(state: ChairData, committeeId: string): GuidedStage 
         hint: 'Vote on any Unfriendly Amendments, then on the Draft Resolution itself.',
         timer: null,
         actions: [
-          { label: 'Open Voting Procedure', emphasis: 'primary', icon: 'vote', to: '/chair/resolutions' },
+          {
+            label: 'Open Voting Procedure',
+            emphasis: 'primary',
+            icon: 'vote',
+            to: '/chair/resolutions',
+          },
         ],
       };
 
@@ -373,7 +459,12 @@ export function guidedStage(state: ChairData, committeeId: string): GuidedStage 
         hint: 'Announce the result to the committee.',
         timer: null,
         actions: [
-          { label: 'See the full result', emphasis: 'primary', icon: 'file', to: '/chair/resolutions' },
+          {
+            label: 'See the full result',
+            emphasis: 'primary',
+            icon: 'file',
+            to: '/chair/resolutions',
+          },
           {
             label: 'Entertain a Motion to Adjourn the Meeting',
             emphasis: 'secondary',
@@ -401,7 +492,13 @@ export function guidedStage(state: ChairData, committeeId: string): GuidedStage 
     to: '/chair/motions',
     motion: 'close-debate',
   };
-  const debateStarted = step?.id === 'continue-debate';
+  // Once the first caucus has been held, the committee can also close debate —
+  // or, in the Emergency Session, work on amendments to the registered draft.
+  const debateStarted = step?.id === 'continue-debate' || step?.id === 'debate-amendments';
+  const amendments: GuidedAction[] =
+    step?.id === 'debate-amendments'
+      ? [{ label: 'Amendments', emphasis: 'secondary', icon: 'file', to: '/chair/resolutions' }]
+      : [];
 
   if (current) {
     const waiting = state.gsl.queue.length - 1;
@@ -422,6 +519,7 @@ export function guidedStage(state: ChairData, committeeId: string): GuidedStage 
           icon: 'list',
           to: '/chair/speakers',
         },
+        ...amendments,
         ...(debateStarted ? [closeDebate] : []),
       ],
     };
@@ -437,7 +535,12 @@ export function guidedStage(state: ChairData, committeeId: string): GuidedStage 
     timer: null,
     actions: [
       state.gsl.queue.length > 0
-        ? { label: 'Recognise the first speaker', emphasis: 'primary', icon: 'play', command: 'gsl-next' }
+        ? {
+            label: 'Recognise the first speaker',
+            emphasis: 'primary',
+            icon: 'play',
+            command: 'gsl-next',
+          }
         : {
             label: 'Open the General Speakers’ List',
             emphasis: 'primary',
@@ -445,6 +548,7 @@ export function guidedStage(state: ChairData, committeeId: string): GuidedStage 
             to: '/chair/speakers',
           },
       UNMOD_MOTION,
+      ...amendments,
       ...(debateStarted ? [closeDebate] : []),
     ],
   };
