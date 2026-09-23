@@ -135,6 +135,22 @@ Two optional extras, if every participant has a school Workspace account:
 Without them the login page still tells everyone to use their school Google
 account.
 
+### If sign-in fails
+
+The login page shows what went wrong in plain English — every setup mistake is
+caught and explained rather than failing with a Cloudflare error page:
+
+| Message mentions | Fix |
+| --- | --- |
+| Sheets API is not enabled | Google Cloud → APIs & Services → Library → Google Sheets API → Enable |
+| not shared with the service account | Share the sheet with the `GOOGLE_SA_EMAIL` address as Viewer |
+| No Google Sheet found | `SHEET_ID` is wrong — copy the part between `/d/` and `/edit` |
+| uploaded Excel file | In Google Sheets, File → Save as Google Sheets, and use that file's ID |
+| no tab called … | The tabs must be named exactly `Users` and `Committees` |
+| Google rejected the service account key | `GOOGLE_SA_EMAIL` and the key come from different JSON files, or the key was deleted |
+| private key could not be read | Paste the whole `private_key` value, BEGIN and END lines included |
+| not on the conference roster | That exact email is not in the `Users` tab |
+
 Anything starting with `VITE_` is compiled into the JavaScript the browser
 downloads, so it is public by definition. **Never** put the private key or the
 session secret behind a `VITE_` name. For local testing of the API, put the
