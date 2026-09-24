@@ -240,12 +240,12 @@ function Day1Home({
                   <div className="flex items-center gap-2.5 text-ink-700">
                     <MapPin size={15} strokeWidth={1.5} className="shrink-0 text-ink-400" />
                     <dt className="sr-only">Room</dt>
-                    <dd>{committee.room}</dd>
+                    <dd>{committee.room || 'Room to be announced'}</dd>
                   </div>
                   <div className="flex items-start gap-2.5 text-ink-700">
                     <Gavel size={15} strokeWidth={1.5} className="mt-0.5 shrink-0 text-ink-400" />
                     <dt className="sr-only">Chairs</dt>
-                    <dd>{committee.chairs.join(', ')}</dd>
+                    <dd>{committee.chairs.join(', ') || 'Chairs to be announced'}</dd>
                   </div>
                 </dl>
               </CardBody>
@@ -342,7 +342,7 @@ function Day1Compact({ committee, user }: { committee: Committee; user: User }) 
             </p>
             <p className="mt-0.5 text-xs text-muted">
               {user.role === 'CHAIR' ? 'You chaired this committee' : committee.abbreviation} ·{' '}
-              {committee.room}
+              {committee.room || 'Room to be announced'}
             </p>
           </div>
         </div>
@@ -382,11 +382,11 @@ function EmergencyChairCard({ committee }: { committee: Committee }) {
         <p className="flex flex-wrap gap-x-6 gap-y-1 text-sm text-ink-700">
           <span className="inline-flex items-center gap-2">
             <MapPin size={15} strokeWidth={1.5} className="text-ink-400" />
-            {committee.room}
+            {committee.room || 'Room to be announced'}
           </span>
           <span className="inline-flex items-center gap-2">
             <Gavel size={15} strokeWidth={1.5} className="text-ink-400" />
-            {committee.chairs.join(', ')}
+            {committee.chairs.join(', ') || 'Chairs to be announced'}
           </span>
         </p>
         {committee.locked ? (

@@ -142,11 +142,11 @@ export function Committees() {
                       <div className="flex flex-wrap items-center gap-x-5 gap-y-2 text-xs text-muted">
                         <span className="inline-flex items-center gap-1.5">
                           <Gavel size={13} strokeWidth={1.5} className="text-ink-400" />
-                          {committee.chairs.join(', ')}
+                          {committee.chairs.join(', ') || 'Chairs to be announced'}
                         </span>
                         <span className="inline-flex items-center gap-1.5">
                           <MapPin size={13} strokeWidth={1.5} className="text-ink-400" />
-                          {committee.room}
+                          {committee.room || 'Room to be announced'}
                         </span>
                       </div>
                       {committee.locked ? null : (

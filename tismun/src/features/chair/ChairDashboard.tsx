@@ -144,7 +144,7 @@ function DashboardChrome() {
             {committee.name}
           </h1>
           <p className="mt-1.5 text-sm text-muted">
-            {committee.abbreviation} · {committee.room} · {roster.length} delegations
+            {[committee.abbreviation, committee.room, `${roster.length} delegations`].filter(Boolean).join(' · ')}
           </p>
           {control.mode === 'control' ? (
             <p className="mt-1.5 flex items-center gap-1.5 text-xs text-muted">

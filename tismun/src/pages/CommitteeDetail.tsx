@@ -93,11 +93,11 @@ export function CommitteeDetail() {
         <div className="mt-4 flex flex-wrap items-center gap-x-6 gap-y-2 text-sm text-muted">
           <span className="inline-flex items-center gap-1.5">
             <Gavel size={14} strokeWidth={1.5} className="text-ink-400" />
-            {committee.chairs.join(', ')}
+            {committee.chairs.join(', ') || 'Chairs to be announced'}
           </span>
           <span className="inline-flex items-center gap-1.5">
             <MapPin size={14} strokeWidth={1.5} className="text-ink-400" />
-            {committee.room}
+            {committee.room || 'Room to be announced'}
           </span>
         </div>
       </motion.header>

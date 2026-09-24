@@ -88,15 +88,13 @@ export function EmergencyCard({
             <div className="flex items-center gap-2">
               <MapPin size={15} strokeWidth={1.5} className="shrink-0 text-ink-400" />
               <dt className="sr-only">Room</dt>
-              <dd>{committee.room}</dd>
+              <dd>{committee.room || 'Room to be announced'}</dd>
             </div>
-            {committee.chairs.length > 0 ? (
-              <div className="flex items-center gap-2">
-                <Gavel size={15} strokeWidth={1.5} className="shrink-0 text-ink-400" />
-                <dt className="sr-only">Chairs</dt>
-                <dd>{committee.chairs.join(', ')}</dd>
-              </div>
-            ) : null}
+            <div className="flex items-center gap-2">
+              <Gavel size={15} strokeWidth={1.5} className="shrink-0 text-ink-400" />
+              <dt className="sr-only">Chairs</dt>
+              <dd>{committee.chairs.join(', ') || 'Chairs to be announced'}</dd>
+            </div>
           </dl>
 
           {committee.locked ? (
