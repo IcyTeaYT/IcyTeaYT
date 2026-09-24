@@ -180,7 +180,7 @@ export function Login() {
           {/* A phone keeps the short wide logo, so "Sign in with Google" stays on
               the first screen; larger screens have room for the stacked one. */}
           <Logo className="h-auto w-[150px] sm:hidden" priority />
-          <Logo variant="stacked" className="hidden h-auto w-[170px] sm:block lg:w-[200px]" priority />
+          <Logo variant="stacked" className="hidden h-auto w-[96px] sm:block lg:w-[112px]" priority />
         </motion.div>
 
         <motion.div
