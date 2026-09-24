@@ -1,6 +1,6 @@
 import { motion } from 'framer-motion';
 import { ArrowLeft, Download, ExternalLink, Gavel, MapPin } from 'lucide-react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, Navigate, useParams } from 'react-router-dom';
 import { PageContainer } from '@/components/AppShell';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
@@ -13,8 +13,8 @@ import {
 } from '@/components/emergency/DelegationPanel';
 import { LockedTopic } from '@/components/emergency/ReleaseCountdown';
 import { COPY } from '@/config/conference';
-import { isEmergency } from '@/config/emergency';
-import { isSecretariat, useAuth } from '@/store/auth';
+import { emergencySession, isEmergency } from '@/config/emergency';
+import { emergencyOnly, isSecretariat, useAuth } from '@/store/auth';
 import { useCommittee, useConference } from '@/store/conference';
 import { useConferenceStatus } from '@/store/conferenceStatus';
 
@@ -30,6 +30,11 @@ export function CommitteeDetail() {
   const seesAllDelegations =
     emergency && (user?.emergency?.role === 'CHAIR' || isSecretariat(user));
   const { delegation } = useMyDelegation(emergencyDelegate);
+
+  // From Day 2, Emergency Session members see only the Emergency Session.
+  if (!emergency && emergencyOnly(user, day2)) {
+    return <Navigate to={`/committees/${emergencySession.committeeId}`} replace />;
+  }
 
   if (!committee) {
     return (

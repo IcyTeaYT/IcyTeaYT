@@ -12,7 +12,7 @@ import { LockedTopic } from '@/components/emergency/ReleaseCountdown';
 import { COPY } from '@/config/conference';
 import { emergencySession, isEmergency } from '@/config/emergency';
 import type { Committee } from '@/data/source/types';
-import { useAuth } from '@/store/auth';
+import { emergencyOnly, useAuth } from '@/store/auth';
 import { useConference } from '@/store/conference';
 import { useConferenceStatus } from '@/store/conferenceStatus';
 
@@ -46,11 +46,15 @@ export function Committees() {
 
     // The committee the delegate sits in TODAY always leads.
     const today = inEmergency && day2 ? emergencySession.committeeId : user?.committeeId;
-    return [...committees].filter(matches).sort((a, b) => {
+    // From Day 2, Emergency Session members see only the Emergency Session.
+    const shown = emergencyOnly(user, day2)
+      ? committees.filter((committee) => isEmergency(committee.id))
+      : committees;
+    return shown.filter(matches).sort((a, b) => {
       const mine = Number(b.id === today) - Number(a.id === today);
       return mine !== 0 ? mine : a.name.localeCompare(b.name);
     });
-  }, [committees, query, user?.committeeId, inEmergency, day2]);
+  }, [committees, query, user, inEmergency, day2]);
 
   return (
     <PageContainer>

@@ -99,3 +99,16 @@ export const isSecretariat = (user: User | null): boolean => user?.access.secret
 /** The committee whose dashboard this account opens: the one it runs, else the Day 1 one it reads. */
 export const chairCommitteeOf = (user: User | null): string | null =>
   user?.access.chairOf ?? user?.access.readOnlyChairOf ?? null;
+
+/**
+ * From Day 2, anyone in the Emergency Session — delegate or chair — sees only
+ * the Emergency Session: every Day 1 committee is hidden. The Secretariat
+ * always sees everything.
+ */
+export const emergencyOnly = (user: User | null, day2: boolean): boolean =>
+  Boolean(
+    user &&
+      day2 &&
+      !user.access.secretariat &&
+      (user.emergency?.role === 'DELEGATE' || user.emergency?.role === 'CHAIR'),
+  );

@@ -26,7 +26,7 @@ import { emergencySession } from '@/config/emergency';
 import { firstNameOf } from '@/data/source';
 import type { Committee, User } from '@/data/source/types';
 import { formatDateRange } from '@/lib/conferenceDates';
-import { isSecretariat, useAuth } from '@/store/auth';
+import { emergencyOnly, isSecretariat, useAuth } from '@/store/auth';
 import { useCommittee, useConference } from '@/store/conference';
 import { useConferenceStatus } from '@/store/conferenceStatus';
 
@@ -51,7 +51,7 @@ export function Home() {
 
   const emergencyDelegate = user.emergency?.role === 'DELEGATE' && emergency !== null;
   // From Day 2, an Emergency Session delegate's — or chair's — day is the
-  // Emergency Session: it leads, and their Day 1 committee steps back.
+  // Emergency Session, and it is all they see: their Day 1 committee is hidden.
   const focus =
     (emergencyDelegate && day2 && emergency !== null) ||
     (chairsEmergencyToday && emergency !== null);
@@ -94,12 +94,6 @@ export function Home() {
                 <EmergencyCard committee={emergency} user={user} primary />
               )}
             </motion.div>
-            {committee ? (
-              <motion.section className="mt-10" {...enter(0.2)}>
-                <h2 className="label-micro">Your Day 1 committee</h2>
-                <Day1Compact committee={committee} user={user} />
-              </motion.section>
-            ) : null}
           </>
         ) : (
           <>
@@ -136,7 +130,7 @@ export function Home() {
           </>
         )}
 
-        {committee || isSecretariat(user) || emergencyDelegate ? (
+        {!emergencyOnly(user, day2) && (committee || isSecretariat(user) || emergencyDelegate) ? (
           <motion.div className="mt-8" {...enter(0.32)}>
             <Link
               to="/committees"
@@ -319,47 +313,6 @@ function Day1Home({
         </div>
       )}
     </>
-  );
-}
-
-/** The Day 1 committee, stepped back on Day 2: still there, paper and all. */
-function Day1Compact({ committee, user }: { committee: Committee; user: User }) {
-  return (
-    <Card className="mt-3">
-      <CardBody className="flex flex-col gap-4 px-6 py-5 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex min-w-0 items-center gap-4">
-          {user.role === 'DELEGATE' && user.country ? (
-            <Flag code={user.countryCode} country={user.country} size="md" />
-          ) : (
-            <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-control bg-ink-50 text-ink-400">
-              <Gavel size={16} strokeWidth={1.5} />
-            </span>
-          )}
-          <div className="min-w-0">
-            <p className="truncate text-sm font-medium text-ink-900">
-              {committee.name}
-              {user.role === 'DELEGATE' && user.country ? ` · ${user.country}` : ''}
-            </p>
-            <p className="mt-0.5 text-xs text-muted">
-              {user.role === 'CHAIR' ? 'You chaired this committee' : committee.abbreviation} ·{' '}
-              {committee.room || 'Room to be announced'}
-            </p>
-          </div>
-        </div>
-        <div className="flex shrink-0 flex-wrap gap-2">
-          {user.access.readOnlyChairOf === committee.id ? (
-            <Link
-              to="/chair"
-              className="inline-flex h-8 items-center gap-1.5 rounded-control border border-hairline px-3 text-sm font-medium text-ink-700 hover:bg-ink-50"
-            >
-              <Gavel size={14} strokeWidth={1.5} />
-              Day 1 dashboard
-            </Link>
-          ) : null}
-          <PaperActions committee={committee} size="sm" className="flex flex-wrap gap-2" />
-        </div>
-      </CardBody>
-    </Card>
   );
 }
 

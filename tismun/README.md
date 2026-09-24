@@ -476,10 +476,12 @@ can see another country's roster. It shows as soon as countries are assigned,
 even while the topic is locked. The Emergency Session chairs and the Secretariat
 see every delegation.
 
-**Day 2 focus.** From `focusFrom` the Emergency Session becomes an Emergency
-Session delegate's main card ("Day 2 — Emergency Session"), their Day 1
-committee moves below, and the Committees page pins it first as "Your
-committee today". Everyone else keeps their normal view.
+**Day 2 focus.** From `focusFrom`, anyone in the Emergency Session — delegate
+or chair — sees **only** the Emergency Session: it is their Home page ("Day 2 —
+Emergency Session"), the Committees page lists nothing else, and a Day 1
+committee's page sends them to it. A Day 1 chair can still open their Day 1
+dashboard read-only from the switcher. The Secretariat, and everyone not in the
+Emergency Session, keep their normal view.
 
 **Its own order of business.** No draft resolution exists beforehand, so Guided
 Mode follows a different flow: Roll Call, the chairs' Crisis Briefing (5:00),
