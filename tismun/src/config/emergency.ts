@@ -55,12 +55,19 @@ export interface ConferenceStatus {
   released: boolean;
   /** Day 2 roles and Day 2 focus apply. */
   day2: boolean;
+  /**
+   * When the Secretariat last reset every committee's session (server time),
+   * or null if it never has. A chair's device holding an older session wipes
+   * it; the server refuses reports from one that has not.
+   */
+  sessionsResetAt: number | null;
 }
 
 export function conferenceStatus(
   now: number,
   releaseMode: ReleaseMode,
   focusMode: FocusMode,
+  sessionsResetAt: number | null = null,
 ): ConferenceStatus {
   return {
     serverNow: now,
@@ -70,5 +77,6 @@ export function conferenceStatus(
     focusMode,
     released: releaseMode === 'released' || (releaseMode === 'auto' && now >= RELEASE_AT_MS),
     day2: focusMode === 'on' || (focusMode === 'auto' && now >= FOCUS_FROM_MS),
+    sessionsResetAt,
   };
 }

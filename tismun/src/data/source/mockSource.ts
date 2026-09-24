@@ -1,6 +1,6 @@
 import { conferenceStatus, isEmergency, type FocusMode, type ReleaseMode } from '@/config/emergency';
 import { accessFor } from '@/lib/access';
-import { readJson, writeJson } from '@/lib/storage';
+import { readJson, removeKey, writeJson } from '@/lib/storage';
 import committeeRowsJson from '../mock/committees.json';
 import userRowsJson from '../mock/users.json';
 import { delegationId, mergeDelegations, rowToCommittee, rowToUser } from './normalise';
@@ -14,6 +14,7 @@ import type {
   EmergencyAdmin,
   EmergencyDelegation,
   OverrideAction,
+  SessionsReset,
   User,
   UserRow,
 } from './types';
@@ -45,16 +46,22 @@ interface DemoEmergency {
   release: ReleaseMode;
   focus: FocusMode;
   events: ConferenceEvent[];
+  sessionsReset?: ConferenceEvent | null;
 }
 
 const readDemo = (): DemoEmergency => {
   const stored = readJson<Partial<DemoEmergency> | null>(DEMO_EMERGENCY_KEY, null);
-  return { release: stored?.release ?? 'auto', focus: stored?.focus ?? 'auto', events: stored?.events ?? [] };
+  return {
+    release: stored?.release ?? 'auto',
+    focus: stored?.focus ?? 'auto',
+    events: stored?.events ?? [],
+    sessionsReset: stored?.sessionsReset ?? null,
+  };
 };
 
 const status = () => {
   const demo = readDemo();
-  return conferenceStatus(Date.now(), demo.release, demo.focus);
+  return conferenceStatus(Date.now(), demo.release, demo.focus, demo.sessionsReset?.at ?? null);
 };
 
 /** The same stripping the server does before release. */
@@ -166,6 +173,33 @@ export const mockSource: DataSource = {
     };
     writeJson(DEMO_EMERGENCY_KEY, { ...demo, ...patch, events: [event, ...demo.events].slice(0, 20) });
     return { status: status(), overridesAvailable: true, events: readDemo().events };
+  },
+
+  async getSessionsReset(): Promise<SessionsReset> {
+    return { available: true, last: readDemo().sessionsReset ?? null };
+  },
+
+  async resetAllSessions(): Promise<SessionsReset> {
+    const demo = readDemo();
+    const last: ConferenceEvent = {
+      id: `demo-reset-${Date.now()}`,
+      at: Date.now(),
+      action: 'sessions-reset',
+      detail: 'Every committee session reset — state, session logs and awards',
+      byName: me()?.fullName ?? null,
+    };
+    writeJson(DEMO_EMERGENCY_KEY, { ...demo, sessionsReset: last });
+    // In a demo every committee's session lives in this browser: clear it now.
+    // A chair dashboard open in another tab wipes its own copy when it next
+    // checks the conference status.
+    try {
+      for (const key of Object.keys(localStorage)) {
+        if (key.startsWith('tismun.chair.')) removeKey(key);
+      }
+    } catch {
+      // Storage blocked: the chair dashboard still wipes itself from the status.
+    }
+    return { available: true, last };
   },
 
   async listDemoUsers() {

@@ -73,6 +73,8 @@ export type PushResult =
   | { kind: 'ok' }
   /** Another device holds the committee now; this one must stand down. */
   | { kind: 'locked'; holder: ControlHolder | null }
+  /** The Secretariat has reset every session since this device last heard. */
+  | { kind: 'reset'; sessionsResetAt: number }
   | { kind: 'unavailable' };
 
 /** Report this committee's session. */
@@ -87,9 +89,17 @@ export async function pushLive(committeeId: string, push: LivePush): Promise<Pus
     });
     // Not an outage: the server is answering, it is just not this device's turn.
     if (response.status === 409) {
-      const body = (await response.json()) as { serverNow: number; holder?: ControlHolder | null };
+      const body = (await response.json()) as {
+        serverNow: number;
+        holder?: ControlHolder | null;
+        reset?: boolean;
+        sessionsResetAt?: number;
+      };
       noteServerNow(body.serverNow);
       reachable = true;
+      if (body.reset && typeof body.sessionsResetAt === 'number') {
+        return { kind: 'reset', sessionsResetAt: body.sessionsResetAt };
+      }
       return { kind: 'locked', holder: body.holder ?? null };
     }
     if (response.status === 401 || response.status === 403) {

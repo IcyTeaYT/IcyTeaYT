@@ -16,6 +16,7 @@ import { useConference } from '@/store/conference';
 import { AwardsOverview } from './AwardsOverview';
 import { EmergencyPanel } from './EmergencyPanel';
 import { LiveTimer } from './LiveTimer';
+import { ResetSessionsPanel } from './ResetSessionsPanel';
 
 const STATUS_TONE: Record<string, 'neutral' | 'teal' | 'warning'> = {
   'Not in session': 'neutral',
@@ -174,6 +175,8 @@ export function SecretariatDashboard() {
           )}
         </Card>
       </section>
+
+      <ResetSessionsPanel />
     </PageContainer>
   );
 }

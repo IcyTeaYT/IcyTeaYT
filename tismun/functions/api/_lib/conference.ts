@@ -16,6 +16,8 @@ import type { Env } from './env';
 
 const RELEASE_KEY = 'emergency.release';
 const FOCUS_KEY = 'emergency.focus';
+const SESSIONS_RESET_KEY = 'sessions.reset';
+const SESSIONS_RESET_ACTION = 'sessions-reset';
 
 let ensured = false;
 
@@ -59,12 +61,18 @@ export async function readStatus(env: Env, now = Date.now()): Promise<Conference
   try {
     await ensureConferenceTables(env.DB);
     const { results } = await env.DB.prepare(
-      'SELECT key, value FROM conference_flags WHERE key IN (?1, ?2)',
+      'SELECT key, value FROM conference_flags WHERE key IN (?1, ?2, ?3)',
     )
-      .bind(RELEASE_KEY, FOCUS_KEY)
+      .bind(RELEASE_KEY, FOCUS_KEY, SESSIONS_RESET_KEY)
       .all<{ key: string; value: string }>();
     const flags = new Map((results ?? []).map((row) => [row.key, row.value]));
-    return conferenceStatus(now, asReleaseMode(flags.get(RELEASE_KEY)), asFocusMode(flags.get(FOCUS_KEY)));
+    const resetAt = Number(flags.get(SESSIONS_RESET_KEY));
+    return conferenceStatus(
+      now,
+      asReleaseMode(flags.get(RELEASE_KEY)),
+      asFocusMode(flags.get(FOCUS_KEY)),
+      Number.isFinite(resetAt) && resetAt > 0 ? resetAt : null,
+    );
   } catch {
     // A database problem must never unlock anything early: fall back to the
     // schedule, which is exactly what would happen with no override set.
@@ -80,11 +88,14 @@ export interface ConferenceEvent {
   byName: string | null;
 }
 
+/** Emergency Session overrides, newest first. A session reset is recorded separately. */
 export async function recentEvents(db: D1Database, limit = 20): Promise<ConferenceEvent[]> {
   await ensureConferenceTables(db);
   const { results } = await db
-    .prepare('SELECT id, at, action, detail, by_name FROM conference_events ORDER BY at DESC LIMIT ?1')
-    .bind(limit)
+    .prepare(
+      'SELECT id, at, action, detail, by_name FROM conference_events WHERE action != ?2 ORDER BY at DESC LIMIT ?1',
+    )
+    .bind(limit, SESSIONS_RESET_ACTION)
     .all<{ id: string; at: number; action: string; detail: string | null; by_name: string | null }>();
   return (results ?? []).map((row) => ({
     id: row.id,
@@ -137,5 +148,61 @@ export async function applyOverride(
         'INSERT INTO conference_events (id, at, action, detail, by_name, by_email) VALUES (?1, ?2, ?3, ?4, ?5, ?6)',
       )
       .bind(crypto.randomUUID(), now, action, label, by.name, by.email),
+  ]);
+}
+
+
+/** The last time every committee's session was reset, and by whom. */
+export async function lastSessionsReset(db: D1Database): Promise<ConferenceEvent | null> {
+  await ensureConferenceTables(db);
+  const row = await db
+    .prepare(
+      'SELECT id, at, action, detail, by_name FROM conference_events WHERE action = ?1 ORDER BY at DESC LIMIT 1',
+    )
+    .bind(SESSIONS_RESET_ACTION)
+    .first<{ id: string; at: number; action: string; detail: string | null; by_name: string | null }>();
+  return row
+    ? { id: row.id, at: row.at, action: row.action, detail: row.detail, byName: row.by_name }
+    : null;
+}
+
+/**
+ * Wipe every committee's session, conference-wide, in one transaction: what the
+ * Secretariat watches (state and log), and the copy a chair's device would pick
+ * up on Take over. Chairs' devices then wipe their own copy when they next hear
+ * from the server — see `sessionsResetAt` — and until they do, the server
+ * refuses their reports, so an old session can never come back.
+ *
+ * Who holds each committee is kept, so nobody has to press Take over again.
+ */
+export async function resetAllSessions(
+  db: D1Database,
+  by: { name: string | null; email: string | null },
+  now = Date.now(),
+): Promise<void> {
+  await ensureConferenceTables(db);
+  await db.batch([
+    db
+      .prepare(
+        `INSERT INTO conference_flags (key, value, updated_at, updated_by) VALUES (?1, ?2, ?3, ?4)
+         ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at,
+           updated_by = excluded.updated_by`,
+      )
+      .bind(SESSIONS_RESET_KEY, String(now), now, by.email),
+    db
+      .prepare(
+        'INSERT INTO conference_events (id, at, action, detail, by_name, by_email) VALUES (?1, ?2, ?3, ?4, ?5, ?6)',
+      )
+      .bind(
+        crypto.randomUUID(),
+        now,
+        SESSIONS_RESET_ACTION,
+        'Every committee session reset — state, session logs and awards',
+        by.name,
+        by.email,
+      ),
+    db.prepare('DELETE FROM committee_state'),
+    db.prepare('DELETE FROM session_log'),
+    db.prepare('UPDATE committee_control SET state = NULL, state_device_id = NULL'),
   ]);
 }

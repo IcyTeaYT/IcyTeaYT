@@ -33,7 +33,7 @@ import { deviceId } from '@/features/live/device';
 import { fromHandover } from '@/features/live/handover';
 import { clockOffset } from '@/features/live/serverClock';
 import { useCommitteeControl } from '@/features/live/useControl';
-import { useLivePush } from '@/features/live/useLive';
+import { useLivePush, useSecretariatReset } from '@/features/live/useLive';
 import { ChairProvider, useChair, useChairContext, useChairStoreApi } from './context';
 import { buildDisplayState, displayChannelName, type DisplayMessage } from './display';
 import { Awards } from './panes/Awards';
@@ -117,6 +117,7 @@ function DashboardChrome() {
   // Report this committee's session so the Secretariat can watch it live.
   // No-ops harmlessly when there is no API behind the site.
   useLivePush(committee.id, store, { enabled: running, onLocked: control.lostControl });
+  useSecretariatReset(store);
 
   const openProjector = useCallback(() => {
     window.open('/chair/display', 'tismun-projector', 'noopener,width=1280,height=720');
@@ -333,6 +334,7 @@ function ReadOnlyDashboard() {
   const { committee } = useChairContext();
   const store = useChairStoreApi();
   const [source, setSource] = useState<'loading' | 'server' | 'device'>('loading');
+  useSecretariatReset(store);
 
   useEffect(() => {
     let cancelled = false;

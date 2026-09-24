@@ -528,6 +528,17 @@ It refreshes every two seconds. Timers tick smoothly between refreshes because
 what is sent is the timer's *state*, not a number of seconds, so the watching
 browser runs its own countdown from a single message.
 
+**Reset all sessions.** At the bottom of the Conference floor, for use after
+testing: it clears every committee's session — roll call, timers, speakers,
+motions, resolutions, votes, session logs and **awards** — once someone types
+`RESET` to confirm. (A chair's own "Reset session" keeps awards; this does
+not.) The server wipes its copy at once and records when and by whom. Chairs'
+devices wipe theirs as soon as they next hear from the server (within about ten
+seconds for one that is open), and until they have, the server refuses their
+reports — so a laptop that was offline during the reset cannot bring the old
+session back. The Emergency Session release and Day 2 settings are untouched.
+Needs the D1 binding.
+
 ### Live sync across devices (Cloudflare D1)
 
 Without a database the Secretariat view still works, but only for committees

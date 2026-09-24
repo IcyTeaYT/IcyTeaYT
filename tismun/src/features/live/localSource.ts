@@ -2,6 +2,7 @@ import { readJson } from '@/lib/storage';
 import { emptyPresentation, knownMotions, type ChairData } from '@/features/chair/store';
 import { buildLiveSnapshot, buildLiveSummary } from './snapshot';
 import type { LiveLogEntry, LiveOverview, LiveSnapshot } from './types';
+import { useConferenceStatus } from '@/store/conferenceStatus';
 
 /**
  * The same-browser fallback.
@@ -26,6 +27,10 @@ function readCommittee(committeeId: string): ChairData | null {
   // A committee whose chair has never opened the dashboard has no roster, and
   // reporting it as "0 of 0 present" would be worse than omitting it.
   if (!state?.names || Object.keys(state.names).length === 0) return null;
+  // Held from before the Secretariat reset every session: it no longer counts.
+  const resetAt = useConferenceStatus.getState().status?.sessionsResetAt ?? null;
+  const resetEpoch = typeof state.resetEpoch === 'number' ? state.resetEpoch : 0;
+  if (resetAt !== null && resetEpoch < resetAt) return null;
 
   return {
     names: state.names,
@@ -44,6 +49,7 @@ function readCommittee(committeeId: string): ChairData | null {
     vote: state.vote ?? null,
     awards: state.awards ?? [],
     log: state.log ?? [],
+    resetEpoch,
   };
 }
 

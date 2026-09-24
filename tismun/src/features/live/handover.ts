@@ -32,6 +32,7 @@ const CHAIR_DATA_KEYS = [
   'vote',
   'awards',
   'log',
+  'resetEpoch',
 ] as const satisfies readonly (keyof ChairData)[];
 
 /** Plenty for a two-day conference; keeps the stored session bounded. */
@@ -110,6 +111,8 @@ export function fromHandover(raw: unknown, offsetToServer: number): ChairData | 
       vote: data.vote ?? null,
       awards: data.awards ?? [],
       log: data.log ?? [],
+      // Server time already: not shifted with the rest.
+      resetEpoch: typeof data.resetEpoch === 'number' ? data.resetEpoch : 0,
     },
     -offsetToServer,
   );

@@ -1,4 +1,5 @@
 import { fail, json, type Env } from '../_lib/env';
+import { readStatus } from '../_lib/conference';
 import { ensureControlTable, holderOf, readControl, validDeviceId } from '../_lib/control';
 import { describeDbError, guardRead, guardWrite, LOG_RETENTION_MS } from '../_lib/live';
 
@@ -46,6 +47,8 @@ interface PushBody {
   deviceId?: unknown;
   /** The full session, in server time, so another device can take over. */
   chairState?: unknown;
+  /** The last Secretariat reset this device's session has taken in (server time). */
+  resetEpoch?: unknown;
   summary?: unknown;
   snapshot?: unknown;
   log?: { id: string; at: number; type: string; summary: string; detail?: string }[];
@@ -71,6 +74,14 @@ export const onRequestPost: PagesFunction<Env, 'committeeId'> = async ({ request
   if (!body.summary || !body.snapshot) return fail('Missing summary or snapshot.', 400);
   if (!validDeviceId(body.deviceId)) return fail('Missing device id — reload the page.', 400);
   const deviceId = body.deviceId;
+
+  // The Secretariat has reset every session since this device last heard: it
+  // must wipe its copy first, so the old session cannot come back.
+  const { sessionsResetAt } = await readStatus(env, serverNow);
+  const resetEpoch = typeof body.resetEpoch === 'number' ? body.resetEpoch : 0;
+  if (sessionsResetAt !== null && resetEpoch < sessionsResetAt) {
+    return json({ configured: true, serverNow, reset: true, sessionsResetAt }, 409);
+  }
 
   // Report only while this device holds the committee. The claim is refreshed
   // and the full session stored in the same statement; if another device has

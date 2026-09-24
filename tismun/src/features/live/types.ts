@@ -78,6 +78,8 @@ export interface LivePush {
   snapshot: LiveSnapshot;
   /** Only recent entries; the server keeps the full history. */
   log: LogEntry[];
+  /** The last Secretariat reset this session has taken in (server time). */
+  resetEpoch: number;
 }
 
 /** GET /api/live */

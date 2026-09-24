@@ -110,6 +110,10 @@ export interface DataSource {
   getEmergencyAdmin(): Promise<EmergencyAdmin>;
   /** Secretariat only: a backup override of the schedule. */
   setEmergencyOverride(action: OverrideAction): Promise<EmergencyAdmin>;
+  /** Secretariat only: when every committee's session was last reset. */
+  getSessionsReset(): Promise<SessionsReset>;
+  /** Secretariat only: reset every committee's session, logs and awards. */
+  resetAllSessions(): Promise<SessionsReset>;
   /**
    * Demo mode only: the list the login page's user picker is built from.
    * Undefined in live mode, where you may never enumerate users.
@@ -173,6 +177,13 @@ export interface ConferenceEvent {
   action: OverrideAction | string;
   detail: string | null;
   byName: string | null;
+}
+
+export interface SessionsReset {
+  /** false without the live-sync database: there is nothing on the server to reset. */
+  available: boolean;
+  last: ConferenceEvent | null;
+  error?: string;
 }
 
 export interface EmergencyAdmin {

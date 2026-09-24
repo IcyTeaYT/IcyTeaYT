@@ -6,6 +6,7 @@ import type {
   DataSource,
   Delegation,
   EmergencyAdmin,
+  SessionsReset,
   EmergencyDelegation,
   OverrideAction,
   User,
@@ -114,6 +115,25 @@ export const liveSource: DataSource = {
     }
     const body = (await response.json()) as { status: ConferenceStatus; events: EmergencyAdmin['events'] };
     return { status: body.status, events: body.events, overridesAvailable: true };
+  },
+
+  async getSessionsReset(): Promise<SessionsReset> {
+    return api<SessionsReset>('/api/reset-sessions');
+  },
+
+  async resetAllSessions(): Promise<SessionsReset> {
+    const response = await fetch('/api/reset-sessions', {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+      body: JSON.stringify({ confirm: 'RESET' }),
+    });
+    if (!response.ok) {
+      const body = (await response.json().catch(() => null)) as { error?: string } | null;
+      throw new ApiError(body?.error ?? 'The sessions could not be reset.', response.status);
+    }
+    const body = (await response.json()) as { last: SessionsReset['last'] };
+    return { available: true, last: body.last };
   },
 
   // listDemoUsers is deliberately absent: enumerating users is a demo-only

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { ChairStore } from '@/features/chair/store';
 import type { TimerState } from '@/lib/timer';
+import { useConferenceStatus } from '@/store/conferenceStatus';
 import { fetchDetail, fetchOverview, isSyncReachable, pushLive } from './client';
 import { deviceId } from './device';
 import { toHandover } from './handover';
@@ -59,8 +60,15 @@ export function useLivePush(
         summary: buildLiveSummary(state, committeeId, offset),
         snapshot: buildLiveSnapshot(state, committeeId, offset),
         log: state.log.slice(0, 60).map((entry) => ({ ...entry, at: entry.at + offset })),
+        resetEpoch: state.resetEpoch,
       });
-      if (result.kind === 'locked' && !cancelled) onLockedRef.current(result.holder);
+      if (cancelled) return;
+      if (result.kind === 'locked') onLockedRef.current(result.holder);
+      // The Secretariat reset every session: wipe this copy, then report the fresh one.
+      if (result.kind === 'reset') {
+        store.getState().applySecretariatReset(result.sessionsResetAt);
+        void useConferenceStatus.getState().refresh();
+      }
     };
 
     const schedule = () => {
@@ -182,3 +190,16 @@ export function useLocalisedTimer(timer: TimerState | null | undefined): TimerSt
 }
 
 export const syncReachable = isSyncReachable;
+
+/**
+ * Take in a Secretariat "reset every session" as soon as this device hears of
+ * it — from the conference status every open page checks, or from the server
+ * refusing a report — whether or not this device is the one running the
+ * committee, so no device keeps the old session to hand back on Take over.
+ */
+export function useSecretariatReset(store: ChairStore): void {
+  const resetAt = useConferenceStatus((state) => state.status?.sessionsResetAt ?? null);
+  useEffect(() => {
+    if (resetAt !== null) store.getState().applySecretariatReset(resetAt);
+  }, [resetAt, store]);
+}

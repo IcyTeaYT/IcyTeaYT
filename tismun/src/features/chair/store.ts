@@ -56,10 +56,18 @@ export interface ChairState {
   awards: Award[];
   log: LogEntry[];
   soundEnabled: boolean;
+  /**
+   * The last Secretariat "reset every session" this session has taken in, in
+   * server time (0: none). Travels with the session, so a device taking over
+   * knows the session it picks up is already a fresh one.
+   */
+  resetEpoch: number;
 
   // Housekeeping
   syncRoster: (roster: Delegation[]) => void;
   resetSession: () => void;
+  /** The Secretariat reset every committee's session at `epoch` (server time). */
+  applySecretariatReset: (epoch: number) => void;
   toggleSound: () => void;
   addLog: (type: LogType, summary: string, detail?: string) => void;
 
@@ -219,6 +227,7 @@ function createChairState(committeeId: string) {
 
     return {
       ...initialState(),
+      resetEpoch: 0,
 
       syncRoster(roster) {
         set((state) => {
@@ -244,8 +253,30 @@ function createChairState(committeeId: string) {
           codes: get().codes,
           awards: get().awards,
           soundEnabled: get().soundEnabled,
+          resetEpoch: get().resetEpoch,
         });
         log('session', 'Session reset', `All committee state for ${committeeId.toUpperCase()} was cleared.`);
+      },
+
+      applySecretariatReset(epoch) {
+        const state = get();
+        if (epoch <= state.resetEpoch) return;
+        // A device that has never run a session has nothing to clear: it only
+        // needs to know it is up to date, without a log entry saying so.
+        const hadSession = state.log.length > 0 || state.awards.length > 0;
+        // Unlike a chair's own reset, the Secretariat's clears awards and the
+        // session log as well: the whole conference starts again.
+        set({
+          ...initialState(),
+          names: state.names,
+          codes: state.codes,
+          attendance: Object.fromEntries(Object.keys(state.names).map((id) => [id, 'absent' as const])),
+          soundEnabled: state.soundEnabled,
+          resetEpoch: epoch,
+        });
+        if (hadSession) {
+          log('session', 'Session reset by the Secretariat', 'Every committee was reset: session, log and awards.');
+        }
       },
 
       toggleSound() {
@@ -923,6 +954,7 @@ export type ChairData = Pick<
   | 'vote'
   | 'awards'
   | 'log'
+  | 'resetEpoch'
 >;
 
 export function sessionStatusOf(state: ChairData): SessionStatus {
