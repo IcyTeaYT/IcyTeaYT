@@ -177,7 +177,10 @@ export function Login() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
         >
-          <Logo className="h-auto w-[150px] sm:w-[240px]" priority />
+          {/* A phone keeps the short wide logo, so "Sign in with Google" stays on
+              the first screen; larger screens have room for the stacked one. */}
+          <Logo className="h-auto w-[150px] sm:hidden" priority />
+          <Logo variant="stacked" className="hidden h-auto w-[170px] sm:block lg:w-[200px]" priority />
         </motion.div>
 
         <motion.div
