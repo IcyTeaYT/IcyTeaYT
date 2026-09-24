@@ -180,7 +180,7 @@ export function Login() {
           {/* A phone keeps the short wide logo, so "Sign in with Google" stays on
               the first screen; larger screens have room for the stacked one. */}
           <Logo className="h-auto w-[150px] sm:hidden" priority />
-          <Logo variant="stacked" className="hidden h-auto w-[96px] sm:block lg:w-[112px]" priority />
+          <Logo variant="stacked" className="hidden h-auto w-[104px] sm:block lg:w-[124px]" priority />
         </motion.div>
 
         <motion.div
@@ -189,17 +189,17 @@ export function Login() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.45, delay: 0.08, ease: [0.22, 1, 0.36, 1] }}
         >
-          <p className="label-micro">{CONFERENCE.edition}</p>
-          <h1 className="mt-2 font-serif text-[22px] leading-[1.2] text-ink-900 sm:mt-3 sm:text-[38px] sm:leading-[1.18]">
+          <p className="label-micro sm:text-[13px]">{CONFERENCE.edition}</p>
+          <h1 className="mt-2 font-serif text-[22px] leading-[1.2] text-ink-900 sm:mt-3 sm:text-[40px] sm:leading-[1.16] lg:text-[46px]">
             {CONFERENCE.fullName}
           </h1>
-          <p className="mt-2 text-sm text-muted sm:mt-4">
+          <p className="mt-2 text-sm text-muted sm:mt-4 sm:text-base">
             {formatDateRange()} · {CONFERENCE.venue}
           </p>
           <HostedBy className="mt-4 sm:mt-7" />
         </motion.div>
 
-        <p className="mt-12 hidden text-xs text-muted lg:block">
+        <p className="mt-12 hidden text-sm text-muted lg:block">
           Delegates, chairs and the Secretariat sign in with their school Google account.
         </p>
       </div>
@@ -207,13 +207,13 @@ export function Login() {
       {/* Sign-in panel */}
       <div className="flex items-start justify-center border-t border-hairline bg-surface px-6 py-7 sm:items-center sm:px-12 sm:py-12 lg:border-l lg:border-t-0">
         <motion.div
-          className="w-full max-w-sm"
+          className="w-full max-w-sm sm:max-w-md"
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.45, delay: 0.14, ease: [0.22, 1, 0.36, 1] }}
         >
-          <h2 className="font-serif text-2xl text-ink-900">{COPY.login.heading}</h2>
-          <p className="mt-2 text-sm text-muted">{COPY.login.subtext}</p>
+          <h2 className="font-serif text-2xl text-ink-900 sm:text-[32px] sm:leading-tight">{COPY.login.heading}</h2>
+          <p className="mt-2 text-sm text-muted sm:text-base">{COPY.login.subtext}</p>
 
           <div className="mt-7">
             {isGoogleConfigured() ? (
@@ -237,19 +237,19 @@ export function Login() {
             ) : (
               <div className="rounded-control border border-dashed border-hairline bg-canvas px-4 py-3.5">
                 <div className="flex items-center justify-between gap-3">
-                  <span className="text-sm font-medium text-ink-500">{COPY.login.googleButton}</span>
+                  <span className="text-sm font-medium text-ink-500 sm:text-base">{COPY.login.googleButton}</span>
                   <span className="rounded-full bg-ink-100 px-2 py-0.5 text-[11px] font-semibold uppercase tracking-label text-muted">
                     {COPY.login.googleNotConfigured}
                   </span>
                 </div>
-                <p className="mt-2 text-xs leading-relaxed text-muted">
+                <p className="mt-2 text-xs leading-relaxed text-muted sm:text-sm">
                   {COPY.login.googleNotConfiguredHint}
                 </p>
               </div>
             )}
           </div>
 
-          <p className="mt-3 flex items-start gap-1.5 text-xs leading-relaxed text-muted">
+          <p className="mt-3 flex items-start gap-1.5 text-xs leading-relaxed text-muted sm:text-sm">
             <Info size={13} strokeWidth={1.5} className="mt-0.5 shrink-0" />
             {SCHOOL_DOMAIN ? (
               <span>
@@ -275,15 +275,15 @@ export function Login() {
 
           {testLogins ? (
             <div className="mt-9 border-t border-hairline pt-7">
-              <h3 className="label-micro">Testing</h3>
-              <p className="mt-2 text-xs leading-relaxed text-muted">
+              <h3 className="label-micro sm:text-[13px]">Testing</h3>
+              <p className="mt-2 text-xs leading-relaxed text-muted sm:text-sm">
                 Try the site with a shared test account in GA 2. No Google sign-in needed.
               </p>
               <div className="mt-4 grid grid-cols-3 gap-2">
                 <Button
                   variant="secondary"
                   size="sm"
-                  className="h-auto flex-col gap-1 whitespace-normal py-2 text-center leading-tight"
+                  className="h-auto flex-col gap-1 whitespace-normal py-2 text-center leading-tight sm:py-3 sm:text-[15px]"
                   disabled={signingIn}
                   onClick={() => void testSignIn('delegate')}
                 >
@@ -293,7 +293,7 @@ export function Login() {
                 <Button
                   variant="secondary"
                   size="sm"
-                  className="h-auto flex-col gap-1 whitespace-normal py-2 text-center leading-tight"
+                  className="h-auto flex-col gap-1 whitespace-normal py-2 text-center leading-tight sm:py-3 sm:text-[15px]"
                   disabled={signingIn}
                   onClick={() => void testSignIn('chair')}
                 >
@@ -303,7 +303,7 @@ export function Login() {
                 <Button
                   variant="secondary"
                   size="sm"
-                  className="h-auto flex-col gap-1 whitespace-normal py-2 text-center leading-tight"
+                  className="h-auto flex-col gap-1 whitespace-normal py-2 text-center leading-tight sm:py-3 sm:text-[15px]"
                   disabled={signingIn}
                   onClick={() => void testSignIn('secretariat')}
                 >
@@ -317,16 +317,16 @@ export function Login() {
           {isDemoMode ? (
             <div className="mt-9 border-t border-hairline pt-7">
               <div className="flex items-baseline justify-between gap-3">
-                <h3 className="label-micro">{COPY.login.demoHeading}</h3>
+                <h3 className="label-micro sm:text-[13px]">{COPY.login.demoHeading}</h3>
                 <span className="text-[11px] text-ink-300">VITE_DATA_MODE=demo</span>
               </div>
-              <p className="mt-2 text-xs leading-relaxed text-muted">{COPY.login.demoSubtext}</p>
+              <p className="mt-2 text-xs leading-relaxed text-muted sm:text-sm">{COPY.login.demoSubtext}</p>
 
               <div className="mt-4 grid grid-cols-3 gap-2">
                 <Button
                   variant="secondary"
                   size="sm"
-                  className="flex-col gap-1 py-2 h-auto"
+                  className="flex-col gap-1 py-2 h-auto sm:py-3 sm:text-[15px]"
                   disabled={signingIn || !defaultDelegate}
                   onClick={() => void signIn(defaultDelegate?.email)}
                 >
@@ -336,7 +336,7 @@ export function Login() {
                 <Button
                   variant="secondary"
                   size="sm"
-                  className="flex-col gap-1 py-2 h-auto"
+                  className="flex-col gap-1 py-2 h-auto sm:py-3 sm:text-[15px]"
                   disabled={signingIn || !defaultChair}
                   onClick={() => void signIn(defaultChair?.email)}
                 >
@@ -346,7 +346,7 @@ export function Login() {
                 <Button
                   variant="secondary"
                   size="sm"
-                  className="flex-col gap-1 py-2 h-auto"
+                  className="flex-col gap-1 py-2 h-auto sm:py-3 sm:text-[15px]"
                   disabled={signingIn || !defaultSecretariat}
                   onClick={() => void signIn(defaultSecretariat?.email)}
                 >
@@ -392,7 +392,7 @@ export function Login() {
             </div>
           ) : null}
 
-          <p className="mt-10 text-xs text-muted">
+          <p className="mt-10 text-xs text-muted sm:text-sm">
             <span className="lg:hidden">
               <Wordmark className="text-ink-700" /> · {CONFERENCE.edition} ·{' '}
             </span>
