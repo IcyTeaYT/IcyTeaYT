@@ -1,16 +1,9 @@
 import { CONFERENCE } from '@/config/conference';
 import { cn } from '@/lib/cn';
 
-const SOURCES = {
-  /** The emblem beside the wordmark: the top bar, the projector. */
-  wide: '/logo.png',
-  /** The emblem above the wordmark: the loading and sign-in screens. */
-  stacked: '/logo-stacked.png',
-} as const;
-
 /**
- * The TISMUN logo, wide or stacked, on a transparent background, so it sits
- * directly on any light surface.
+ * The horizontal TISMUN lockup: the globe and the slate wordmark, on a
+ * transparent background, so it sits directly on any light surface.
  *
  * The slate wordmark disappears on a dark background, so there `chip` puts it
  * on a white card instead, and `Wordmark` is the text-only lockup for places
@@ -21,17 +14,15 @@ export function Logo({
   width,
   chip = false,
   priority = false,
-  variant = 'wide',
 }: {
   className?: string;
-  variant?: keyof typeof SOURCES;
   width?: number;
   chip?: boolean;
   priority?: boolean;
 }) {
   const image = (
     <img
-      src={SOURCES[variant]}
+      src="/logo.png"
       alt={`${CONFERENCE.name} — ${CONFERENCE.fullName}`}
       width={width}
       decoding="async"
