@@ -46,7 +46,7 @@ export function Home() {
         <IntroContext.Provider value={introDone}>
           <a
             href="#main"
-            className="fixed left-4 top-4 z-[90] -translate-y-24 rounded-full bg-white px-4 py-2 text-sm font-semibold text-ink-950 transition-transform focus:translate-y-0"
+            className="fixed left-4 top-4 z-[90] -translate-y-24 rounded-full bg-white px-4 py-2 text-sm font-semibold text-night transition-transform focus:translate-y-0"
           >
             Skip to content
           </a>
@@ -55,8 +55,8 @@ export function Home() {
           <main id="main">
             <Hero />
             <Marquee />
-            <About />
             <Projects />
+            <About />
             <Founders />
             <SuggestionBox />
           </main>

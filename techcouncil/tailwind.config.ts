@@ -1,87 +1,74 @@
 import type { Config } from 'tailwindcss';
 
 /**
- * TIS Tech Council design tokens.
- * Dark-first. `ink` is the near-black navy base, `tis` is the school blue used
- * for glows, `volt` is the single electric accent. Logo colours (petal orange,
- * crimson, teal, cyan) appear only in the logo itself and brand moments.
+ * TIS Tech Council tokens. The four petals of the council logo are the colour
+ * system: each one is a flat field and a key (categories, projects, founders),
+ * never a glow. The ground is the logo's navy, deepened for a dark page.
  */
 export default {
   content: ['./index.html', './src/**/*.{ts,tsx}'],
   theme: {
     extend: {
       colors: {
-        ink: {
-          950: '#04060C',
-          900: '#070B16',
-          850: '#0A1020',
-          800: '#0E1629',
-          700: '#152036',
-          600: '#1E2B45',
-          500: '#2B3A57',
+        night: {
+          DEFAULT: '#0A0F17',
+          800: '#0F1622',
+          700: '#151E2D',
+          600: '#1D283A',
+          500: '#2A3850',
         },
-        tis: {
-          100: '#DCE8FF',
-          200: '#B7CFFF',
-          300: '#8AB2FF',
-          400: '#5B91FF',
-          500: '#2F6FF5',
-          600: '#1F56D6',
-          700: '#1A44A8',
+        paper: '#EEF1F5',
+        fog: {
+          200: '#C6CEDA', // secondary text, 11:1 on night
+          300: '#9DA8B9', // tertiary text, 7.3:1 on night
+          400: '#7F8A9D', // quiet text, 5.3:1 on night
         },
-        volt: {
-          300: '#8CF3FF',
-          400: '#4DE8FA',
-          500: '#18D4EE',
-          600: '#0BA9C2',
+        // Petal colours. `DEFAULT` is the logo value (for fills), `ink` is the
+        // same hue lifted so it reads as text or a line on the night ground.
+        orange: { DEFAULT: '#F29839', ink: '#F6AC5C', deep: '#C9711A' },
+        maroon: { DEFAULT: '#951E34', ink: '#E0647C', deep: '#6E1426' },
+        teal: { DEFAULT: '#07686E', ink: '#3FB8AF', deep: '#044A4F' },
+        cyan: { DEFAULT: '#0897B6', ink: '#4CC6E2', deep: '#066E86' },
+        // Syntax colours for code windows, drawn from the petals.
+        syntax: {
+          keyword: '#E0647C',
+          string: '#F6AC5C',
+          fn: '#4CC6E2',
+          number: '#3FB8AF',
+          comment: '#7F8A9D',
+          plain: '#C6CEDA',
         },
-        petal: {
-          orange: '#F29839',
-          red: '#951E34',
-          teal: '#07686E',
-          cyan: '#0897B6',
-        },
-        mist: {
-          50: '#F5F8FF',
-          100: '#E6ECF7',
-          200: '#C9D3E6',
-          300: '#A4B1CC',
-          400: '#7C8AA8',
-          500: '#5C6A88',
-        },
+        success: '#58C39A',
+        danger: '#F07A86',
       },
       fontFamily: {
         display: ['"Clash Display"', '"Inter Variable"', 'system-ui', 'sans-serif'],
         sans: ['"Inter Variable"', 'Inter', 'system-ui', '-apple-system', 'Segoe UI', 'sans-serif'],
-        mono: ['ui-monospace', 'SFMono-Regular', 'Menlo', 'monospace'],
+        // The council's code voice: paths, terminal lines, code windows and live data.
+        mono: ['"JetBrains Mono Variable"', 'ui-monospace', 'SFMono-Regular', 'monospace'],
       },
       letterSpacing: {
-        tightest: '-0.045em',
-        label: '0.14em',
+        display: '-0.035em',
       },
       transitionTimingFunction: {
         'out-expo': 'cubic-bezier(0.16, 1, 0.3, 1)',
       },
       keyframes: {
+        shimmer: { '0%': { transform: 'translateX(-120%)' }, '100%': { transform: 'translateX(120%)' } },
+        'border-spin': { to: { '--angle': '360deg' } },
+        ping: { '75%,100%': { transform: 'scale(2.2)', opacity: '0' } },
+        // Ends visible, so reduced motion (one instant iteration) leaves the caret on.
+        blink: { '0%, 45%': { opacity: '1' }, '50%, 95%': { opacity: '0' }, '100%': { opacity: '1' } },
         marquee: { to: { transform: 'translate3d(-50%,0,0)' } },
         'marquee-rev': { from: { transform: 'translate3d(-50%,0,0)' }, to: { transform: 'translate3d(0,0,0)' } },
-        shimmer: { '0%': { transform: 'translateX(-120%)' }, '100%': { transform: 'translateX(120%)' } },
-        spin: { to: { transform: 'rotate(360deg)' } },
-        'border-spin': { to: { '--angle': '360deg' } },
-        pulse: { '0%,100%': { opacity: '1' }, '50%': { opacity: '0.45' } },
-        ping: { '75%,100%': { transform: 'scale(2.2)', opacity: '0' } },
-        float: { '0%,100%': { transform: 'translateY(0)' }, '50%': { transform: 'translateY(-6px)' } },
-        shine: { to: { backgroundPosition: '200% center' } },
       },
       animation: {
+        shimmer: 'shimmer 3.2s cubic-bezier(0.4,0,0.2,1) infinite',
+        'border-spin': 'border-spin 8s linear infinite',
+        ping: 'ping 1.8s cubic-bezier(0,0,0.2,1) infinite',
+        blink: 'blink 1.1s linear infinite',
         marquee: 'marquee var(--marquee-duration, 40s) linear infinite',
         'marquee-rev': 'marquee-rev var(--marquee-duration, 40s) linear infinite',
-        shimmer: 'shimmer 2.6s cubic-bezier(0.4,0,0.2,1) infinite',
-        'spin-slow': 'spin 14s linear infinite',
-        'border-spin': 'border-spin 6s linear infinite',
-        ping: 'ping 1.6s cubic-bezier(0,0,0.2,1) infinite',
-        float: 'float 5s ease-in-out infinite',
-        shine: 'shine 6s linear infinite',
       },
     },
   },

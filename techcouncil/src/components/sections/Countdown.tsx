@@ -4,7 +4,7 @@ import { EASE_OUT } from '@/lib/motion';
 
 type Phase = 'before' | 'during' | 'after';
 
-function useNow(intervalMs = 1000) {
+export function useNow(intervalMs = 1000) {
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
     const t = window.setInterval(() => setNow(Date.now()), intervalMs);
@@ -43,12 +43,12 @@ function Unit({ value, label, pad = 2 }: { value: number; label: string; pad?: n
   const digits = String(value).padStart(pad, '0').split('');
   return (
     <div className="flex flex-col items-center">
-      <span className="flex font-display text-[clamp(1.9rem,4vw,2.75rem)] font-semibold leading-none tracking-tight text-white tabular">
+      <span className="flex font-mono text-[clamp(1.8rem,3.6vw,2.6rem)] font-medium leading-none tracking-tight text-paper tabular">
         {digits.map((d, i) => (
           <Digit key={digits.length - i} value={d} />
         ))}
       </span>
-      <span className="mt-2 font-mono text-[10px] uppercase tracking-label text-mist-400">{label}</span>
+      <span className="mt-2 font-mono text-[12px] text-fog-300">{label}</span>
     </div>
   );
 }
@@ -68,12 +68,12 @@ export function Countdown({ start, end, timezoneLabel, accent }: Props) {
   if (phase !== 'before') {
     const live = phase === 'during';
     return (
-      <div className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3" role="status">
+      <div className="flex items-center gap-3 rounded-2xl border border-white/10 px-4 py-3" role="status">
         <span className="relative flex h-2.5 w-2.5">
           {live && <span className="absolute inset-0 animate-ping rounded-full" style={{ background: accent }} />}
           <span className="relative h-2.5 w-2.5 rounded-full" style={{ background: live ? accent : '#7C8AA8' }} />
         </span>
-        <span className="font-display text-lg font-semibold text-white">{live ? 'Happening now' : 'Conference complete'}</span>
+        <span className="font-display text-lg font-semibold text-paper">{live ? 'Happening now' : 'Conference complete'}</span>
       </div>
     );
   }
@@ -92,11 +92,11 @@ export function Countdown({ start, end, timezoneLabel, accent }: Props) {
       </p>
       <div className="flex items-start gap-3 sm:gap-5" aria-hidden>
         <Unit value={days} label="Days" />
-        <span className="font-display text-3xl leading-none text-mist-500">:</span>
+        <span className="font-display text-3xl leading-none text-fog-400">:</span>
         <Unit value={hours} label="Hours" />
-        <span className="font-display text-3xl leading-none text-mist-500">:</span>
+        <span className="font-display text-3xl leading-none text-fog-400">:</span>
         <Unit value={mins} label="Min" />
-        <span className="font-display text-3xl leading-none text-mist-500">:</span>
+        <span className="font-display text-3xl leading-none text-fog-400">:</span>
         <Unit value={secs} label="Sec" />
       </div>
     </div>

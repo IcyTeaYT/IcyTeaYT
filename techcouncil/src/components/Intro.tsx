@@ -32,26 +32,19 @@ export function Intro({ show, onDone }: { show: boolean; onDone: () => void }) {
       {show && (
         <motion.div
           key="intro"
-          className="fixed inset-0 z-[100] flex items-center justify-center bg-ink-950"
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-night"
           initial={{ clipPath: 'inset(0 0 0% 0)' }}
           exit={{ clipPath: 'inset(0 0 100% 0)' }}
           transition={{ duration: 0.45, ease: EASE_IN_OUT }}
           aria-hidden="true"
         >
           <motion.div
-            className="pointer-events-none absolute left-1/2 top-1/2 h-[60vmin] w-[60vmin] -translate-x-1/2 -translate-y-1/2 rounded-full"
-            style={{ background: 'radial-gradient(circle, rgba(47,111,245,0.35), transparent 65%)' }}
-            initial={{ opacity: 0, scale: 0.6 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.9, ease: EASE_OUT }}
-          />
-          <motion.div
             className="relative flex items-center gap-4"
             exit={{ y: -40, opacity: 0 }}
             transition={{ duration: 0.35, ease: EASE_IN_OUT }}
           >
-            <LogoMark animate className="h-14 w-14 text-white sm:h-16 sm:w-16" />
-            <span className="flex overflow-hidden font-display text-3xl font-semibold tracking-tight text-white sm:text-4xl">
+            <LogoMark animate className="h-14 w-14 text-paper sm:h-16 sm:w-16" />
+            <span className="flex overflow-hidden font-display text-3xl font-semibold tracking-display text-paper sm:text-4xl">
               {WORD.split('').map((ch, i) => (
                 <motion.span
                   key={i}
@@ -65,12 +58,17 @@ export function Intro({ show, onDone }: { show: boolean; onDone: () => void }) {
               ))}
             </span>
           </motion.div>
-          <motion.div
-            className="absolute bottom-0 left-0 h-px bg-gradient-to-r from-transparent via-volt-400 to-transparent"
-            initial={{ width: '0%' }}
-            animate={{ width: '100%' }}
-            transition={{ duration: 1, ease: EASE_IN_OUT }}
-          />
+          <div className="absolute inset-x-0 bottom-0 flex h-1">
+            {['bg-orange', 'bg-maroon', 'bg-teal', 'bg-cyan'].map((c, i) => (
+              <motion.span
+                key={c}
+                className={`flex-1 origin-left ${c}`}
+                initial={{ scaleX: 0 }}
+                animate={{ scaleX: 1 }}
+                transition={{ duration: 0.5, ease: EASE_OUT, delay: 0.15 + i * 0.12 }}
+              />
+            ))}
+          </div>
         </motion.div>
       )}
     </AnimatePresence>

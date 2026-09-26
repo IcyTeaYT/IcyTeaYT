@@ -1,7 +1,8 @@
 // Everything about the founders lives here. To add a photo, drop a portrait
 // image (roughly 4:5, under 200 KB) into /public/founders/ and point `photo`
 // at it. If the file is missing the card shows an animated initials avatar.
-// A bio of '[PLACEHOLDER]' is shown on the site as "Bio coming soon".
+// A bio of '[PLACEHOLDER]' is shown on the site as "Bio coming soon"; an empty
+// tagline is simply left out.
 
 export interface Founder {
   id: string;
@@ -28,7 +29,7 @@ export const founders: Founder[] = [
     name: 'Dovud Kasimov',
     role: 'Co-founder',
     photo: '/founders/dovud.jpg',
-    tagline: 'Co-founder, TIS Tech Council.',
+    tagline: '',
     bio: '[PLACEHOLDER]',
   },
   {
@@ -36,7 +37,7 @@ export const founders: Founder[] = [
     name: 'Damirbek Xolnazarov',
     role: 'Co-founder',
     photo: '/founders/damirbek.jpg',
-    tagline: 'Co-founder, TIS Tech Council.',
+    tagline: '',
     bio: '[PLACEHOLDER]',
   },
 ];

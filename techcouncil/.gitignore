@@ -5,3 +5,4 @@ dist
 *.local
 .impeccable/live/
 .impeccable/config.local.json
+.impeccable/review/

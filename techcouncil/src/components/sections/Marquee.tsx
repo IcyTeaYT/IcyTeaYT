@@ -1,12 +1,14 @@
-import { motion, useScroll, useTransform, useReducedMotion } from 'motion/react';
+import { motion, useReducedMotion, useScroll, useTransform } from 'motion/react';
 import { useRef } from 'react';
 import { MARQUEE_BOTTOM, MARQUEE_TOP } from '@/data/marquee';
+
+const PETALS = ['#F29839', '#E0647C', '#3FB8AF', '#4CC6E2'];
 
 function Row({ items, reverse, outline, duration }: { items: string[]; reverse?: boolean; outline?: boolean; duration: number }) {
   // Two identical halves; the track slides by exactly 50% for a seamless loop.
   const loop = [...items, ...items];
   return (
-    <div className="group flex overflow-hidden mask-fade-x">
+    <div className="group flex overflow-hidden [mask-image:linear-gradient(90deg,transparent,#000_10%,#000_90%,transparent)]">
       <ul
         className={`flex w-max shrink-0 items-center ${reverse ? 'animate-marquee-rev' : 'animate-marquee'} group-hover:[animation-play-state:paused]`}
         style={{ ['--marquee-duration' as string]: `${duration}s` }}
@@ -14,15 +16,19 @@ function Row({ items, reverse, outline, duration }: { items: string[]; reverse?:
         {loop.map((item, i) => (
           <li key={i} className="flex items-center" aria-hidden={i >= items.length ? true : undefined}>
             <span
-              className={`whitespace-nowrap px-6 font-display text-[clamp(1.75rem,4.5vw,3.5rem)] font-semibold tracking-tight sm:px-9 ${
-                outline ? 'text-transparent [-webkit-text-stroke:1px_rgba(164,177,204,0.45)]' : 'text-white'
+              className={`whitespace-nowrap px-6 sm:px-9 ${
+                outline
+                  ? 'font-mono text-[clamp(1rem,2vw,1.35rem)] text-fog-300'
+                  : 'font-display text-[clamp(1.75rem,4.5vw,3.5rem)] font-semibold tracking-display text-paper'
               }`}
             >
-              {item}
+              {outline ? `// ${item.toLowerCase()}` : item}
             </span>
-            <svg viewBox="0 0 24 24" className="h-5 w-5 shrink-0 text-volt-400 sm:h-6 sm:w-6" aria-hidden>
-              <path d="M12 0 L14 10 L24 12 L14 14 L12 24 L10 14 L0 12 L10 10 Z" fill="currentColor" />
-            </svg>
+            {!outline && (
+              <svg viewBox="0 0 32 32" className="h-5 w-5 shrink-0 sm:h-6 sm:w-6" aria-hidden>
+                <path d="M2 30C2 14.5 14.5 2 30 2c0 15.5-12.5 28-28 28Z" fill={PETALS[i % PETALS.length]} />
+              </svg>
+            )}
           </li>
         ))}
       </ul>
@@ -30,19 +36,19 @@ function Row({ items, reverse, outline, duration }: { items: string[]; reverse?:
   );
 }
 
-/** Two counter-scrolling rows of ideas, tilted slightly and skewed further by scroll. */
+/** Ideas the council could build: a big row of names and a quieter row in code comments. */
 export function Marquee() {
   const ref = useRef<HTMLElement>(null);
   const reduce = useReducedMotion();
   const { scrollYProgress } = useScroll({ target: ref, offset: ['start end', 'end start'] });
-  const rotate = useTransform(scrollYProgress, [0, 1], reduce ? [-2, -2] : [-4, 0]);
-  const x = useTransform(scrollYProgress, [0, 1], reduce ? ['0%', '0%'] : ['4%', '-4%']);
+  const rotate = useTransform(scrollYProgress, [0, 1], reduce ? [-2, -2] : [-3.5, 0]);
+  const x = useTransform(scrollYProgress, [0, 1], reduce ? ['0%', '0%'] : ['3%', '-3%']);
 
   return (
-    <section ref={ref} aria-label="Ideas students have asked for" className="relative overflow-hidden py-16 sm:py-24">
-      <motion.div style={{ rotate, x }} className="-mx-[5%] flex w-[110%] flex-col gap-3 border-y hairline bg-ink-900/60 py-6 sm:gap-5 sm:py-8">
-        <Row items={MARQUEE_TOP} duration={38} />
-        <Row items={MARQUEE_BOTTOM} reverse outline duration={46} />
+    <section ref={ref} aria-label="Tech ideas for TIS" className="relative overflow-hidden py-14 sm:py-20">
+      <motion.div style={{ rotate, x }} className="-mx-[5%] flex w-[110%] flex-col gap-3 border-y rule bg-night-800/70 py-6 sm:gap-5 sm:py-8">
+        <Row items={MARQUEE_TOP} duration={40} />
+        <Row items={MARQUEE_BOTTOM} reverse outline duration={52} />
       </motion.div>
     </section>
   );

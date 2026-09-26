@@ -21,7 +21,6 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Animatable angle for rotating conic borders. */
 @property --angle {
   syntax: '<angle>';
   initial-value: 0deg;
@@ -30,48 +29,66 @@
 
 @layer base {
   html {
-    background: theme('colors.ink.950');
-    color: theme('colors.mist.100');
+    background: theme('colors.night.DEFAULT');
+    color: theme('colors.paper');
+    color-scheme: dark;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
-    text-rendering: optimizeLegibility;
     -webkit-tap-highlight-color: transparent;
+    scrollbar-color: theme('colors.night.500') theme('colors.night.DEFAULT');
   }
 
   body {
-    @apply bg-ink-950 font-sans text-mist-100;
+    @apply bg-night font-sans text-[17px] leading-relaxed text-paper;
     overflow-x: clip;
   }
 
   ::selection {
-    background: rgba(24, 212, 238, 0.35);
-    color: #fff;
+    background: theme('colors.orange.DEFAULT');
+    color: theme('colors.night.DEFAULT');
+  }
+
+  input,
+  textarea {
+    caret-color: theme('colors.orange.DEFAULT');
   }
 
   :focus-visible {
-    outline: 2px solid theme('colors.volt.400');
+    outline: 2px solid theme('colors.orange.ink');
     outline-offset: 3px;
-    border-radius: 6px;
+    border-radius: 8px;
+  }
+
+  a {
+    text-underline-offset: 0.2em;
+    text-decoration-thickness: 1px;
   }
 
   h1,
   h2,
   h3 {
-    @apply font-display;
     text-wrap: balance;
-  }
-
-  /* Clash Display ships a very narrow space (0.154em); widen it so tightly
-     tracked headlines still read as separate words. */
-  .font-display,
-  h1,
-  h2,
-  h3 {
-    word-spacing: 0.1em;
   }
 
   p {
     text-wrap: pretty;
+  }
+
+  /* Clash Display ships a narrow space (0.154em); widen it for tight display settings. */
+  .font-display {
+    word-spacing: 0.08em;
+  }
+
+  ::-webkit-scrollbar {
+    width: 10px;
+  }
+  ::-webkit-scrollbar-track {
+    background: theme('colors.night.DEFAULT');
+  }
+  ::-webkit-scrollbar-thumb {
+    background: theme('colors.night.500');
+    border-radius: 10px;
+    border: 2px solid theme('colors.night.DEFAULT');
   }
 }
 
@@ -89,113 +106,46 @@ html.lenis body {
 
 @layer components {
   .container-x {
-    @apply mx-auto w-full max-w-[1240px] px-4 sm:px-6 lg:px-10;
+    @apply mx-auto w-full max-w-[1280px] px-5 sm:px-8 lg:px-12;
   }
 
-  .eyebrow {
-    @apply inline-flex items-center gap-2 font-mono text-[11px] font-medium uppercase tracking-label text-volt-300;
+  .rule {
+    border-color: rgba(238, 241, 245, 0.1);
   }
 
-  .glass {
-    background: linear-gradient(180deg, rgba(20, 30, 52, 0.62), rgba(10, 16, 32, 0.55));
-    border: 1px solid rgba(160, 190, 255, 0.1);
-    -webkit-backdrop-filter: blur(18px) saturate(140%);
-    backdrop-filter: blur(18px) saturate(140%);
-  }
-
-  .hairline {
-    border-color: rgba(160, 190, 255, 0.09);
-  }
-
-  .text-gradient {
-    background: linear-gradient(100deg, #ffffff 0%, #b7cfff 35%, #4de8fa 70%, #ffffff 100%);
-    background-size: 200% auto;
-    -webkit-background-clip: text;
-    background-clip: text;
-    color: transparent;
-  }
-
-  /* Card with a radial glow that follows the cursor (see useSpotlight). */
-  .spotlight {
-    position: relative;
-    isolation: isolate;
-  }
-  .spotlight::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    border-radius: inherit;
-    padding: 1px;
-    background: radial-gradient(
-      420px circle at var(--mx, 50%) var(--my, -30%),
-      var(--spot-border, rgba(77, 232, 250, 0.55)),
-      transparent 45%
-    );
-    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
-    -webkit-mask-composite: xor;
-    mask-composite: exclude;
-    opacity: var(--spot-o, 0);
-    transition: opacity 400ms ease;
-    pointer-events: none;
-    z-index: 2;
-  }
-  .spotlight::after {
-    content: '';
-    position: absolute;
-    inset: 0;
-    border-radius: inherit;
-    background: radial-gradient(
-      560px circle at var(--mx, 50%) var(--my, -30%),
-      var(--spot-fill, rgba(47, 111, 245, 0.13)),
-      transparent 40%
-    );
-    opacity: var(--spot-o, 0);
-    transition: opacity 400ms ease;
-    pointer-events: none;
-    z-index: 0;
-  }
-
+  /* Primary action: a solid petal-orange field with a real, offset shadow. */
   .btn-primary {
-    @apply relative inline-flex h-12 items-center justify-center gap-2 overflow-hidden rounded-full px-6 text-[15px] font-semibold text-ink-950 transition-[box-shadow,transform] duration-300;
-    background: linear-gradient(180deg, #ffffff, #d6e4ff);
-    box-shadow:
-      0 0 0 1px rgba(255, 255, 255, 0.4) inset,
-      0 10px 40px -10px rgba(77, 232, 250, 0.55),
-      0 0 60px -15px rgba(47, 111, 245, 0.8);
+    @apply relative inline-flex min-h-[48px] items-center justify-center gap-2.5 rounded-full bg-orange px-6 text-[16px] font-semibold text-night transition-[background-color,transform] duration-300 ease-out-expo;
+    box-shadow: 0 10px 24px -12px rgba(242, 152, 57, 0.55), 0 2px 4px rgba(0, 0, 0, 0.3);
   }
   .btn-primary:hover {
-    box-shadow:
-      0 0 0 1px rgba(255, 255, 255, 0.6) inset,
-      0 14px 50px -8px rgba(77, 232, 250, 0.7),
-      0 0 80px -10px rgba(47, 111, 245, 0.9);
+    @apply bg-orange-ink;
+    transform: translateY(-1px);
+  }
+  .btn-primary:active {
+    transform: translateY(0);
   }
 
-  .btn-ghost {
-    @apply inline-flex h-12 items-center justify-center gap-2 rounded-full border px-6 text-[15px] font-medium text-mist-100 transition-colors duration-300;
-    border-color: rgba(160, 190, 255, 0.18);
-    background: rgba(14, 22, 41, 0.4);
+  .btn-secondary {
+    @apply inline-flex min-h-[48px] items-center justify-center gap-2 rounded-full border px-6 text-[16px] font-medium text-paper transition-colors duration-300;
+    border-color: rgba(238, 241, 245, 0.22);
   }
-  .btn-ghost:hover {
-    border-color: rgba(160, 190, 255, 0.35);
-    background: rgba(20, 32, 58, 0.6);
+  .btn-secondary:hover {
+    border-color: rgba(238, 241, 245, 0.5);
+    background: rgba(238, 241, 245, 0.05);
+  }
+
+  .text-link {
+    @apply font-medium text-paper underline decoration-fog-400/60 underline-offset-[0.25em] transition-colors hover:decoration-orange;
   }
 
   .chip {
-    @apply inline-flex items-center rounded-full border px-3 py-1 text-xs font-medium text-mist-200;
-    border-color: rgba(160, 190, 255, 0.14);
-    background: rgba(14, 22, 41, 0.6);
+    @apply inline-flex items-center rounded-full border px-3 py-1 text-[13px] text-fog-200;
+    border-color: rgba(238, 241, 245, 0.14);
   }
 }
 
 @layer utilities {
-  .mask-fade-x {
-    -webkit-mask-image: linear-gradient(90deg, transparent, #000 12%, #000 88%, transparent);
-    mask-image: linear-gradient(90deg, transparent, #000 12%, #000 88%, transparent);
-  }
-  .mask-fade-b {
-    -webkit-mask-image: linear-gradient(180deg, #000 60%, transparent);
-    mask-image: linear-gradient(180deg, #000 60%, transparent);
-  }
   .preserve-3d {
     transform-style: preserve-3d;
   }
@@ -204,33 +154,46 @@ html.lenis body {
   }
 }
 
-/* Fixed film-grain overlay. A single static layer, so it costs nothing on scroll. */
+/* Very light film grain. One static fixed layer, so scrolling never repaints it. */
 .grain {
   position: fixed;
-  inset: -50%;
+  inset: 0;
   z-index: 60;
   pointer-events: none;
-  opacity: 0.05;
+  opacity: 0.035;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 1.4 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
 }
 
-/* Rotating conic border used by the featured project card. */
-.conic-border {
+/* Cursor-following light for the TISMUN card, tinted from its own palette. */
+.spotlight {
   position: relative;
   isolation: isolate;
 }
+.spotlight::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: radial-gradient(520px circle at var(--mx, 50%) var(--my, -30%), var(--spot-fill, rgba(255, 255, 255, 0.05)), transparent 45%);
+  opacity: var(--spot-o, 0);
+  transition: opacity 400ms ease;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* Rotating four-colour border on the TISMUN card (its own brand colours). */
 .conic-border::before {
   content: '';
   position: absolute;
-  inset: -1px;
+  inset: 0;
   border-radius: inherit;
   padding: 1px;
   background: conic-gradient(from var(--angle), var(--c1), var(--c2), var(--c3), var(--c4), var(--c1));
   -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
   -webkit-mask-composite: xor;
   mask-composite: exclude;
-  animation: border-spin 8s linear infinite;
-  opacity: 0.55;
+  animation: border-spin 10s linear infinite;
+  opacity: 0.5;
   transition: opacity 500ms ease;
   z-index: 1;
   pointer-events: none;
@@ -239,17 +202,7 @@ html.lenis body {
   opacity: 1;
 }
 
-@media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
-    animation-duration: 0.001ms !important;
-    animation-iteration-count: 1 !important;
-    scroll-behavior: auto !important;
-  }
-}
-
-/* TISMUN logo hover: continents pulse in turn, shine sweeps the sphere. */
+/* TISMUN logo hover: continents brighten in turn, a shine crosses the sphere. */
 .tm-c {
   transition: filter 400ms ease;
 }
@@ -261,7 +214,7 @@ html.lenis body {
 .group:hover .tm-c4 { animation-delay: 0.45s; }
 @keyframes tm-pulse {
   0%, 100% { filter: brightness(1) saturate(1); }
-  50% { filter: brightness(1.18) saturate(1.25); }
+  50% { filter: brightness(1.15) saturate(1.2); }
 }
 .tm-shine {
   transform-box: view-box;
@@ -272,4 +225,14 @@ html.lenis body {
 @keyframes tm-shine {
   from { translate: 0 0; }
   to { translate: 820px 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+  }
 }
