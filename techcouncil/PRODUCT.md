@@ -8,7 +8,7 @@ TIS students (secondary), teachers and staff, parents. They know the campus firs
 
 ## What the site must do
 1. Say in one line what the council is and why it matters.
-2. Prove it with real work: TISMUN 2026 (conference platform, Oct 15–16 2026, Tashkent time UTC+5). Upcoming: Telegram bot, air quality monitor, student feedback site.
+2. Prove it with real work: TISMUN 2026 (conference platform, Oct 15–16 2026, Tashkent time UTC+5).
 3. Get suggestions into the private suggestion box (never shown publicly; read at /admin).
 
 ## Brand commitments

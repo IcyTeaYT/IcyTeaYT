@@ -13,15 +13,13 @@ interface Props {
   className?: string;
   /** Per-word class, e.g. to gradient one word. */
   wordClass?: (word: string, index: number) => string | undefined;
-  /** Rendered inside the last word's no-wrap box, e.g. a text cursor. */
-  suffix?: ReactNode;
 }
 
 /**
  * Text that rises out of a mask piece by piece. The full string is exposed to
  * assistive tech once; the animated pieces are aria-hidden.
  */
-export function SplitText({ text, by = 'word', delay = 0, stagger, play = true, className, wordClass, suffix }: Props) {
+export function SplitText({ text, by = 'word', delay = 0, stagger, play = true, className, wordClass }: Props) {
   const reduce = useReducedMotion();
   const words = text.split(' ');
   const step = stagger ?? (by === 'word' ? 0.07 : 0.028);
@@ -55,7 +53,7 @@ export function SplitText({ text, by = 'word', delay = 0, stagger, play = true, 
           return (
             <span key={wi} className={`inline-block whitespace-nowrap ${by === 'char' ? (wordClass?.(word, wi) ?? '') : ''}`}>
               {pieces}
-              {wi < words.length - 1 ? <span className="inline-block">&nbsp;</span> : suffix}
+              {wi < words.length - 1 && <span className="inline-block">&nbsp;</span>}
             </span>
           );
         })}

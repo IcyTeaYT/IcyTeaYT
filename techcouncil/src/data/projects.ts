@@ -1,7 +1,8 @@
 // Every project on the site is defined here.
 //
 // - `featured` shows the large card with countdown and detail view.
-// - `pipeline` shows the dimmed "In the pipeline" cards (not clickable).
+// - `pipeline` shows a dimmed "In the pipeline" card (not clickable). The row
+//   only appears once at least one pipeline project is listed here.
 // - `accent` colours are used only inside that project's card, so each project
 //   keeps its own brand inside the Tech Council site.
 
@@ -66,42 +67,6 @@ export const projects: Project[] = [
     link: '',
     accent: { navy: '#2D3748', primary: '#E89A3C', secondary: '#8B2332', tertiary: '#2A7C74' },
     featured: true,
-  },
-  {
-    id: 'telegram-bot',
-    name: 'Telegram bot',
-    tagline: 'Announcements, schedules and reminders, right inside Telegram.',
-    description: '',
-    features: [],
-    status: 'pipeline',
-    stack: [],
-    link: '',
-    accent: { navy: '#0E1629', primary: '#4DE8FA', secondary: '#2F6FF5', tertiary: '#8AB2FF' },
-    icon: 'bot',
-  },
-  {
-    id: 'air-quality',
-    name: 'Air quality monitor',
-    tagline: 'Live CO₂ and PM2.5 readings from classrooms around campus.',
-    description: '',
-    features: [],
-    status: 'pipeline',
-    stack: [],
-    link: '',
-    accent: { navy: '#0E1629', primary: '#4DE8FA', secondary: '#2F6FF5', tertiary: '#8AB2FF' },
-    icon: 'air',
-  },
-  {
-    id: 'feedback',
-    name: 'Student feedback site',
-    tagline: 'A simple, anonymous way to tell the school what’s working.',
-    description: '',
-    features: [],
-    status: 'pipeline',
-    stack: [],
-    link: '',
-    accent: { navy: '#0E1629', primary: '#4DE8FA', secondary: '#2F6FF5', tertiary: '#8AB2FF' },
-    icon: 'feedback',
   },
 ];
 

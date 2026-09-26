@@ -1,9 +1,6 @@
 import { motion, useReducedMotion } from 'motion/react';
 
-/**
- * The TIS owl, drawn in the council's petal colours: petal-shaped wings in
- * teal and cyan, orange eyes and beak. Blinks every few seconds.
- */
+/** Geometric take on the TIS owl mascot. Blinks every few seconds. */
 export function Owl({ className }: { className?: string }) {
   const reduce = useReducedMotion();
   const blink = reduce
@@ -11,21 +8,25 @@ export function Owl({ className }: { className?: string }) {
     : { scaleY: [1, 1, 0.1, 1, 1], transition: { duration: 4.2, times: [0, 0.9, 0.93, 0.96, 1], repeat: Infinity } };
   return (
     <svg viewBox="0 0 64 64" className={className} aria-hidden="true">
-      <path d="M14 12 L23 21 L41 21 L50 12 L52 36 C52 50 43 58 32 58 C21 58 12 50 12 36 Z" fill="#EEF1F5" />
-      {/* Wings: two petals from the mark */}
-      <path d="M12 56C12 45 18 37 27 35c0 11-6 19-15 21Z" fill="#07686E" />
-      <path d="M52 56C52 45 46 37 37 35c0 11 6 19 15 21Z" fill="#0897B6" />
-      <circle cx="24" cy="31" r="8" fill="#0A0F17" />
-      <circle cx="40" cy="31" r="8" fill="#0A0F17" />
-      <motion.g style={{ transformOrigin: '24px 31px' }} animate={blink}>
-        <circle cx="24" cy="31" r="4" fill="#F29839" />
-        <circle cx="25.3" cy="29.7" r="1.2" fill="#fff" />
+      <defs>
+        <linearGradient id="owl-body" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stopColor="#5B91FF" />
+          <stop offset="1" stopColor="#1F56D6" />
+        </linearGradient>
+      </defs>
+      <path d="M14 14 L22 22 L42 22 L50 14 L52 36 C52 50 43 58 32 58 C21 58 12 50 12 36 Z" fill="url(#owl-body)" />
+      <path d="M22 44 C26 48 38 48 42 44 C40 52 24 52 22 44 Z" fill="#8AB2FF" opacity="0.5" />
+      <circle cx="24" cy="32" r="8.5" fill="#04060C" />
+      <circle cx="40" cy="32" r="8.5" fill="#04060C" />
+      <motion.g style={{ transformOrigin: '24px 32px' }} animate={blink}>
+        <circle cx="24" cy="32" r="4.2" fill="#4DE8FA" />
+        <circle cx="25.4" cy="30.6" r="1.3" fill="#fff" />
       </motion.g>
-      <motion.g style={{ transformOrigin: '40px 31px' }} animate={blink}>
-        <circle cx="40" cy="31" r="4" fill="#F29839" />
-        <circle cx="41.3" cy="29.7" r="1.2" fill="#fff" />
+      <motion.g style={{ transformOrigin: '40px 32px' }} animate={blink}>
+        <circle cx="40" cy="32" r="4.2" fill="#4DE8FA" />
+        <circle cx="41.4" cy="30.6" r="1.3" fill="#fff" />
       </motion.g>
-      <path d="M29.5 38 L34.5 38 L32 42.5 Z" fill="#951E34" />
+      <path d="M29.5 38 L34.5 38 L32 42.5 Z" fill="#F29839" />
     </svg>
   );
 }

@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { MotionConfig } from 'motion/react';
 import { Intro } from './Intro';
 import { Navbar } from './Navbar';
@@ -11,9 +11,31 @@ import { SuggestionBox } from './sections/SuggestionBox';
 import { Footer } from './sections/Footer';
 import { IntroContext } from '@/lib/intro';
 import { prefersReducedMotion } from '@/lib/media';
-import { SmoothScrollProvider } from '@/lib/smoothScroll';
+import { SmoothScrollProvider, useSmoothScroll } from '@/lib/smoothScroll';
 
 const INTRO_KEY = 'tc-intro-seen';
+
+/**
+ * Opening a link like /#projects: the browser tries to jump before React has
+ * rendered the section, so it lands at the top. Jump once the page (and its
+ * fonts, which change the layout) is ready.
+ */
+function DeepLink() {
+  const { scrollTo } = useSmoothScroll();
+  useEffect(() => {
+    const hash = window.location.hash;
+    if (!/^#[\w-]+$/.test(hash)) return;
+    let cancelled = false;
+    const go = () => {
+      if (!cancelled && document.querySelector(hash)) scrollTo(hash, { immediate: true });
+    };
+    (document.fonts?.ready ?? Promise.resolve()).then(() => requestAnimationFrame(go));
+    return () => {
+      cancelled = true;
+    };
+  }, [scrollTo]);
+  return null;
+}
 
 function shouldPlayIntro() {
   if (prefersReducedMotion()) return false;
@@ -44,9 +66,10 @@ export function Home() {
     <MotionConfig reducedMotion="user">
       <SmoothScrollProvider>
         <IntroContext.Provider value={introDone}>
+          <DeepLink />
           <a
             href="#main"
-            className="fixed left-4 top-4 z-[90] -translate-y-24 rounded-full bg-white px-4 py-2 text-sm font-semibold text-night transition-transform focus:translate-y-0"
+            className="fixed left-4 top-4 z-[90] -translate-y-24 rounded-full bg-white px-4 py-2 text-sm font-semibold text-ink-950 transition-transform focus:translate-y-0"
           >
             Skip to content
           </a>
@@ -55,8 +78,8 @@ export function Home() {
           <main id="main">
             <Hero />
             <Marquee />
-            <Projects />
             <About />
+            <Projects />
             <Founders />
             <SuggestionBox />
           </main>

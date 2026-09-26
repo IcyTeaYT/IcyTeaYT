@@ -5,15 +5,12 @@ import { useSmoothScroll } from '@/lib/smoothScroll';
 import { EASE_OUT, SPRING_SNAPPY } from '@/lib/motion';
 import { useIntroDone } from '@/lib/intro';
 
-// Order follows the page: proof (Projects) comes straight after the hero.
 const LINKS = [
-  { id: 'projects', label: 'Projects' },
   { id: 'about', label: 'About' },
+  { id: 'projects', label: 'Projects' },
   { id: 'founders', label: 'Founders' },
   { id: 'suggestions', label: 'Suggestions' },
 ];
-
-const PETAL_KEYS = ['bg-orange', 'bg-teal-ink', 'bg-cyan', 'bg-maroon-ink'];
 
 function useActiveSection() {
   const [active, setActive] = useState<string | null>(null);
@@ -77,9 +74,9 @@ export function Navbar() {
           aria-label="Main"
           className="relative flex h-14 w-full items-center justify-between rounded-full border px-3 sm:px-4"
           animate={{
-            maxWidth: scrolled ? 860 : 1240,
-            backgroundColor: scrolled ? 'rgba(15,22,34,0.72)' : 'rgba(15,22,34,0)',
-            borderColor: scrolled ? 'rgba(238,241,245,0.12)' : 'rgba(238,241,245,0)',
+            maxWidth: scrolled ? 760 : 1240,
+            backgroundColor: scrolled ? 'rgba(10,16,32,0.62)' : 'rgba(10,16,32,0)',
+            borderColor: scrolled ? 'rgba(160,190,255,0.12)' : 'rgba(160,190,255,0)',
             boxShadow: scrolled ? '0 20px 50px -20px rgba(0,0,0,0.7)' : '0 0 0 0 rgba(0,0,0,0)',
           }}
           transition={{ duration: 0.6, ease: EASE_OUT }}
@@ -95,9 +92,9 @@ export function Navbar() {
             className="flex items-center gap-2.5 rounded-full py-1 pl-1 pr-2"
             aria-label="TIS Tech Council, back to top"
           >
-            <LogoMark className="h-8 w-8 text-paper" />
-            <span className="whitespace-nowrap font-display text-[15px] font-semibold tracking-tight text-paper">
-              TIS Tech Council
+            <LogoMark className="h-8 w-8 text-white" />
+            <span className="font-display text-[15px] font-semibold tracking-tight text-white">
+              TIS <span className="text-mist-300">Tech Council</span>
             </span>
           </a>
 
@@ -108,8 +105,8 @@ export function Navbar() {
                   href={`#${l.id}`}
                   onClick={go(l.id)}
                   aria-current={active === l.id ? 'true' : undefined}
-                  className={`relative z-10 flex min-h-[44px] items-center rounded-full px-4 text-[15px] font-medium transition-colors duration-300 ${
-                    active === l.id ? 'text-paper' : 'text-fog-200 hover:text-paper'
+                  className={`relative z-10 block rounded-full px-4 py-2 text-sm font-medium transition-colors duration-300 ${
+                    active === l.id ? 'text-white' : 'text-mist-300 hover:text-white'
                   }`}
                 >
                   {l.label}
@@ -117,25 +114,23 @@ export function Navbar() {
                 {active === l.id && (
                   <motion.span
                     layoutId="nav-active"
-                    className="absolute inset-x-3 bottom-1.5 h-[2px] rounded-full bg-orange"
+                    className="absolute inset-0 rounded-full border border-white/10 bg-white/[0.07]"
                     transition={SPRING_SNAPPY}
-                  />
+                  >
+                    <span className="absolute -bottom-px left-1/2 h-px w-6 -translate-x-1/2 bg-volt-400 shadow-[0_0_12px_2px_rgba(77,232,250,0.6)]" />
+                  </motion.span>
                 )}
               </li>
             ))}
           </ul>
 
-          <a href="#suggestions" onClick={go('suggestions')} className="hidden min-h-[44px] items-center whitespace-nowrap rounded-full bg-orange px-5 text-[15px] font-semibold text-night transition-colors duration-300 hover:bg-orange-ink md:inline-flex">
+          <a href="#suggestions" onClick={go('suggestions')} className="hidden h-9 items-center rounded-full bg-white px-4 text-sm font-semibold text-ink-950 transition-transform duration-300 hover:scale-[1.03] md:inline-flex">
             Suggest an idea
           </a>
 
-          <div className="flex items-center gap-2 md:hidden">
-          <a href="#suggestions" onClick={go('suggestions')} className="inline-flex min-h-[44px] items-center rounded-full bg-orange px-4 text-[15px] font-semibold text-night">
-            Suggest
-          </a>
           <button
             type="button"
-            className="relative flex h-11 w-11 items-center justify-center rounded-full border border-white/15"
+            className="relative flex h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-white/[0.04] md:hidden"
             aria-label={open ? 'Close menu' : 'Open menu'}
             aria-expanded={open}
             aria-controls="mobile-menu"
@@ -144,7 +139,6 @@ export function Navbar() {
             <motion.span className="absolute h-[1.5px] w-4 rounded bg-white" animate={open ? { rotate: 45, y: 0 } : { rotate: 0, y: -3.5 }} transition={SPRING_SNAPPY} />
             <motion.span className="absolute h-[1.5px] w-4 rounded bg-white" animate={open ? { rotate: -45, y: 0 } : { rotate: 0, y: 3.5 }} transition={SPRING_SNAPPY} />
           </button>
-          </div>
         </motion.nav>
       </motion.header>
 
@@ -152,13 +146,13 @@ export function Navbar() {
         {open && (
           <motion.div
             id="mobile-menu"
-            className="fixed inset-0 z-40 flex flex-col bg-night/95 px-6 pb-10 pt-28 backdrop-blur-xl md:hidden"
+            className="fixed inset-0 z-40 flex flex-col bg-ink-950/95 px-6 pb-10 pt-28 backdrop-blur-xl md:hidden"
             initial={{ clipPath: 'circle(0% at calc(100% - 44px) 40px)' }}
             animate={{ clipPath: 'circle(150% at calc(100% - 44px) 40px)' }}
             exit={{ clipPath: 'circle(0% at calc(100% - 44px) 40px)' }}
             transition={{ duration: 0.6, ease: EASE_OUT }}
           >
-            <ul className="flex flex-col gap-1">
+            <ul className="flex flex-col gap-2">
               {LINKS.map((l, i) => (
                 <motion.li
                   key={l.id}
@@ -167,20 +161,20 @@ export function Navbar() {
                   exit={{ opacity: 0, y: 10 }}
                   transition={{ duration: 0.5, ease: EASE_OUT, delay: 0.1 + i * 0.06 }}
                 >
-                  <a href={`#${l.id}`} onClick={go(l.id)} className="flex items-center gap-4 py-2 font-display text-5xl font-semibold tracking-display text-paper">
-                    <span aria-hidden className={`h-3 w-3 rotate-45 rounded-[3px] ${PETAL_KEYS[i % PETAL_KEYS.length]}`} />
+                  <a href={`#${l.id}`} onClick={go(l.id)} className="flex items-baseline gap-4 py-2 font-display text-5xl font-semibold tracking-tight text-white">
+                    <span className="font-mono text-xs text-mist-400">0{i + 1}</span>
                     {l.label}
                   </a>
                 </motion.li>
               ))}
             </ul>
             <motion.p
-              className="mt-auto text-[16px] font-medium text-fog-200"
+              className="mt-auto font-mono text-xs uppercase tracking-label text-mist-400"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.4 }}
             >
-              Challenge <span className="text-fog-400">|</span> Explore <span className="text-fog-400">|</span> Connect
+              Challenge <span className="text-volt-400">|</span> Explore <span className="text-volt-400">|</span> Connect
             </motion.p>
           </motion.div>
         )}
