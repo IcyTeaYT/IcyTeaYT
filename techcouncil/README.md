@@ -35,6 +35,27 @@ npm run pages:dev                       # builds, then serves site + API on http
 
 ## Deploying to Cloudflare Pages
 
+### One command
+
+From `techcouncil/`, with Cloudflare access set up (either `npx wrangler login`,
+or the `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` environment variables):
+
+```bash
+TC_ADMIN_PASSWORD='choose-a-strong-password' npm run cf:setup
+```
+
+`scripts/cloudflare-setup.mjs` creates or reuses the D1 database, writes its id
+into `wrangler.toml`, applies `schema.sql`, creates the Pages project, sets the
+`ADMIN_PASSWORD` and `IP_SALT` secrets, builds, deploys, and prints the live URL.
+It is safe to run again; leave `TC_ADMIN_PASSWORD` out to keep the current
+password. Commit `wrangler.toml` afterwards so the database id is saved.
+
+An API token needs two permissions: **Account › Cloudflare Pages › Edit** and
+**Account › D1 › Edit** (Cloudflare dashboard → My Profile → API Tokens →
+Create Custom Token).
+
+### Step by step
+
 All commands run from `techcouncil/`. Log in once with `npx wrangler login`.
 
 1. **Create the D1 database**

@@ -11,7 +11,8 @@
     "pages:dev": "npm run build && wrangler pages dev dist",
     "db:migrate:local": "wrangler d1 execute tis-tech-council --local --file=./schema.sql",
     "db:migrate:remote": "wrangler d1 execute tis-tech-council --remote --file=./schema.sql",
-    "deploy": "npm run build && wrangler pages deploy dist"
+    "deploy": "npm run build && wrangler pages deploy dist",
+    "cf:setup": "node scripts/cloudflare-setup.mjs"
   },
   "dependencies": {
     "@fontsource-variable/inter": "^5.3.0",
