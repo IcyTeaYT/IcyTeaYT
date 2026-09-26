@@ -1,0 +1,11 @@
+# Cloudflare Pages configuration for the TIS Tech Council site.
+# See README.md → "Deploying to Cloudflare Pages".
+name = "tis-tech-council"
+pages_build_output_dir = "./dist"
+compatibility_date = "2026-09-01"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "tis-tech-council"
+# Replace with the id printed by `npx wrangler d1 create tis-tech-council`.
+database_id = "00000000-0000-0000-0000-000000000000"

@@ -1,0 +1,3 @@
+# Copy to .dev.vars for local development with `npm run pages:dev`.
+ADMIN_PASSWORD=change-me
+IP_SALT=any-long-random-string
