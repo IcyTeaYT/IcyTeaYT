@@ -3,6 +3,10 @@ export interface Env {
   ADMIN_PASSWORD?: string;
   /** Secret mixed into IP hashes so they can't be reversed by brute force. */
   IP_SALT?: string;
+  /** Telegram bot that receives every new suggestion (secret). */
+  TELEGRAM_BOT_TOKEN?: string;
+  /** Chat the bot posts suggestions to (set in wrangler.toml). */
+  TELEGRAM_CHAT_ID?: string;
 }
 
 export function json(body: unknown, status = 200, headers: Record<string, string> = {}) {
