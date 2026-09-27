@@ -186,7 +186,11 @@ Notes:
 - `Committee ID` is the key joining the two tabs, and also the PDF filename.
   Keep it short and lowercase. This year's are `hrc-russian`, `hrc-1`,
   `hrc-2`, `sc`, `hsc-1`, `hsc-2`, `ga-2` and `ga-3`.
-- `Chairs` is one cell, names separated by semicolons.
+- `Chairs` does not need filling in: each committee's chairs are read from the
+  Users tab (Role `CHAIR` with that Committee ID; for the Emergency Session,
+  Emergency Role `CHAIR`), in the order they appear there, so the names shown
+  always match who can chair. The cell is only used for a committee with nobody
+  marked as its chair (names separated by semicolons).
 - `Country` is left blank for chairs and the Secretariat.
 - **Just type the country's name** — the flag is worked out from it. Formal UN
   names work too: "Russian Federation", "Viet Nam", "Republic of Korea",

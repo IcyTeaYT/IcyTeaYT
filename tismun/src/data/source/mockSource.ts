@@ -1,5 +1,6 @@
 import { conferenceStatus, isEmergency, type FocusMode, type ReleaseMode } from '@/config/emergency';
 import { accessFor } from '@/lib/access';
+import { withChairsFromUsers } from '@/lib/chairs';
 import { readJson, removeKey, writeJson } from '@/lib/storage';
 import committeeRowsJson from '../mock/committees.json';
 import userRowsJson from '../mock/users.json';
@@ -33,7 +34,8 @@ import type {
  */
 
 const userRows = userRowsJson as unknown as UserRow[];
-const committeeRows = committeeRowsJson as unknown as CommitteeRow[];
+// Chairs come from the users, exactly as the server does it.
+const committeeRows = withChairsFromUsers(committeeRowsJson as unknown as CommitteeRow[], userRows);
 
 const users: User[] = userRows.map(rowToUser);
 const byEmail = new Map(users.map((u) => [u.email, u]));
