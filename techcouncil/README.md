@@ -33,70 +33,46 @@ npm run db:migrate:local                # creates the tables in a local D1
 npm run pages:dev                       # builds, then serves site + API on http://localhost:8788
 ```
 
-## Deploying to Cloudflare Pages
+## Deploying to Cloudflare Pages (auto-redeploys on every push)
 
-### One command
+Same setup as the TISMUN site: Cloudflare is connected to the GitHub repo and
+rebuilds the site every time the production branch changes. Everything below
+is done in the Cloudflare dashboard, once.
 
-From `techcouncil/`, with Cloudflare access set up (either `npx wrangler login`,
-or the `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` environment variables):
+1. **Create the database.** Storage & Databases → **D1** → **Create database**,
+   name it `tis-tech-council`. Copy its **Database ID**.
+2. **Point the site at it.** Paste that ID into `techcouncil/wrangler.toml`
+   (`database_id = "..."`) and commit. The ID is not a secret.
+3. **Create the tables.** Open the database → **Console**, paste the contents
+   of `techcouncil/schema.sql`, and run it.
+4. **Connect the repo.** Workers & Pages → **Create** → **Pages** →
+   **Connect to Git** → pick `IcyTeaYT/IcyTeaYT`. Build settings:
 
-```bash
-TC_ADMIN_PASSWORD='choose-a-strong-password' npm run cf:setup
-```
+   | Setting | Value |
+   | --- | --- |
+   | Production branch | `master` |
+   | Framework preset | None (or Vite) |
+   | Build command | `npm run build` |
+   | Build output directory | `dist` |
+   | **Root directory** | `techcouncil` |
 
-`scripts/cloudflare-setup.mjs` creates or reuses the D1 database, writes its id
-into `wrangler.toml`, applies `schema.sql`, creates the Pages project, sets the
-`ADMIN_PASSWORD` and `IP_SALT` secrets, builds, deploys, and prints the live URL.
-It is safe to run again; leave `TC_ADMIN_PASSWORD` out to keep the current
-password. Commit `wrangler.toml` afterwards so the database id is saved.
+   The root directory matters: this project lives in a subfolder. The D1
+   binding (`DB`) is read from `wrangler.toml`, so there is nothing to add for it.
+5. **Add the secrets.** Pages project → **Settings** → **Variables and Secrets**
+   → add two **Secrets**: `ADMIN_PASSWORD` (the `/admin` password) and
+   `IP_SALT` (any long random string). Then **Deployments** → **Retry
+   deployment** once so they take effect.
 
-An API token needs two permissions: **Account › Cloudflare Pages › Edit** and
-**Account › D1 › Edit** (Cloudflare dashboard → My Profile → API Tokens →
-Create Custom Token).
+From then on every push to `master` rebuilds and redeploys automatically, and
+every other branch gets its own preview URL. Your site lives at
+`https://<project-name>.pages.dev`; add your own domain under **Custom domains**.
 
-### Step by step
+### Manual alternative (no auto-redeploy)
 
-All commands run from `techcouncil/`. Log in once with `npx wrangler login`.
-
-1. **Create the D1 database**
-
-   ```bash
-   npx wrangler d1 create tis-tech-council
-   ```
-
-   Copy the printed `database_id` into `wrangler.toml` (replace the zeros).
-
-2. **Run the migration** (creates `suggestions` and `rate_limits`)
-
-   ```bash
-   npm run db:migrate:remote
-   ```
-
-3. **Create the Pages project and deploy**
-
-   ```bash
-   npx wrangler pages project create tis-tech-council --production-branch main
-   npm run deploy
-   ```
-
-   The D1 binding (`DB`) is read from `wrangler.toml`.
-
-4. **Set the admin password** (and an IP-hash salt)
-
-   ```bash
-   npx wrangler pages secret put ADMIN_PASSWORD --project-name tis-tech-council
-   npx wrangler pages secret put IP_SALT --project-name tis-tech-council
-   ```
-
-   Then redeploy (`npm run deploy`) so the secrets take effect.
-
-5. Open `https://<your-project>.pages.dev/admin` and sign in with that password.
-
-**Git-connected deploys instead:** in the Cloudflare dashboard, Workers & Pages →
-Create → Pages → Connect to Git. Root directory `techcouncil`, build command
-`npm run build`, output directory `dist`. Under Settings → Bindings add a D1
-binding named `DB` pointing to `tis-tech-council`, and under Settings →
-Variables and Secrets add `ADMIN_PASSWORD` and `IP_SALT` as secrets.
+`npm run cf:setup` does the same setup from the terminal and uploads the site
+directly (needs `npx wrangler login`, or `CLOUDFLARE_API_TOKEN` and
+`CLOUDFLARE_ACCOUNT_ID`). A project created this way can't be connected to Git
+later, so use one method or the other, and redeploy with `npm run deploy`.
 
 ## How the suggestion box works
 
