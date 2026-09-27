@@ -60,7 +60,7 @@ is done in the Cloudflare dashboard, once.
    binding (`DB`) is read from `wrangler.toml`, so there is nothing to add for it.
 5. **Add the secrets.** Pages project → **Settings** → **Variables and Secrets**
    → add two **Secrets**: `ADMIN_PASSWORD` (the `/admin` password) and
-   `IP_SALT` (any long random string). Add a third, `TELEGRAM_BOT_TOKEN`
+   `IP_SALT` (any long random string). Add a third, `TELEGRAM_TOKEN`
    (from @BotFather), to get every suggestion sent to the council's Telegram
    chat (`TELEGRAM_CHAT_ID` in `wrangler.toml`). Then **Deployments** →
    **Retry deployment** once so they take effect.
@@ -84,7 +84,7 @@ later, so use one method or the other, and redeploy with `npm run deploy`.
 - Rate limit: 5 suggestions per IP per hour. Only a salted SHA-256 hash of the
   IP is stored, in a separate `rate_limits` table pruned after 24 hours.
 - Each new suggestion is also sent by the council's Telegram bot to the chat
-  in `TELEGRAM_CHAT_ID` (needs the `TELEGRAM_BOT_TOKEN` secret, and the chat
+  in `TELEGRAM_CHAT_ID` (needs the `TELEGRAM_TOKEN` secret, and the chat
   must have pressed Start on the bot once). If Telegram is down the suggestion
   is still saved.
 - Suggestions are never shown publicly. `/admin` posts the password to

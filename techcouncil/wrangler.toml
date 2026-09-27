@@ -11,6 +11,6 @@ database_name = "tis-tech-council"
 database_id = "b5670126-3c60-4da8-9cea-7ba2363e5e2a"
 
 # Every new suggestion is also sent to this Telegram chat. The bot token is a
-# secret: add TELEGRAM_BOT_TOKEN under Settings > Variables and Secrets.
+# secret: add TELEGRAM_TOKEN under Settings > Variables and Secrets.
 [vars]
 TELEGRAM_CHAT_ID = "-5423573762"
