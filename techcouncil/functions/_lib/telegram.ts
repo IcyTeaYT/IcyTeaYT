@@ -19,7 +19,10 @@ export async function notifyTelegram(
     .replace(/^["']|["']$/g, '')
     .replace(/^bot/i, '');
   const chatId = (env.TELEGRAM_CHAT_ID ?? '').trim();
-  if (!token || !chatId) return;
+  if (!token || !chatId) {
+    console.warn(`telegram skipped: ${!token ? 'no TELEGRAM_TOKEN / TELEGRAM_BOT_TOKEN secret in this deployment' : 'no TELEGRAM_CHAT_ID'}`);
+    return;
+  }
   const from = s.name || s.grade ? [s.name || 'No name', s.grade && `Grade ${s.grade}`].filter(Boolean).join(' · ') : 'Anonymous';
   const message = [
     `💡 <b>New suggestion</b>${s.id ? ` #${s.id}` : ''}`,
@@ -35,6 +38,7 @@ export async function notifyTelegram(
       body: JSON.stringify({ chat_id: chatId, text: message, parse_mode: 'HTML', disable_web_page_preview: true }),
     });
     if (!res.ok) console.error('telegram sendMessage failed', res.status, await res.text());
+    else console.log('telegram sent to chat', chatId);
   } catch (err) {
     console.error('telegram sendMessage failed', err);
   }
