@@ -3,7 +3,9 @@ export interface Env {
   ADMIN_PASSWORD?: string;
   /** Secret mixed into IP hashes so they can't be reversed by brute force. */
   IP_SALT?: string;
-  /** Telegram bot that receives every new suggestion (secret). */
+  /** Token of the Telegram bot that posts every new suggestion (secret). */
+  TELEGRAM_TOKEN?: string;
+  /** Older name for TELEGRAM_TOKEN, still accepted. */
   TELEGRAM_BOT_TOKEN?: string;
   /** Chat the bot posts suggestions to (set in wrangler.toml). */
   TELEGRAM_CHAT_ID?: string;
