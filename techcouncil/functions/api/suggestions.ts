@@ -1,4 +1,5 @@
 import { CATEGORY_IDS, GRADE_MAX, NAME_MAX, SUGGESTION_MAX, SUGGESTION_MIN, type CategoryId } from '../../src/data/categories';
+import { notifyTelegram } from '../_lib/telegram';
 import { ipHash, json, readJson, sameOrigin, isRateLimited, recordAttempt, type Env } from '../_lib/util';
 
 const RATE_LIMIT = 5; // suggestions per IP…
@@ -15,7 +16,7 @@ function clean(value: unknown, max: number) {
     .slice(0, max + 1);
 }
 
-export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
+export const onRequestPost: PagesFunction<Env> = async ({ request, env, waitUntil }) => {
   if (!sameOrigin(request)) return json({ ok: false, error: 'Cross-site requests are not allowed.' }, 403);
 
   const body = await readJson(request);
@@ -40,9 +41,11 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
     if (await isRateLimited(env.DB, hash, RATE_LIMIT, RATE_WINDOW)) {
       return json({ ok: false, error: 'You’ve sent a lot of ideas in the last hour. Please try again later.' }, 429, { 'Retry-After': '3600' });
     }
-    await env.DB.prepare('INSERT INTO suggestions (text, category, name, grade) VALUES (?1, ?2, ?3, ?4)')
+    const saved = await env.DB.prepare('INSERT INTO suggestions (text, category, name, grade) VALUES (?1, ?2, ?3, ?4)')
       .bind(text, category, name || null, grade || null)
       .run();
+    // Forward to the council's Telegram chat without making the sender wait.
+    waitUntil(notifyTelegram(env, { id: saved.meta.last_row_id ?? null, text, category, name, grade }));
     await recordAttempt(env.DB, hash);
     return json({ ok: true }, 201);
   } catch (err) {

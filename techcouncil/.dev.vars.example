@@ -1,3 +1,5 @@
 # Copy to .dev.vars for local development with `npm run pages:dev`.
 ADMIN_PASSWORD=change-me
 IP_SALT=any-long-random-string
+# Optional: forward suggestions to Telegram while testing locally.
+# TELEGRAM_BOT_TOKEN=123456:ABC...
