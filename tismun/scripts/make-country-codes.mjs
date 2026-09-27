@@ -86,7 +86,7 @@ const ALIASES = {
   MM: ['Myanmar', 'Burma'],
   CV: ['Cabo Verde', 'Cape Verde'],
   TL: ['Timor-Leste', 'East Timor'],
-  PS: ['State of Palestine', 'Palestine'],
+  PS: ['State of Palestine', 'Palestine', 'Палестина', 'Государство Палестина'],
   VA: ['Holy See', 'Vatican', 'Vatican City'],
   FM: ['Micronesia (Federated States of)', 'Federated States of Micronesia', 'Micronesia'],
   BN: ['Brunei Darussalam', 'Brunei'],
