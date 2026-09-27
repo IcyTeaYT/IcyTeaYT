@@ -30,7 +30,7 @@ const normalise = (name) =>
     .replace(/&/g, ' and ')
     .replace(/\bst\.?\s/g, 'saint ')
     .replace(/['’`.]/g, '')
-    .replace(/[^a-z0-9]+/g, ' ')
+    .replace(/[^a-z0-9\u0430-\u044f]+/g, ' ')
     .replace(/^the /, '')
     .trim();
 
@@ -49,15 +49,27 @@ for (const code of flags) {
   add(name.replace(/\s*\([^)]*\)\s*/g, ' '), code);
 }
 
+// Russian names too, for committees that work in Russian ("Германия", "Китай").
+const displayRu = new Intl.DisplayNames(['ru'], { type: 'region' });
+for (const code of flags) {
+  const name = displayRu.of(code.toUpperCase());
+  if (!name || name.toUpperCase() === code.toUpperCase()) continue;
+  add(name, code);
+  add(name.replace(/\s*\([^)]*\)\s*/g, ' '), code);
+}
+
 // Formal UN names and common alternatives.
 const ALIASES = {
-  RU: ['Russian Federation', 'Russia'],
+  RU: ['Russian Federation', 'Russia', 'Российская Федерация', 'Россия'],
   KR: ['Republic of Korea', 'South Korea', 'Korea'],
   KP: ["Democratic People's Republic of Korea", 'North Korea', 'DPRK'],
   VN: ['Viet Nam', 'Vietnam'],
   TR: ['Türkiye', 'Turkiye', 'Turkey'],
   CI: ["Côte d'Ivoire", 'Cote dIvoire', 'Ivory Coast'],
-  US: ['United States of America', 'United States', 'USA', 'US'],
+  US: ['United States of America', 'United States', 'USA', 'US', 'США', 'Соединённые Штаты Америки', 'Соединенные Штаты Америки'],
+  GB: ['Великобритания', 'Соединённое Королевство', 'Соединенное Королевство'],
+  // The Federal Republic's flag is today's German flag.
+  DE: ['West Germany', 'Federal Republic of Germany'],
   GB: ['United Kingdom of Great Britain and Northern Ireland', 'United Kingdom', 'UK', 'Great Britain', 'Britain'],
   IR: ['Iran (Islamic Republic of)', 'Islamic Republic of Iran', 'Iran'],
   SY: ['Syrian Arab Republic', 'Syria'],
@@ -127,7 +139,7 @@ export function normaliseCountry(name: string): string {
     .replace(/&/g, ' and ')
     .replace(/\\bst\\.?\\s/g, 'saint ')
     .replace(/['’\`.]/g, '')
-    .replace(/[^a-z0-9]+/g, ' ')
+    .replace(/[^a-z0-9\\u0430-\\u044f]+/g, ' ')
     .replace(/^the /, '')
     .trim();
 }
