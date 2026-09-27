@@ -42,14 +42,3 @@ export function LogoMark({ className, animate = false, title }: Props) {
     </svg>
   );
 }
-
-export function Wordmark({ className }: { className?: string }) {
-  return (
-    <span className={className}>
-      <LogoMark className="h-7 w-7 shrink-0 text-white" />
-      <span className="flex flex-col leading-none">
-        <span className="font-display text-[15px] font-semibold tracking-tight text-white">TIS Tech Council</span>
-      </span>
-    </span>
-  );
-}

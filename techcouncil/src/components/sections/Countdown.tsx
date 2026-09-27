@@ -4,7 +4,7 @@ import { EASE_OUT } from '@/lib/motion';
 
 type Phase = 'before' | 'during' | 'after';
 
-function useNow(intervalMs = 1000) {
+export function useNow(intervalMs = 1000) {
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
     const t = window.setInterval(() => setNow(Date.now()), intervalMs);
@@ -22,7 +22,7 @@ export function getPhase(now: number, start: string, end: string): Phase {
 function Digit({ value }: { value: string }) {
   const reduce = useReducedMotion();
   return (
-    <span className="relative inline-block h-[1em] w-[0.62em] overflow-hidden">
+    <span className="relative inline-block h-[1em] w-[0.6em] overflow-hidden">
       <AnimatePresence initial={false} mode="popLayout">
         <motion.span
           key={value}
@@ -39,16 +39,16 @@ function Digit({ value }: { value: string }) {
   );
 }
 
-function Unit({ value, label, pad = 2 }: { value: number; label: string; pad?: number }) {
-  const digits = String(value).padStart(pad, '0').split('');
+function Unit({ value, label }: { value: number; label: string }) {
+  const digits = String(value).padStart(2, '0').split('');
   return (
-    <div className="flex flex-col items-center">
-      <span className="flex font-display text-[clamp(1.9rem,4vw,2.75rem)] font-semibold leading-none tracking-tight text-white tabular">
+    <div className="flex flex-col">
+      <span className="flex text-[clamp(2.5rem,5vw,3.5rem)] font-light leading-none tracking-[-0.05em] tabular">
         {digits.map((d, i) => (
           <Digit key={digits.length - i} value={d} />
         ))}
       </span>
-      <span className="mt-2 font-mono text-[10px] uppercase tracking-label text-mist-400">{label}</span>
+      <span className="mt-2 text-caption text-fog">{label}</span>
     </div>
   );
 }
@@ -57,47 +57,36 @@ interface Props {
   start: string;
   end: string;
   timezoneLabel: string;
-  accent: string;
 }
 
 /** Live countdown to an event; switches to "Happening now" and then "complete". */
-export function Countdown({ start, end, timezoneLabel, accent }: Props) {
+export function Countdown({ start, end, timezoneLabel }: Props) {
   const now = useNow();
   const phase = getPhase(now, start, end);
 
   if (phase !== 'before') {
-    const live = phase === 'during';
     return (
-      <div className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3" role="status">
-        <span className="relative flex h-2.5 w-2.5">
-          {live && <span className="absolute inset-0 animate-ping rounded-full" style={{ background: accent }} />}
-          <span className="relative h-2.5 w-2.5 rounded-full" style={{ background: live ? accent : '#7C8AA8' }} />
-        </span>
-        <span className="font-display text-lg font-semibold text-white">{live ? 'Happening now' : 'Conference complete'}</span>
-      </div>
+      <p className="text-subheading font-light" role="status">
+        {phase === 'during' ? 'Happening now' : 'Conference complete'}
+      </p>
     );
   }
 
-  const diff = Math.max(0, Date.parse(start) - now);
-  const s = Math.floor(diff / 1000);
+  const s = Math.floor(Math.max(0, Date.parse(start) - now) / 1000);
   const days = Math.floor(s / 86400);
   const hours = Math.floor((s % 86400) / 3600);
   const mins = Math.floor((s % 3600) / 60);
-  const secs = s % 60;
 
   return (
     <div>
-      <p className="sr-only" aria-live="off">
+      <p className="sr-only">
         {days} days, {hours} hours and {mins} minutes until the conference ({timezoneLabel}).
       </p>
-      <div className="flex items-start gap-3 sm:gap-5" aria-hidden>
+      <div className="flex gap-8 sm:gap-10" aria-hidden>
         <Unit value={days} label="Days" />
-        <span className="font-display text-3xl leading-none text-mist-500">:</span>
         <Unit value={hours} label="Hours" />
-        <span className="font-display text-3xl leading-none text-mist-500">:</span>
-        <Unit value={mins} label="Min" />
-        <span className="font-display text-3xl leading-none text-mist-500">:</span>
-        <Unit value={secs} label="Sec" />
+        <Unit value={mins} label="Minutes" />
+        <Unit value={s % 60} label="Seconds" />
       </div>
     </div>
   );

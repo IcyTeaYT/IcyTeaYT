@@ -13,13 +13,6 @@ interface Suggestion {
   created_at: string;
 }
 
-const CATEGORY_TONE: Record<string, string> = {
-  network: 'bg-tis-400/15 text-tis-200 border-tis-400/30',
-  classroom: 'bg-amber-400/10 text-amber-200 border-amber-400/25',
-  apps: 'bg-volt-400/10 text-volt-300 border-volt-400/25',
-  campus: 'bg-emerald-400/10 text-emerald-200 border-emerald-400/25',
-  other: 'bg-white/5 text-mist-200 border-white/15',
-};
 
 function csvCell(v: string | number | null) {
   const s = v === null ? '' : String(v);
@@ -106,19 +99,18 @@ export default function Admin() {
 
   if (!authed) {
     return (
-      <main className="flex min-h-[100svh] items-center justify-center px-4">
-        <div aria-hidden className="pointer-events-none fixed left-1/2 top-1/3 h-[500px] w-[700px] -translate-x-1/2 rounded-full bg-[radial-gradient(closest-side,rgba(47,111,245,0.25),transparent)] blur-2xl" />
+      <main data-surface="light" className="flex min-h-[100svh] items-center justify-center bg-ash px-5 text-obsidian">
         <motion.form
           onSubmit={load}
-          className="glass relative w-full max-w-sm rounded-[28px] p-8"
+          className="w-full max-w-sm rounded-card bg-paper p-8"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.7, ease: EASE_OUT }}
         >
-          <LogoMark className="h-12 w-12 text-white" />
-          <h1 className="mt-6 text-2xl font-semibold tracking-tight text-white">Council admin</h1>
-          <p className="mt-1 text-sm text-mist-400">Enter the admin password to read suggestions.</p>
-          <label htmlFor="admin-password" className="mt-6 block text-xs font-medium text-mist-300">
+          <LogoMark className="h-12 w-12 text-obsidian" />
+          <h1 className="type-heading mt-6 text-heading-sm">Council admin</h1>
+          <p className="mt-2 text-body-sm text-graphite">Enter the admin password to read suggestions.</p>
+          <label htmlFor="admin-password" className="mt-6 block text-body-sm">
             Password
           </label>
           <input
@@ -129,18 +121,18 @@ export default function Admin() {
             autoFocus
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            className="mt-1.5 block h-11 w-full rounded-xl border border-white/10 bg-ink-950/60 px-3.5 text-[16px] text-white focus:border-volt-400/60 focus:outline-none focus:ring-4 focus:ring-volt-400/10"
+            className="mt-1.5 block h-12 w-full rounded-nav border border-line-light bg-paper px-4 text-body focus:border-obsidian focus:outline-none"
           />
           {error && (
-            <p role="alert" className="mt-3 text-sm text-red-300">
+            <p role="alert" className="mt-3 text-body-sm text-danger-light">
               {error}
             </p>
           )}
-          <button type="submit" disabled={loading || !password} className="btn-primary mt-6 w-full disabled:opacity-60">
+          <button type="submit" disabled={loading || !password} className="pill-solid-light mt-6 w-full disabled:opacity-50">
             {loading ? 'Checking…' : 'Unlock'}
           </button>
-          <a href="/" className="mt-5 block text-center text-xs text-mist-400 hover:text-white">
-            ← Back to site
+          <a href="/" className="mt-5 flex min-h-[44px] items-center justify-center text-body-sm text-graphite hover:text-obsidian">
+            Back to site
           </a>
         </motion.form>
       </main>
@@ -148,18 +140,18 @@ export default function Admin() {
   }
 
   return (
-    <main className="min-h-[100svh] pb-20">
-      <header className="sticky top-0 z-20 border-b hairline bg-ink-950/80 backdrop-blur-xl">
+    <main data-surface="light" className="min-h-[100svh] bg-paper pb-20 text-obsidian">
+      <header className="sticky top-0 z-20 border-b border-line-light bg-paper">
         <div className="container-x flex h-16 items-center justify-between gap-4">
-          <a href="/" className="flex items-center gap-2.5">
-            <LogoMark className="h-8 w-8 text-white" />
-            <span className="font-display font-semibold tracking-tight text-white">Suggestions</span>
+          <a href="/" className="flex items-center gap-3">
+            <LogoMark className="h-8 w-8 text-obsidian" />
+            <span className="text-body font-medium">Suggestions</span>
           </a>
           <div className="flex items-center gap-2">
-            <button type="button" onClick={() => load()} disabled={loading} className="btn-ghost h-9 px-4 text-sm">
+            <button type="button" onClick={() => load()} disabled={loading} className="pill-ghost min-h-[40px] px-4 text-body-sm">
               {loading ? 'Refreshing…' : 'Refresh'}
             </button>
-            <button type="button" onClick={() => exportCsv(visible)} disabled={visible.length === 0} className="h-9 rounded-full bg-white px-4 text-sm font-semibold text-ink-950 disabled:opacity-50">
+            <button type="button" onClick={() => exportCsv(visible)} disabled={visible.length === 0} className="pill-solid-light min-h-[40px] px-4 text-body-sm disabled:opacity-50">
               Export CSV
             </button>
             <button
@@ -169,7 +161,7 @@ export default function Admin() {
                 setPassword('');
                 setRows([]);
               }}
-              className="hidden h-9 rounded-full px-3 text-sm text-mist-400 hover:text-white sm:block"
+              className="hidden min-h-[40px] px-3 text-body-sm text-graphite hover:text-obsidian sm:block"
             >
               Sign out
             </button>
@@ -177,46 +169,44 @@ export default function Admin() {
         </div>
       </header>
 
-      <div className="container-x pt-10">
+      <div className="container-x pt-12">
         <div className="flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
           <div>
-            <h1 className="text-4xl font-semibold tracking-tight text-white">{rows.length} suggestions</h1>
-            <p className="mt-1 text-sm text-mist-400">Newest first. Only visible to the council.</p>
+            <h1 className="type-heading text-[44px]">{rows.length} suggestions</h1>
+            <p className="mt-1 text-body-sm text-graphite">Newest first. Only visible to the council.</p>
           </div>
           <input
             type="search"
-            placeholder="Search text or name…"
+            placeholder="Search text or name"
             aria-label="Search suggestions"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            className="h-10 w-full rounded-full border border-white/10 bg-ink-900 px-4 text-sm text-white placeholder:text-mist-500 focus:border-volt-400/60 focus:outline-none md:w-72"
+            className="h-11 w-full rounded-pill border border-line-light px-5 text-body-sm focus:border-obsidian focus:outline-none md:w-72"
           />
         </div>
 
-        <div className="mt-6 flex flex-wrap gap-2" role="group" aria-label="Filter by category">
+        <div className="mt-8 flex flex-wrap gap-2" role="group" aria-label="Filter by category">
           {[{ id: 'all', label: 'All' }, ...CATEGORIES].map((c) => (
             <button
               key={c.id}
               type="button"
               aria-pressed={filter === c.id}
               onClick={() => setFilter(c.id)}
-              className={`relative isolate rounded-full border px-4 py-1.5 text-sm transition-colors ${filter === c.id ? 'border-transparent text-ink-950' : 'border-white/10 text-mist-300 hover:text-white'}`}
+              className={`relative isolate min-h-[40px] rounded-pill border px-4 text-body-sm transition-colors ${filter === c.id ? 'border-obsidian text-paper' : 'border-line-light text-graphite hover:text-obsidian'}`}
             >
-              {filter === c.id && <motion.span layoutId="admin-filter" className="absolute inset-0 -z-10 rounded-full bg-white" transition={{ type: 'spring', stiffness: 400, damping: 34 }} />}
-              <span className="relative">
-                {c.label} <span className="opacity-60">{counts[c.id] ?? 0}</span>
-              </span>
+              {filter === c.id && <motion.span layoutId="admin-filter" className="absolute inset-0 -z-10 rounded-pill bg-obsidian" transition={{ type: 'spring', stiffness: 400, damping: 34 }} />}
+              {c.label} <span className="opacity-60">{counts[c.id] ?? 0}</span>
             </button>
           ))}
         </div>
 
         {error && (
-          <p role="alert" className="mt-6 rounded-xl border border-red-400/30 bg-red-500/10 px-4 py-3 text-sm text-red-200">
+          <p role="alert" className="mt-6 rounded-nav border border-danger-light/40 px-4 py-3 text-body-sm text-danger-light">
             {error}
           </p>
         )}
 
-        <ul className="mt-8 grid gap-3">
+        <ul className="mt-8 border-t border-line-light">
           <AnimatePresence initial={false}>
             {visible.map((r) => (
               <motion.li
@@ -226,29 +216,29 @@ export default function Admin() {
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0 }}
                 transition={{ duration: 0.3, ease: EASE_OUT }}
-                className="rounded-2xl border hairline bg-ink-900/70 p-5"
+                className="border-b border-line-light py-6"
               >
-                <div className="flex flex-wrap items-center gap-2 text-xs">
-                  <span className={`rounded-full border px-2.5 py-0.5 font-medium ${CATEGORY_TONE[r.category] ?? CATEGORY_TONE.other}`}>{categoryLabel(r.category)}</span>
-                  <span className="text-mist-400">{formatDate(r.created_at)}</span>
-                  <span className="text-mist-500">#{r.id}</span>
-                  <span className="ml-auto text-mist-300">
+                <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-body-sm text-graphite">
+                  <span className="rounded-pill border border-line-light px-3 py-0.5 text-obsidian">{categoryLabel(r.category)}</span>
+                  <span>{formatDate(r.created_at)}</span>
+                  <span>#{r.id}</span>
+                  <span className="ml-auto">
                     {r.name || r.grade ? (
                       <>
                         {r.name || 'No name'}
-                        {r.grade && <span className="text-mist-500"> · Grade {r.grade}</span>}
+                        {r.grade && <> · Grade {r.grade}</>}
                       </>
                     ) : (
-                      <span className="text-mist-500">Anonymous</span>
+                      'Anonymous'
                     )}
                   </span>
                 </div>
-                <p className="mt-3 whitespace-pre-wrap break-words text-[15px] leading-relaxed text-mist-100">{r.text}</p>
+                <p className="mt-3 whitespace-pre-wrap break-words text-body-lg">{r.text}</p>
               </motion.li>
             ))}
           </AnimatePresence>
         </ul>
-        {visible.length === 0 && <p className="mt-16 text-center text-mist-400">No suggestions here yet.</p>}
+        {visible.length === 0 && <p className="mt-16 text-center text-body text-graphite">No suggestions here yet.</p>}
       </div>
     </main>
   );

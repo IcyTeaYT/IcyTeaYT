@@ -3,6 +3,9 @@ import { MotionConfig } from 'motion/react';
 import { Intro } from './Intro';
 import { Navbar } from './Navbar';
 import { Hero } from './sections/Hero';
+import { Statement } from './sections/Statement';
+import { Faq } from './sections/Faq';
+import { AnnouncementBar, BAR_HEIGHT } from './AnnouncementBar';
 import { Marquee } from './sections/Marquee';
 import { About } from './sections/About';
 import { Projects } from './sections/Projects';
@@ -50,6 +53,8 @@ function shouldPlayIntro() {
 export function Home() {
   const [showIntro, setShowIntro] = useState(shouldPlayIntro);
   const [introDone, setIntroDone] = useState(!showIntro);
+  const [barOpen, setBarOpen] = useState(true);
+  const barHeight = barOpen ? BAR_HEIGHT : 0;
 
   const finishIntro = useCallback(() => {
     try {
@@ -69,22 +74,25 @@ export function Home() {
           <DeepLink />
           <a
             href="#main"
-            className="fixed left-4 top-4 z-[90] -translate-y-24 rounded-full bg-white px-4 py-2 text-sm font-semibold text-ink-950 transition-transform focus:translate-y-0"
+            className="fixed left-4 top-4 z-[90] -translate-y-24 rounded-pill bg-paper px-4 py-2 text-body-sm font-medium text-obsidian transition-transform focus:translate-y-0"
           >
             Skip to content
           </a>
           <Intro show={showIntro} onDone={finishIntro} />
-          <Navbar />
-          <main id="main">
+          {barOpen && <AnnouncementBar onClose={() => setBarOpen(false)} />}
+          <Navbar offset={barHeight} />
+          {/* Above the sticky footer, which is revealed as the page scrolls off it. */}
+          <main id="main" className="relative z-10" style={{ ['--bar' as string]: `${barHeight}px` }}>
             <Hero />
             <Marquee />
+            <Statement />
             <About />
             <Projects />
             <Founders />
             <SuggestionBox />
+            <Faq />
           </main>
           <Footer />
-          <div className="grain" aria-hidden />
         </IntroContext.Provider>
       </SmoothScrollProvider>
     </MotionConfig>
