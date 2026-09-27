@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, Navigate, useNavigate } from 'react-router-dom';
 import { GlobeLines } from '@/components/GlobeLines';
 import { HostedBy } from '@/components/HostedBy';
+import { PoweredBy } from '@/components/PoweredBy';
 import { Logo, Wordmark } from '@/components/Logo';
 import { Button } from '@/components/ui/Button';
 import { Select } from '@/components/ui/Field';
@@ -28,23 +29,7 @@ export function Login() {
   const [error, setError] = useState<string | null>(null);
   const googleSlot = useRef<HTMLDivElement>(null);
   const [google, setGoogle] = useState<'loading' | 'ready' | 'failed'>('loading');
-  const [testLogins, setTestLogins] = useState(false);
   const [googleAttempt, setGoogleAttempt] = useState(0);
-
-  // Shared test accounts, while the Secretariat has TEST_LOGINS switched on.
-  useEffect(() => {
-    if (isDemoMode) return;
-    let cancelled = false;
-    fetch('/api/test-login', { credentials: 'same-origin', headers: { Accept: 'application/json' } })
-      .then((response) => (response.ok ? (response.json() as Promise<{ enabled?: boolean }>) : null))
-      .then((body) => {
-        if (!cancelled) setTestLogins(Boolean(body?.enabled));
-      })
-      .catch(() => undefined);
-    return () => {
-      cancelled = true;
-    };
-  }, []);
 
   useEffect(() => {
     if (!isDemoMode || !dataSource.listDemoUsers) return;
@@ -130,28 +115,6 @@ export function Login() {
       setError('That account is not on the conference roster.');
       setSigningIn(false);
     }
-  };
-
-  const testSignIn = async (role: 'delegate' | 'chair' | 'secretariat') => {
-    setSigningIn(true);
-    setError(null);
-    try {
-      const response = await fetch('/api/test-login', {
-        method: 'POST',
-        credentials: 'same-origin',
-        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-        body: JSON.stringify({ role }),
-      });
-      if (response.ok) {
-        await restore();
-        navigate('/', { replace: true });
-        return;
-      }
-      setError('Test sign-in is switched off.');
-    } catch {
-      setError('Test sign-in could not reach the server.');
-    }
-    setSigningIn(false);
   };
 
   const groupLabel = (key: string): string =>
@@ -270,47 +233,6 @@ export function Login() {
             </p>
           ) : null}
 
-          {testLogins ? (
-            <div className="mt-9 border-t border-hairline pt-7">
-              <h3 className="label-micro sm:text-[13px]">Testing</h3>
-              <p className="mt-2 text-xs leading-relaxed text-muted sm:text-sm">
-                Try the site with a shared test account in GA 2. No Google sign-in needed.
-              </p>
-              <div className="mt-4 grid grid-cols-3 gap-2">
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  className="h-auto flex-col gap-1 whitespace-normal py-2 text-center leading-tight sm:py-3 sm:text-[15px]"
-                  disabled={signingIn}
-                  onClick={() => void testSignIn('delegate')}
-                >
-                  <Users size={16} strokeWidth={1.5} />
-                  Test Delegate
-                </Button>
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  className="h-auto flex-col gap-1 whitespace-normal py-2 text-center leading-tight sm:py-3 sm:text-[15px]"
-                  disabled={signingIn}
-                  onClick={() => void testSignIn('chair')}
-                >
-                  <Gavel size={16} strokeWidth={1.5} />
-                  Test Chair
-                </Button>
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  className="h-auto flex-col gap-1 whitespace-normal py-2 text-center leading-tight sm:py-3 sm:text-[15px]"
-                  disabled={signingIn}
-                  onClick={() => void testSignIn('secretariat')}
-                >
-                  <Landmark size={16} strokeWidth={1.5} />
-                  Test Secretariat
-                </Button>
-              </div>
-            </div>
-          ) : null}
-
           {isDemoMode ? (
             <div className="mt-9 border-t border-hairline pt-7">
               <div className="flex items-baseline justify-between gap-3">
@@ -397,6 +319,7 @@ export function Login() {
               Privacy policy and terms
             </Link>
           </p>
+          <PoweredBy className="mt-5" />
         </motion.div>
       </div>
     </div>

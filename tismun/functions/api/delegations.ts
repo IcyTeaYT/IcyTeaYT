@@ -2,7 +2,6 @@ import { fail, json, requireEnv, type Env } from './_lib/env';
 import { allDelegations, emergencyRoleOf } from './_lib/emergency';
 import { currentUser } from './_lib/session';
 import { readUsers } from './_lib/sheets';
-import { withTestAccounts } from './_lib/testLogins';
 
 /**
  * GET /api/delegations — every Emergency Session delegation, by country.
@@ -22,5 +21,5 @@ export const onRequestGet: PagesFunction<Env> = async ({ request, env }) => {
     return fail('Only the Emergency Session chairs and the Secretariat can see every delegation.', 403);
   }
 
-  return json(allDelegations(withTestAccounts(env, await readUsers(env))));
+  return json(allDelegations(await readUsers(env)));
 };
