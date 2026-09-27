@@ -1,0 +1,134 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    background: #000;
+    color: #fff;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    -webkit-tap-highlight-color: transparent;
+    font-feature-settings: 'cv11', 'ss01';
+  }
+
+  body {
+    @apply bg-obsidian font-sans text-body text-paper;
+    overflow-x: clip;
+  }
+
+  ::selection {
+    background: #fff;
+    color: #000;
+  }
+  [data-surface='light'] ::selection {
+    background: #000;
+    color: #fff;
+  }
+
+  :focus-visible {
+    outline: 2px solid currentColor;
+    outline-offset: 3px;
+    border-radius: 8px;
+  }
+
+  h1,
+  h2,
+  h3 {
+    text-wrap: balance;
+  }
+  p {
+    text-wrap: pretty;
+  }
+}
+
+/* Lenis */
+html.lenis,
+html.lenis body {
+  height: auto;
+}
+.lenis.lenis-smooth {
+  scroll-behavior: auto !important;
+}
+.lenis.lenis-stopped {
+  overflow: hidden;
+}
+
+@layer components {
+  .container-x {
+    @apply mx-auto w-full max-w-[1200px] px-5 sm:px-8;
+  }
+
+  /* Whisper-light display type: weight 300, tight tracking. */
+  .type-display {
+    font-weight: 300;
+    line-height: 1;
+    letter-spacing: -0.06em;
+  }
+  .type-heading {
+    font-weight: 300;
+    line-height: 1.12;
+    letter-spacing: -0.055em;
+  }
+
+  /* Pill buttons. Colour follows the surface via currentColor. */
+  .pill {
+    @apply inline-flex min-h-[48px] items-center justify-center gap-3 rounded-pill border px-6 text-body transition-colors duration-300;
+  }
+  .pill-ghost {
+    @apply pill border-current bg-transparent;
+  }
+  [data-surface='dark'] .pill-ghost:hover,
+  .on-dark .pill-ghost:hover {
+    @apply bg-paper text-obsidian;
+    border-color: #fff;
+  }
+  [data-surface='light'] .pill-ghost:hover {
+    @apply bg-obsidian text-paper;
+    border-color: #000;
+  }
+  .pill-solid-dark {
+    @apply pill border-paper bg-paper font-medium text-obsidian hover:bg-ash;
+  }
+  .pill-solid-light {
+    @apply pill border-obsidian bg-obsidian font-medium text-paper hover:bg-graphite hover:border-graphite;
+  }
+}
+
+@layer utilities {
+  .tabular {
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* TISMUN logo hover: continents brighten in turn, a shine crosses the sphere. */
+.group:hover .tm-c {
+  animation: tm-pulse 2.4s ease-in-out infinite;
+}
+.group:hover .tm-c2 { animation-delay: 0.15s; }
+.group:hover .tm-c3 { animation-delay: 0.3s; }
+.group:hover .tm-c4 { animation-delay: 0.45s; }
+@keyframes tm-pulse {
+  0%, 100% { filter: brightness(1) saturate(1); }
+  50% { filter: brightness(1.15) saturate(1.2); }
+}
+.tm-shine {
+  transform-box: view-box;
+}
+.group:hover .tm-shine {
+  animation: tm-shine 1.6s cubic-bezier(0.65, 0, 0.35, 1) 1;
+}
+@keyframes tm-shine {
+  from { translate: 0 0; }
+  to { translate: 820px 0; }
+}

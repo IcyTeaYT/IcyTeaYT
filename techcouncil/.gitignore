@@ -1,0 +1,8 @@
+node_modules
+dist
+.wrangler
+.dev.vars
+*.local
+.impeccable/live/
+.impeccable/config.local.json
+.impeccable/review/
