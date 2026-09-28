@@ -32,7 +32,7 @@ function Portrait({ founder, index, large = false }: { founder: Founder; index: 
           decoding="async"
           onLoad={() => setLoaded(true)}
           onError={() => setFailed(true)}
-          className="absolute inset-0 h-full w-full object-cover transition-[opacity,transform] duration-700 ease-out-expo group-hover:scale-[1.03]"
+          className="absolute inset-0 h-full w-full object-cover object-[50%_20%] transition-[opacity,transform] duration-700 ease-out-expo group-hover:scale-[1.03]"
           style={{ opacity: loaded ? 1 : 0 }}
         />
       )}
@@ -114,7 +114,7 @@ function FounderModal({ founder, index, onClose }: { founder: Founder; index: nu
           >
             {founder.tagline && <p className="mt-4 text-body-lg">{founder.tagline}</p>}
             <div className="my-8 h-px bg-line-light" />
-            <p className={`text-body-lg ${pending ? 'text-graphite' : ''}`}>{pending ? 'Bio coming soon.' : founder.bio}</p>
+            <p className={`whitespace-pre-line text-body-lg ${pending ? 'text-graphite' : ''}`}>{pending ? 'Bio coming soon.' : founder.bio}</p>
             {founder.links && founder.links.length > 0 && (
               <ul className="mt-8 flex flex-wrap gap-3">
                 {founder.links.map((l) => (
