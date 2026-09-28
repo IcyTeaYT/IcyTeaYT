@@ -15,6 +15,7 @@ uniform vec2 uRes;
 uniform float uTime;
 uniform vec2 uMouse;
 uniform float uMouseOn;
+uniform float uDpr;
 
 float hash(vec2 p){ return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
 float noise(vec2 p){
@@ -40,14 +41,15 @@ void main(){
 
   float lines = 46.0;
   float dist = abs(fract(y * lines) - 0.5);
-  float th = 1.1 / (uRes.y / lines);
+  // ~2 CSS px wide at any pixel ratio, so desktop lines read as clearly as on phones.
+  float th = (2.0 / uDpr) / (uRes.y / lines);
   float line = 1.0 - smoothstep(th * 0.5, th * 1.6, 0.5 - dist);
 
   // Brightest top-right, fading toward the lower-left where the headline sits.
   float mask = smoothstep(0.0, 1.0, uv.x * 0.8 + uv.y * 0.7 - 0.2);
   float shimmer = 0.35 + 0.65 * noise(vec2(p.x * 3.0 - t * 2.0, y * 6.0));
   float glow = uMouseOn * exp(-d * d * 10.0) * 0.45;
-  float a = line * (0.06 + 0.3 * mask * shimmer + glow);
+  float a = line * (0.16 + 0.4 * mask * shimmer + glow);
 
   gl_FragColor = vec4(vec3(1.0), a);
 }
@@ -87,10 +89,12 @@ export default function WaveField({ reduce }: { reduce: boolean }) {
     const uTime = gl.getUniformLocation(prog, 'uTime');
     const uMouse = gl.getUniformLocation(prog, 'uMouse');
     const uMouseOn = gl.getUniformLocation(prog, 'uMouseOn');
+    const uDpr = gl.getUniformLocation(prog, 'uDpr');
 
     const fine = window.matchMedia('(hover: hover) and (pointer: fine)').matches;
     const dpr = Math.min(window.devicePixelRatio || 1, 1.5);
     const mouse = { x: 0.7, y: 0.6, tx: 0.7, ty: 0.6, on: 0, ton: 0 };
+    let hovering = false;
 
     const resize = () => {
       const r = canvas.getBoundingClientRect();
@@ -98,14 +102,15 @@ export default function WaveField({ reduce }: { reduce: boolean }) {
       canvas.height = Math.max(1, Math.round(r.height * dpr));
       gl.viewport(0, 0, canvas.width, canvas.height);
       gl.uniform2f(uRes, canvas.width, canvas.height);
+      gl.uniform1f(uDpr, dpr);
     };
 
     const start = performance.now();
     let raf = 0;
     let running = false;
     const draw = (now: number) => {
-      if (!fine) {
-        // Touch: a slow wandering swell keeps the field alive.
+      if (!hovering) {
+        // No cursor over the hero (or touch): a slow wandering swell keeps the field alive.
         const s = now / 1000;
         mouse.tx = 0.55 + 0.3 * Math.sin(s * 0.25);
         mouse.ty = 0.6 + 0.25 * Math.sin(s * 0.33 + 1);
@@ -153,7 +158,8 @@ export default function WaveField({ reduce }: { reduce: boolean }) {
       const r = canvas.getBoundingClientRect();
       mouse.tx = (e.clientX - r.left) / r.width;
       mouse.ty = 1 - (e.clientY - r.top) / r.height;
-      mouse.ton = e.clientY >= r.top && e.clientY <= r.bottom ? 1 : 0;
+      hovering = e.clientY >= r.top && e.clientY <= r.bottom;
+      mouse.ton = 1;
     };
     if (fine) window.addEventListener('pointermove', onMove, { passive: true });
     play();
