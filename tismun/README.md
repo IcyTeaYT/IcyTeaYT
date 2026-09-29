@@ -235,7 +235,13 @@ the browser cannot reach them:
 Papers live in `public/papers/` and are named `<committee-id>.pdf`, matching the
 `Background Paper URL` column (`/papers/unsc.pdf`).
 
-**To publish a real paper:** drop the PDF into `public/papers/`, named after the
+**One paper per topic:** put the PDFs in `public/papers/` as
+`<committee-id>-topic-1.pdf` / `-topic-2.pdf` and list them in
+`src/config/papers.ts`. That committee then shows a Topic 1 and a Topic 2 paper
+(a switch on its page, a row each on the cards); committees not listed there
+keep the single paper below.
+
+**To publish a single real paper:** drop the PDF into `public/papers/`, named after the
 committee ID, replacing the placeholder. Commit and push — Pages redeploys.
 
 **To host papers elsewhere** (Google Drive, for instance), put the full URL in

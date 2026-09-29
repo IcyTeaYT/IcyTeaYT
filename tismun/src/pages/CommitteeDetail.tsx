@@ -1,5 +1,6 @@
 import { motion } from 'framer-motion';
 import { ArrowLeft, Download, ExternalLink, Gavel, MapPin } from 'lucide-react';
+import { useState } from 'react';
 import { Link, Navigate, useParams } from 'react-router-dom';
 import { PageContainer } from '@/components/AppShell';
 import { Badge } from '@/components/ui/Badge';
@@ -14,6 +15,8 @@ import {
 import { LockedTopic } from '@/components/emergency/ReleaseCountdown';
 import { COPY } from '@/config/conference';
 import { emergencySession, isEmergency } from '@/config/emergency';
+import { cn } from '@/lib/cn';
+import { papersOf } from '@/lib/papers';
 import { emergencyOnly, isSecretariat, useAuth } from '@/store/auth';
 import { useCommittee, useConference } from '@/store/conference';
 import { useConferenceStatus } from '@/store/conferenceStatus';
@@ -30,6 +33,7 @@ export function CommitteeDetail() {
   const seesAllDelegations =
     emergency && (user?.emergency?.role === 'CHAIR' || isSecretariat(user));
   const { delegation } = useMyDelegation(emergencyDelegate);
+  const [paperIndex, setPaperIndex] = useState(0);
 
   // From Day 2, Emergency Session members see only the Emergency Session.
   if (!emergency && emergencyOnly(user, day2)) {
@@ -65,7 +69,9 @@ export function CommitteeDetail() {
       ? 'Your committee today'
       : 'Your Day 2 committee'
     : COPY.committees.yourCommittee;
-  const url = committee.backgroundPaperUrl;
+  const papers = papersOf(committee);
+  const paper = papers[Math.min(paperIndex, papers.length - 1)] ?? null;
+  const url = paper?.url ?? '';
   const topics = committee.topics.filter(Boolean);
 
   return (
@@ -118,9 +124,17 @@ export function CommitteeDetail() {
             </Card>
           ) : (
             <Card>
+              {/* On a phone the buttons drop below the (long) topic title. */}
               <CardHeader
-                label="Background paper"
-                title={committee.abbreviation}
+                className="flex-col items-stretch gap-3 sm:flex-row sm:items-start sm:gap-4"
+                label={paper?.topic ? `${paper.label} background paper` : 'Background paper'}
+                title={
+                  paper?.topic ? (
+                    <h2 className="font-serif text-lg leading-snug text-ink-900">{paper.topic}</h2>
+                  ) : (
+                    committee.abbreviation
+                  )
+                }
                 action={
                   url ? (
                     <>
@@ -146,11 +160,37 @@ export function CommitteeDetail() {
                   ) : null
                 }
               />
+              {papers.length > 1 ? (
+                <div
+                  role="tablist"
+                  aria-label="Background papers"
+                  className="flex gap-1.5 border-b border-hairline px-5 py-2.5"
+                >
+                  {papers.map((entry, index) => (
+                    <button
+                      key={entry.url}
+                      type="button"
+                      role="tab"
+                      aria-selected={entry === paper}
+                      onClick={() => setPaperIndex(index)}
+                      className={cn(
+                        'rounded-full px-3 py-1 text-xs font-medium transition-colors duration-200',
+                        entry === paper
+                          ? 'bg-ink-800 text-white'
+                          : 'bg-ink-50 text-muted hover:bg-ink-100 hover:text-ink-700',
+                      )}
+                    >
+                      {entry.label}
+                    </button>
+                  ))}
+                </div>
+              ) : null}
               {url ? (
                 <div className="h-[560px] bg-ink-50 sm:h-[720px]">
                   <iframe
                     src={`${url}#view=FitH`}
-                    title={`${committee.name} — background paper`}
+                    key={url}
+                    title={`${committee.name} — ${paper?.topic ? `${paper.label} background paper` : 'background paper'}`}
                     className="h-full w-full border-0"
                   />
                 </div>
