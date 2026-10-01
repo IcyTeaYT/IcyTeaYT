@@ -24,13 +24,16 @@ const LINE = '#0897B6';
 const STATIONS = [
   { id: 'mission', en: 'Mission', uz: 'Missiya' },
   { id: 'about', en: 'About', uz: 'Biz haqimizda' },
-  { id: 'projects', en: 'TISMUN', uz: 'Loyihalar' },
+  { id: 'projects', en: 'Projects', uz: 'Loyihalar' },
   { id: 'founders', en: 'Founders', uz: 'Asoschilar' },
   { id: 'suggestions', en: 'Ideas', uz: 'G‘oyalar' },
   { id: 'faq', en: 'Questions', uz: 'Savollar' },
 ] as const;
 type StationId = (typeof STATIONS)[number]['id'];
 const station = (id: StationId) => STATIONS.find((s) => s.id === id)!;
+/** The map starts at the platform, so the first ride visibly moves the train. */
+const MAP = [{ id: 'top', en: 'Start', uz: 'Boshlanish' } as const, ...STATIONS];
+type MapId = (typeof MAP)[number]['id'];
 
 function useGo() {
   const { scrollTo } = useSmoothScroll();
@@ -55,24 +58,26 @@ const brassBtn =
 /* The line map: navigation, and where the train is                    */
 /* ------------------------------------------------------------------ */
 
-function LineMap() {
+function LineMap({ compact = false }: { compact?: boolean }) {
   const go = useGo();
+  const { scrollTo } = useSmoothScroll();
   const reduce = useReducedMotion();
   const track = useRef<HTMLOListElement>(null);
   const train = useRef<HTMLSpanElement>(null);
-  const [here, setHere] = useState<StationId | null>(null);
+  const [here, setHere] = useState<MapId>('top');
   const { scrollY } = useScroll();
   const anchors = useRef<number[]>([]);
   const dots = useRef<number[]>([]);
 
   useEffect(() => {
     const measure = () => {
-      anchors.current = STATIONS.map((s) => {
+      anchors.current = MAP.map((s) => {
+        if (s.id === 'top') return 0;
         const el = document.getElementById(s.id);
         return el ? el.getBoundingClientRect().top + window.scrollY - window.innerHeight * 0.4 : 0;
       });
       const t = track.current;
-      if (t) {
+      if (t && t.offsetParent) {
         const base = t.getBoundingClientRect().left;
         dots.current = [...t.querySelectorAll<HTMLElement>('[data-dot]')].map((d) => d.getBoundingClientRect().left + d.offsetWidth / 2 - base);
       }
@@ -84,11 +89,10 @@ function LineMap() {
       if (!a.length || !d.length || !train.current) return;
       let i = 0;
       while (i < a.length - 1 && y >= a[i + 1]!) i++;
-      const before = y < a[0]!;
-      const t = before ? 0 : Math.min(1, Math.max(0, (y - a[i]!) / Math.max(1, a[i + 1]! - a[i]!)));
-      const x = before ? d[0]! - 28 * (1 - Math.min(1, y / Math.max(1, a[0]!))) : i === a.length - 1 ? d[i]! : d[i]! + (d[i + 1]! - d[i]!) * t;
+      const t = i === a.length - 1 ? 0 : Math.min(1, Math.max(0, (y - a[i]!) / Math.max(1, a[i + 1]! - a[i]!)));
+      const x = d[i]! + ((d[i + 1] ?? d[i]!) - d[i]!) * t;
       train.current.style.transform = `translate3d(${x}px, -50%, 0)`;
-      setHere(before ? null : STATIONS[i]!.id);
+      setHere(MAP[t > 0.5 && i < a.length - 1 ? i + 1 : i]!.id);
     };
     measure();
     const ro = new ResizeObserver(measure);
@@ -100,26 +104,34 @@ function LineMap() {
     };
   }, [scrollY]);
 
+  const dot = compact ? 14 : 22;
   return (
-    <div className="relative hidden flex-1 justify-center px-6 lg:flex">
-      <ol ref={track} className="relative flex w-full max-w-[640px] items-start justify-between">
-        <span aria-hidden className="absolute left-[11px] right-[11px] top-[11px] h-[3px] rounded-full" style={{ background: LINE }} />
-        <span
-          ref={train}
-          aria-hidden
-          className="absolute left-0 top-[12px] z-10 h-[10px] w-[26px] -translate-x-1/2 rounded-full bg-marble shadow-[0_0_0_3px_#16181B]"
-          style={{ marginLeft: -13, transition: reduce ? undefined : 'transform 120ms linear' }}
-        />
-        {STATIONS.map((s) => (
-          <li key={s.id} className="relative flex flex-col items-center">
-            <a href={`#${s.id}`} onClick={go(s.id)} aria-current={here === s.id ? 'location' : undefined} className="group flex flex-col items-center">
-              <span data-dot className={`relative z-0 block h-[22px] w-[22px] rounded-full border-[3px] transition-colors ${here === s.id ? 'bg-marble' : 'bg-granite'}`} style={{ borderColor: LINE }} />
-              <span className={`mt-1.5 font-station text-[14px] font-semibold uppercase tracking-[0.06em] transition-colors ${here === s.id ? 'text-marble' : 'text-marble/60 group-hover:text-marble'}`}>{s.en}</span>
-            </a>
-          </li>
-        ))}
-      </ol>
-    </div>
+    <ol ref={track} className={`relative flex w-full items-start justify-between ${compact ? '' : 'max-w-[700px]'}`}>
+      <span aria-hidden className="absolute rounded-full" style={{ left: dot / 2, right: dot / 2, top: dot / 2 - 1.5, height: 3, background: LINE }} />
+      {/* The train: a carriage with a lit window, riding the line. */}
+      <span
+        ref={train}
+        aria-hidden
+        className="absolute left-0 z-10 flex items-center justify-center rounded-[6px] bg-marble shadow-[0_0_0_3px_#16181B]"
+        style={{ top: dot / 2, width: compact ? 22 : 30, height: compact ? 9 : 12, marginLeft: compact ? -11 : -15, transition: reduce ? undefined : 'transform 120ms linear' }}
+      >
+        <span className="block h-[3px] w-[55%] rounded-full" style={{ background: LINE }} />
+      </span>
+      {MAP.map((s) => (
+        <li key={s.id} className="relative flex flex-col items-center">
+          <a
+            href={`#${s.id}`}
+            onClick={s.id === 'top' ? (e) => (e.preventDefault(), scrollTo(0)) : go(s.id)}
+            aria-current={here === s.id ? 'location' : undefined}
+            aria-label={compact ? s.en : undefined}
+            className="group flex min-h-[24px] min-w-[24px] flex-col items-center"
+          >
+            <span data-dot className={`relative z-0 block rounded-full transition-colors ${here === s.id ? 'bg-marble' : 'bg-granite'}`} style={{ width: dot, height: dot, borderWidth: compact ? 2.5 : 3, borderColor: LINE }} />
+            {!compact && <span className={`mt-1.5 font-station text-[14px] font-semibold uppercase tracking-[0.06em] transition-colors ${here === s.id ? 'text-marble' : 'text-marble/60 group-hover:text-marble'}`}>{s.en}</span>}
+          </a>
+        </li>
+      ))}
+    </ol>
   );
 }
 
@@ -142,7 +154,9 @@ function Nav() {
           <LogoMark className="h-9 w-9 text-marble" />
           <span className="font-station text-[20px] font-bold uppercase tracking-[0.04em]">TIS Tech Council</span>
         </a>
-        <LineMap />
+        <div className="hidden flex-1 justify-center px-6 lg:flex">
+          <LineMap />
+        </div>
         <div className="flex shrink-0 items-center gap-2">
           <a href="#suggestions" onClick={go('suggestions')} className="hidden min-h-[44px] items-center rounded-full bg-brass px-5 font-station text-[16px] font-bold uppercase tracking-[0.04em] text-granite hover:bg-marble sm:inline-flex">
             Suggest an idea
@@ -155,6 +169,10 @@ function Nav() {
           </button>
         </div>
       </nav>
+      {/* Phones and tablets keep the map too: a strip under the header. */}
+      <div className="border-t border-marble/10 px-5 pb-2.5 pt-2 lg:hidden">
+        <LineMap compact />
+      </div>
       <AnimatePresence>
         {open && (
           <motion.ol
@@ -198,20 +216,16 @@ function Nav() {
 /** The sign at the head of every station: line dot, English, Uzbek. */
 function StationSign({ id, dark }: { id: StationId; dark: boolean }) {
   const s = station(id);
-  const ref = useRef<HTMLDivElement>(null);
-  const reduce = useReducedMotion();
-  const { scrollYProgress: p } = useScroll({ target: ref, offset: ['start end', 'start 0.5'] });
-  // Pulling into the station: the sign comes up to the window.
-  const scale = useTransform(p, ...span([0, 1], reduce ? [1, 1] : [0.82, 1]), { ease: settle });
-  const opacity = useTransform(p, ...span([0, 0.6], reduce ? [1, 1] : [0, 1]));
   return (
-    <motion.div ref={ref} style={{ scale, opacity, originX: 0 }} className={`flex items-center gap-5 border-y-2 py-4 ${dark ? 'border-brass/60' : 'border-brass'}`}>
+    <div className={`flex items-center gap-5 border-y-2 py-4 ${dark ? 'border-brass/60' : 'border-brass'}`}>
       <span aria-hidden className="block h-7 w-7 shrink-0 rounded-full border-[5px]" style={{ borderColor: LINE }} />
-      <span className="font-station text-[clamp(2.25rem,5vw,4.25rem)] font-extrabold uppercase leading-none tracking-[0.01em]">{s.en}</span>
-      <span className={`ml-auto font-onest text-[15px] sm:text-[17px] ${dark ? 'text-brass' : 'text-[#7A6440]'}`} lang="uz">
-        {s.uz}
+      <span>
+        <span className="block font-station text-[clamp(2.25rem,5vw,4.25rem)] font-extrabold uppercase leading-none tracking-[0.01em]">{s.en}</span>
+        <span className={`mt-1.5 block font-onest text-[15px] sm:text-[17px] ${dark ? 'text-brass' : 'text-[#7A6440]'}`} lang="uz">
+          {s.uz}
+        </span>
       </span>
-    </motion.div>
+    </div>
   );
 }
 
@@ -237,11 +251,12 @@ function Station({ id, tone, children, label }: { id: StationId; tone: 'marble' 
 
 const RINGS = 16;
 
-function Ride({ to }: { to: StationId }) {
+function Ride({ to, color }: { to: StationId; color: string }) {
   const reduce = useReducedMotion();
   const section = useRef<HTMLDivElement>(null);
   const rings = useRef<(HTMLSpanElement | null)[]>([]);
   const board = useRef<HTMLDivElement>(null);
+  const bloom = useRef<HTMLDivElement>(null);
   const { scrollYProgress: p } = useScroll({ target: section, offset: ['start start', 'end end'] });
   const s = station(to);
 
@@ -266,6 +281,8 @@ function Ride({ to }: { to: StationId }) {
       board.current.style.transform = `translate3d(-50%,-50%,0) scale(${sc.toFixed(4)})`;
       board.current.style.opacity = Math.min(1, Math.max(0, (sc - 0.08) * 4)).toFixed(3);
     }
+    // Station light blooms down the tunnel as we pull in.
+    if (bloom.current) bloom.current.style.opacity = Math.min(1, Math.max(0, (v - 0.6) / 0.3)).toFixed(3);
   };
   useEffect(() => place(p.get()));
   useMotionValueEvent(p, 'change', place);
@@ -273,16 +290,21 @@ function Ride({ to }: { to: StationId }) {
   if (reduce) {
     return (
       <div className="bg-granite py-14 text-center text-marble" aria-hidden>
-        <p className="font-onest text-[15px] text-brass">Next station · Keyingi bekat</p>
-        <p className="mt-2 font-station text-[44px] font-extrabold uppercase">{s.en}</p>
+        <p className="font-station text-[44px] font-extrabold uppercase">{s.en}</p>
+        <p className="mt-1 font-onest text-[15px] text-brass">Next station · Keyingi bekat</p>
       </div>
     );
   }
 
   return (
-    <div ref={section} data-ride className="relative h-[190svh] bg-granite" aria-hidden>
+    <div ref={section} data-ride className="relative h-[160svh] bg-granite" aria-hidden>
       <div className="sticky top-0 h-[100svh] overflow-hidden">
         <div className="absolute inset-0" style={{ background: 'radial-gradient(circle at 50% 54%, #22252A 0%, #16181B 46%, #0E0F11 100%)' }} />
+        <div ref={bloom} className="absolute inset-0 opacity-0" style={{ background: `radial-gradient(circle at 50% 54%, ${color}55 0%, ${color}14 22%, transparent 46%)` }} />
+        {/* The rails, converging on the tunnel's far end. */}
+        <svg className="absolute inset-0 h-full w-full" viewBox="0 0 100 100" preserveAspectRatio="none">
+          <path d="M30 100 L49.4 54 M70 100 L50.6 54" stroke="#B08D57" strokeOpacity="0.4" strokeWidth="0.25" vectorEffect="non-scaling-stroke" fill="none" />
+        </svg>
         <div className="absolute left-1/2 top-[54%]" style={{ width: 0, height: 0 }}>
           {Array.from({ length: RINGS }, (_, i) => (
             <span
@@ -293,17 +315,22 @@ function Ride({ to }: { to: StationId }) {
               className="absolute left-0 top-0 block rounded-full border-[1.5px] border-marble/40"
               style={{ width: 'min(64vw, 64vh)', height: 'min(64vw, 64vh)', willChange: 'transform, opacity' }}
             >
-              {/* Tunnel lamps: they stream past as the rings come at you. */}
-              <span className="absolute bottom-[14%] right-[6%] block h-[3px] w-[3px] rounded-full bg-brass" />
-              <span className="absolute bottom-[14%] left-[6%] block h-[3px] w-[3px] rounded-full bg-brass" />
+              {/* The tunnel lining: a band of tile inside each ring. */}
+              <span className="absolute inset-[5%] block rounded-full border border-dashed border-brass/30" />
+              {/* Lamps on the lining: short radial dashes that stretch into streaks as they pass. */}
+              {[18, 72, 108, 162, 225, 315].map((deg) => (
+                <span key={deg} className="absolute inset-0 block" style={{ transform: `rotate(${deg}deg)` }}>
+                  <span className="absolute right-[1.5%] top-1/2 block h-[2px] w-[6%] -translate-y-1/2 rounded-full" style={{ background: color }} />
+                </span>
+              ))}
             </span>
           ))}
-          <div ref={board} className="absolute left-0 top-0 w-[min(560px,86vw)] rounded-[18px] border-2 border-brass bg-granite px-8 py-7 text-center text-marble" style={{ willChange: 'transform, opacity' }}>
-            <p className="font-onest text-[15px] text-brass">Next station · Keyingi bekat</p>
-            <p className="mt-2 font-station text-[clamp(2.75rem,8vw,4.5rem)] font-extrabold uppercase leading-none">{s.en}</p>
+          <div ref={board} className="absolute left-0 top-0 w-[min(560px,86vw)] rounded-[18px] border-2 border-brass bg-granite px-8 py-7 text-center text-marble">
+            <p className="font-station text-[clamp(2.75rem,8vw,4.5rem)] font-extrabold uppercase leading-none">{s.en}</p>
             <p className="mt-2 font-onest text-[15px] text-marble/70" lang="uz">
               {s.uz}
             </p>
+            <p className="mt-4 border-t border-brass/40 pt-3 font-onest text-[15px] text-brass">Next station · Keyingi bekat</p>
           </div>
         </div>
       </div>
@@ -324,7 +351,7 @@ function TunnelMouth() {
     return () => io.disconnect();
   }, []);
   return (
-    <div ref={ref} aria-hidden className="relative aspect-[3/4] w-full overflow-hidden rounded-t-full border-[10px] border-b-0 border-marble bg-[#0E0F11]">
+    <div ref={ref} aria-hidden className="relative h-full min-h-[120px] w-full overflow-hidden rounded-t-full border-[6px] border-b-0 border-marble bg-[#0E0F11] lg:aspect-[3/4] lg:h-auto lg:border-[10px] lg:border-b-0">
       <div className="absolute inset-0" style={{ background: 'radial-gradient(circle at 50% 58%, rgba(236,232,224,0.32) 0%, rgba(236,232,224,0.06) 22%, transparent 48%)' }} />
       {Array.from({ length: 7 }, (_, i) => (
         <span key={i} className="mt-ring absolute left-1/2 top-[58%] block aspect-square w-[140%] rounded-full border border-marble/30" style={{ animationDelay: `${-i * 1.4}s`, animationPlayState: visible ? 'running' : 'paused' }} />
@@ -338,34 +365,41 @@ function TunnelMouth() {
 function Platform() {
   const go = useGo();
   return (
-    <section id="top" aria-labelledby="hero-title" className="mt-tiles relative bg-vault pb-16 pt-[112px] text-marble sm:pb-24">
-      <div className="mx-auto grid max-w-[1360px] items-end gap-10 px-5 sm:px-8 lg:grid-cols-[7fr_5fr] lg:gap-16">
-        <div className="lg:order-1">
-          <motion.div
-            className="rounded-[18px] border-2 border-brass bg-granite px-6 py-6 sm:px-9 sm:py-8"
-            initial={{ opacity: 0, y: 16 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, ease: EASE }}
-          >
-            <p className="font-station text-[clamp(2.4rem,6.2vw,5.5rem)] font-extrabold uppercase leading-[0.9] tracking-[0.01em]">TIS Tech Council</p>
-            <p className="mt-2 font-onest text-[15px] text-brass sm:text-[17px]" lang="uz">
-              TIS Texnologiya kengashi
-            </p>
-          </motion.div>
-          <h1 id="hero-title" className="mt-10 max-w-[18ch] font-onest text-[clamp(2rem,4.2vw,3.6rem)] font-medium leading-[1.06] tracking-[-0.03em]">
-            {HERO.title}
-          </h1>
-          <p className="mt-6 max-w-[48ch] font-onest text-[17px] leading-[1.6] text-marble/80 sm:text-[18px]">{HERO.lede}</p>
-          <div className="mt-9 flex flex-wrap items-center gap-6">
-            <a href="#suggestions" onClick={go('suggestions')} className={brassBtn}>
-              Suggest an idea <Arrow />
-            </a>
-            <a href="#projects" onClick={go('projects')} className="font-onest text-[17px] underline decoration-1 underline-offset-[6px] hover:decoration-2">
-              See what we’ve built
-            </a>
+    <section id="top" aria-labelledby="hero-title" className="mt-granite relative bg-granite pb-12 pt-[124px] text-marble sm:pb-20 lg:pt-[112px]">
+      <div className="mx-auto grid max-w-[1360px] items-stretch gap-6 px-5 sm:px-8 lg:grid-cols-[7fr_5fr] lg:gap-14">
+        <div className="flex flex-col gap-6">
+          <div className="grid grid-cols-[1fr_88px] gap-4 sm:grid-cols-[1fr_120px] lg:block">
+            <motion.div
+              className="rounded-[18px] border-2 border-brass bg-[#0E0F11] px-5 py-5 sm:px-9 sm:py-7"
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.8, ease: EASE }}
+            >
+              <p className="font-station text-[clamp(2.2rem,6.2vw,5.5rem)] font-extrabold uppercase leading-[0.9] tracking-[0.01em]">TIS Tech Council</p>
+              <p className="mt-2 font-onest text-[14px] text-brass sm:text-[17px]" lang="uz">
+                TIS Texnologiya kengashi
+              </p>
+            </motion.div>
+            <div className="lg:hidden">
+              <TunnelMouth />
+            </div>
+          </div>
+          <div className="mt-marble rounded-[18px] bg-marble px-5 py-7 text-granite sm:px-9 sm:py-9">
+            <h1 id="hero-title" className="max-w-[18ch] font-onest text-[clamp(1.9rem,4vw,3.4rem)] font-medium leading-[1.06] tracking-[-0.03em]">
+              {HERO.title}
+            </h1>
+            <p className="mt-5 max-w-[48ch] font-onest text-[17px] leading-[1.6] text-granite/80 sm:text-[18px]">{HERO.lede}</p>
+            <div className="mt-7 flex flex-wrap items-center gap-x-6 gap-y-3">
+              <a href="#suggestions" onClick={go('suggestions')} className={`${brassBtn} hover:bg-granite hover:text-marble`}>
+                Suggest an idea <Arrow />
+              </a>
+              <a href="#projects" onClick={go('projects')} className="font-onest text-[17px] underline decoration-1 underline-offset-[6px] hover:decoration-2">
+                See what we’ve built
+              </a>
+            </div>
           </div>
         </div>
-        <div className="mx-auto w-[min(62vw,300px)] lg:order-2 lg:w-full">
+        <div className="hidden lg:block">
           <TunnelMouth />
         </div>
       </div>
@@ -384,7 +418,7 @@ function MissionStation() {
   const scale = useTransform(p, ...span([0, 1], reduce ? [1, 1] : [0.9, 1]), { ease: settle });
   return (
     <Station id="mission" tone="marble" label="Mission">
-      <motion.p ref={ref} style={{ scale, originX: 0 }} className="max-w-[16ch] font-station text-[clamp(3rem,8.4vw,8rem)] font-extrabold uppercase leading-[0.92] tracking-[0.005em]">
+      <motion.p ref={ref} style={{ scale, originX: 0 }} className="max-w-[16ch] font-station text-[clamp(2.75rem,7vw,6rem)] font-extrabold uppercase leading-[0.92] tracking-[0.005em]">
         {MISSION.line}
       </motion.p>
       <p className="mt-10 max-w-[52ch] font-onest text-[18px] leading-[1.6] text-granite/80">{MISSION.support}</p>
@@ -427,11 +461,7 @@ function Board({ start, end, timezoneLabel }: { start: string; end: string; time
   const c = countdownParts(now, start, end);
   return (
     <div className="rounded-[18px] border-2 border-brass bg-granite p-5 sm:p-7">
-      <div className="flex items-center justify-between border-b border-marble/15 pb-3 font-onest text-[14px] text-marble/70">
-        <span>Departures · Jo‘nash</span>
-        <span>{timezoneLabel}</span>
-      </div>
-      <div className="flex flex-wrap items-end justify-between gap-6 pt-5">
+      <div className="flex flex-wrap items-end justify-between gap-6">
         <div>
           <p className="font-station text-[clamp(1.8rem,3vw,2.6rem)] font-extrabold uppercase leading-none">TISMUN 2026</p>
           <p className="mt-1 font-onest text-[15px] text-marble/70">Conference starts</p>
@@ -458,6 +488,10 @@ function Board({ start, end, timezoneLabel }: { start: string; end: string; time
         ) : (
           <p className="font-station text-[36px] font-bold uppercase">{c.phase === 'during' ? 'Happening now' : 'Conference complete'}</p>
         )}
+      </div>
+      <div className="mt-5 flex items-center justify-between border-t border-marble/15 pt-3 font-onest text-[14px] text-marble/70">
+        <span>Departures · Jo‘nash</span>
+        <span>{timezoneLabel}</span>
       </div>
     </div>
   );
@@ -735,8 +769,8 @@ function EndOfLine() {
     <footer className="bg-granite pb-28 pt-20 text-marble">
       <div className="mx-auto max-w-[1360px] px-5 sm:px-8">
         <div className="rounded-[18px] border-2 border-brass px-6 py-6 sm:px-9">
-          <p className="font-onest text-[15px] text-brass">End of the line · Oxirgi bekat</p>
-          <p className="mt-2 font-station text-[clamp(2.6rem,8vw,7rem)] font-extrabold uppercase leading-[0.9]">TIS Tech Council</p>
+          <p className="font-station text-[clamp(2.6rem,8vw,6rem)] font-extrabold uppercase leading-[0.9]">TIS Tech Council</p>
+          <p className="mt-3 font-onest text-[15px] text-brass">End of the line · Oxirgi bekat</p>
         </div>
         <div className="mt-12 flex flex-col gap-10 md:flex-row md:items-start md:justify-between">
           <div className="flex items-center gap-4">
@@ -773,12 +807,12 @@ export default function MetroPage() {
         <Nav />
         <main id="main">
           <Platform />
-          <Ride to="mission" />
+          <Ride to="mission" color="#F29839" />
           <MissionStation />
           <AboutStation />
           <ProjectsStation />
           <FoundersStation />
-          <Ride to="suggestions" />
+          <Ride to="suggestions" color="#0897B6" />
           <IdeasStation />
           <FaqStation />
         </main>

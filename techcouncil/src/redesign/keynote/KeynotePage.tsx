@@ -365,7 +365,7 @@ function BigCountdown({ start, end, timezoneLabel }: { start: string; end: strin
           [c.secs, 'seconds'],
         ].map(([v, l]) => (
           <div key={l as string} className="text-center">
-            <span className="block text-[clamp(3rem,8vw,6.5rem)] font-semibold leading-none tracking-[-0.04em]">{String(v).padStart(2, '0')}</span>
+            <span className="block text-[clamp(3rem,7.5vw,6rem)] font-semibold leading-none tracking-[-0.04em]">{String(v).padStart(2, '0')}</span>
             <span className="mt-2 block text-[15px] text-stage-muted">{l}</span>
           </div>
         ))}
@@ -380,7 +380,7 @@ function Product() {
   return (
     <section id="projects" aria-labelledby="projects-title" className="bg-stage px-5 py-24 sm:py-36">
       <div className="mx-auto max-w-[1100px] text-center">
-        <h2 id="projects-title" className="text-[clamp(3.4rem,10vw,8.5rem)] font-semibold leading-none tracking-[-0.045em]">
+        <h2 id="projects-title" className="text-[clamp(3.4rem,9vw,6rem)] font-semibold leading-none tracking-[-0.04em]">
           {p.name}
         </h2>
         <p className="mx-auto mt-5 max-w-[30ch] text-[clamp(1.3rem,2.4vw,1.9rem)] font-medium leading-[1.2] tracking-[-0.02em]">{p.tagline}</p>

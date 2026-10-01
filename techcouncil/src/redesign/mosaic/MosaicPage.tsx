@@ -1,8 +1,8 @@
 import '@fontsource-variable/unbounded';
 import '@fontsource-variable/onest';
 import './mosaic.css';
-import { AnimatePresence, motion, useMotionValue, useMotionValueEvent, useReducedMotion, useScroll, useTransform, type MotionValue } from 'motion/react';
-import { useEffect, useId, useMemo, useRef, useState, type ReactNode } from 'react';
+import { AnimatePresence, motion, useMotionValue, useMotionValueEvent, useReducedMotion, useScroll, useTransform } from 'motion/react';
+import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
 import { Shell } from '../shared/Shell';
 import { LogoMark } from '@/components/brand/LogoMark';
 import { Owl } from '@/components/brand/Owl';
@@ -15,12 +15,15 @@ import { CATEGORIES, GRADE_MAX, NAME_MAX, SUGGESTION_MAX, SUGGESTION_MIN, type C
 import { countdownParts, useSuggestionForm } from '@/lib/suggestion';
 import { span } from '@/lib/motion';
 import { useSmoothScroll } from '@/lib/smoothScroll';
-import { drawFacade, grainUrl, layoutFacade, paintMural, paintStrip, throughScale, TILE, type Facade } from './paint';
+import { drawFacade, grainUrl, layoutFacade, paintArchPanel, paintMural, paintStrip, throughScale, TILE, type Facade, type Mural } from './paint';
 
 const EASE = [0.16, 1, 0.3, 1] as const;
 const settle = (t: number) => 1 - Math.pow(1 - t, 3);
 const inOut = (t: number) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);
+const smooth = (t: number) => t * t * (3 - 2 * t);
 const clamp01 = (v: number) => Math.min(1, Math.max(0, v));
+const seg = (v: number, a: number, b: number) => clamp01((v - a) / (b - a));
+const NAV_H = 64;
 
 /** Each suggestion category has its tile colour. */
 const CATEGORY_TILE: Record<CategoryId, readonly [number, number, number]> = {
@@ -48,17 +51,17 @@ function useScrollTo() {
   const { scrollTo } = useSmoothScroll();
   return (id: string) => (e: React.MouseEvent) => {
     e.preventDefault();
-    scrollTo(`#${id}`, { offset: -64 });
+    scrollTo(`#${id}`, { offset: -NAV_H });
   };
 }
 
-/** A one-tile-high run of mosaic between sections, like a frieze. */
+/** A course of mosaic between sections, like a frieze. */
 function Frieze({ className = '' }: { className?: string }) {
   const ref = useRef<HTMLCanvasElement>(null);
   useEffect(() => {
     const cv = ref.current!;
     const paint = () => {
-      const cols = paintStrip(cv, cv.parentElement!.clientWidth + 14, 14, Math.min(devicePixelRatio || 1, 2), -1);
+      const cols = paintStrip(cv, cv.parentElement!.clientWidth + 14, 14, Math.min(devicePixelRatio || 1, 2), 1, null);
       cv.style.width = `${cols * 14}px`;
     };
     paint();
@@ -73,20 +76,22 @@ function Frieze({ className = '' }: { className?: string }) {
   );
 }
 
-function Sign({ children, className = '', as: Tag = 'h2', id }: { children: ReactNode; className?: string; as?: 'h1' | 'h2' | 'h3'; id?: string }) {
+/** Building-sign lettering: wide caps, cast in relief off the concrete. */
+function Sign({ children, className = '', as: Tag = 'h2', id, relief = true }: { children: ReactNode; className?: string; as?: 'h1' | 'h2' | 'h3'; id?: string; relief?: boolean }) {
   return (
-    <Tag id={id} className={`font-sign font-semibold uppercase leading-[1.04] tracking-[-0.015em] ${className}`}>
+    <Tag id={id} className={`font-sign font-semibold uppercase leading-[1.06] tracking-[0.01em] ${relief ? 'mz-cast' : ''} ${className}`}>
       {children}
     </Tag>
   );
 }
 
-function InkButton({ href, onClick, children, disabled }: { href?: string; onClick?: (e: React.MouseEvent) => void; children: ReactNode; disabled?: boolean }) {
-  const cls =
-    'inline-flex min-h-[52px] items-center gap-3 bg-ink px-6 font-sign text-[13px] font-medium uppercase tracking-[0.06em] text-smalt-white transition-colors duration-200 hover:bg-smalt-teal';
-  if (disabled) return <span className={`${cls} cursor-not-allowed opacity-50 hover:bg-ink`}>{children}</span>;
+function InkButton({ href, onClick, children }: { href?: string; onClick?: (e: React.MouseEvent) => void; children: ReactNode }) {
   return (
-    <a href={href} onClick={onClick} className={cls}>
+    <a
+      href={href}
+      onClick={onClick}
+      className="inline-flex min-h-[52px] items-center gap-3 bg-smalt-white px-6 font-sign text-[13px] font-medium uppercase tracking-[0.06em] text-ink transition-colors duration-200 hover:bg-smalt-orange"
+    >
       {children}
     </a>
   );
@@ -100,29 +105,42 @@ function Arrow() {
   );
 }
 
-/** Scroll-linked push-in: the element comes forward out of the wall. */
-function PushIn({ children, className = '', from = 0.9, lag = 0 }: { children: ReactNode; className?: string; from?: number; lag?: number }) {
-  const ref = useRef<HTMLDivElement>(null);
-  const reduce = useReducedMotion();
-  const { scrollYProgress: p } = useScroll({ target: ref, offset: ['start end', 'start 0.55'] });
-  const scale = useTransform(p, ...span([lag, 1], reduce ? [1, 1] : [from, 1]), { ease: settle });
-  const y = useTransform(p, ...span([lag, 1], reduce ? [0, 0] : [48, 0]), { ease: settle });
-  const opacity = useTransform(p, ...span([lag, lag + (1 - lag) * 0.55], reduce ? [1, 1] : [0, 1]));
-  return (
-    <motion.div ref={ref} className={className} style={{ scale, y, opacity }}>
-      {children}
-    </motion.div>
-  );
+/* ------------------------------------------------------------------ */
+/* Nav: the lattice drives it                                          */
+/* ------------------------------------------------------------------ */
+
+function useActive(ids: readonly string[]) {
+  const [active, setActive] = useState<string | null>(null);
+  useEffect(() => {
+    const seen = new Map<string, number>();
+    const io = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((e) => seen.set(e.target.id, e.isIntersecting ? e.intersectionRatio : 0));
+        let best: string | null = null;
+        let r = 0;
+        seen.forEach((v, k) => {
+          if (v > r) [best, r] = [k, v];
+        });
+        setActive(best);
+      },
+      { rootMargin: '-40% 0px -50% 0px', threshold: [0, 0.01, 0.5, 1] },
+    );
+    ids.forEach((id) => {
+      const el = document.getElementById(id);
+      if (el) io.observe(el);
+    });
+    return () => io.disconnect();
+  }, [ids]);
+  return active;
 }
 
-/* ------------------------------------------------------------------ */
-/* Nav                                                                 */
-/* ------------------------------------------------------------------ */
+const NAV_IDS = NAV.map(([id]) => id);
 
 function Nav() {
   const go = useScrollTo();
   const [open, setOpen] = useState(false);
   const { scrollTo } = useSmoothScroll();
+  const active = useActive(NAV_IDS);
   return (
     <header className="fixed inset-x-0 top-0 z-50 border-b border-[#B4AC9E] bg-concrete">
       <nav aria-label="Main" className="mx-auto flex h-16 max-w-[1320px] items-center justify-between px-5 sm:px-8">
@@ -138,10 +156,18 @@ function Nav() {
           <LogoMark className="h-8 w-8 text-ink" />
           <span className="font-sign text-[13px] font-semibold uppercase tracking-[0.04em]">TIS Tech Council</span>
         </a>
-        <ul className="hidden items-center gap-7 lg:flex">
+        {/* Each link is a cell of the lattice; the section you are in is the lit one. */}
+        <ul className="hidden h-16 items-end gap-1.5 lg:flex">
           {NAV.map(([id, label]) => (
-            <li key={id}>
-              <a href={`#${id}`} onClick={go(id)} className="font-onest text-[15px] text-ink/75 transition-colors hover:text-ink">
+            <li key={id} className="h-[46px]">
+              <a
+                href={`#${id}`}
+                onClick={go(id)}
+                aria-current={active === id ? 'location' : undefined}
+                className={`flex h-full items-center rounded-t-full border-x border-t px-4 pt-2 font-onest text-[14px] transition-colors duration-300 ${
+                  active === id ? 'border-ink bg-ink text-smalt-white' : 'border-[#B4AC9E] text-ink/80 hover:border-ink hover:text-ink'
+                }`}
+              >
                 {label}
               </a>
             </li>
@@ -176,16 +202,18 @@ function Nav() {
             exit={{ clipPath: 'inset(0 0 100% 0)', transition: { duration: 0.2 } }}
             transition={{ duration: 0.4, ease: EASE }}
           >
-            <ul className="px-5 pb-6 pt-2">
+            <ul className="grid grid-cols-2 gap-2 px-5 pb-6 pt-4">
               {[...NAV, ['suggestions', 'Suggest an idea'] as const].map(([id, label]) => (
-                <li key={id} className="border-b border-[#B4AC9E]">
+                <li key={id}>
                   <a
                     href={`#${id}`}
                     onClick={(e) => {
                       setOpen(false);
                       go(id)(e);
                     }}
-                    className="block py-4 font-sign text-[20px] font-semibold uppercase"
+                    className={`flex min-h-[64px] items-end rounded-t-[40px] border-x border-t px-4 pb-3 font-sign text-[15px] font-semibold uppercase ${
+                      active === id ? 'border-ink bg-ink text-smalt-white' : 'border-[#B4AC9E]'
+                    }`}
                   >
                     {label}
                   </a>
@@ -200,7 +228,7 @@ function Nav() {
 }
 
 /* ------------------------------------------------------------------ */
-/* The approach: facade > through the screen > the mural > mission     */
+/* The approach: facade > through the lattice > the mural > one tile    */
 /* ------------------------------------------------------------------ */
 
 interface Geo {
@@ -208,29 +236,22 @@ interface Geo {
   H: number;
   f: Facade;
   smax: number;
+  mural: Mural;
+  MW: number;
+  MH: number;
+  tile: number;
+  narrow: boolean;
 }
 
-function MissionLine({ p, still }: { p: MotionValue<number>; still: boolean }) {
-  const words = MISSION.line.split(' ');
-  return (
-    <Sign id="mission-title" className="max-w-[18ch] text-[clamp(1.85rem,4.6vw,4.4rem)]">
-      <span className="sr-only">{MISSION.line}</span>
-      <span aria-hidden>
-        {words.map((w, i) => (
-          <Word key={i} p={p} still={still} range={[0.66 + (i / words.length) * 0.2, 0.66 + ((i + 1) / words.length) * 0.2]}>
-            {w}
-          </Word>
-        ))}
-      </span>
-    </Sign>
-  );
-}
-
-function Word({ children, p, range, still }: { children: string; p: MotionValue<number>; range: [number, number]; still: boolean }) {
-  // Unlit words are pressed into the concrete; lit ones are inlaid ink.
-  const color = useTransform(p, ...span(range, still ? ['#1C1A17', '#1C1A17'] : ['#A79F91', '#1C1A17']));
-  return <motion.span style={{ color }}>{children} </motion.span>;
-}
+/** Scroll progress through the pinned approach, and what happens when. */
+const PHASE = {
+  facade: [0.04, 0.44] as const, // dolly through the lattice
+  pan: [0.04, 0.3] as const, // the chosen opening slides to the centre
+  doors: [0.07, 0.2] as const, // its lattice parts
+  sign: [0.05, 0.18] as const, // the sign band leaves frame
+  glide: [0.48, 0.76] as const, // down the mural to the inscription
+  push: [0.86, 1] as const, // into one tile
+};
 
 function Approach() {
   const reduce = !!useReducedMotion();
@@ -239,10 +260,16 @@ function Approach() {
   const stage = useRef<HTMLDivElement>(null);
   const facadeCv = useRef<HTMLCanvasElement>(null);
   const muralCv = useRef<HTMLCanvasElement>(null);
+  const muralBox = useRef<HTMLDivElement>(null);
+  const signBox = useRef<HTMLDivElement>(null);
+  const fill = useRef<HTMLDivElement>(null);
   const [geo, setGeo] = useState<Geo | null>(null);
+  const geoRef = useRef<Geo | null>(null);
+  geoRef.current = geo;
   const { scrollYProgress } = useScroll({ target: section, offset: ['start start', 'end end'] });
   const still = useMotionValue(0);
   const p = reduce ? still : scrollYProgress;
+  const inscription = useTransform(p, ...span([0.86, 0.9], [1, 0]));
 
   // Lay out and paint for this viewport; repaint only on resize.
   useEffect(() => {
@@ -254,181 +281,216 @@ function Approach() {
       const key = `${W}x${H}`;
       if (key === last || !W || !H) return;
       last = key;
-      const f = layoutFacade(W, H);
+      const narrow = W < 700;
+      const f = layoutFacade(W, H, NAV_H);
+      const T = f.target;
+      const R = Math.min(W, H) * (narrow ? 0.3 : 0.27);
+      // Sized so the mural covers the frame at every point of the camera path:
+      // behind the opening at rest, centred after the pan, and along the glide.
+      const flower = { x: Math.max(T.x, W / 2) + W * 0.05, y: Math.max(T.y + H * 0.04, R * 1.3) };
+      const MW = flower.x + W - Math.min(T.x, W / 2) + W * 0.05;
+      const bandTop = flower.y + R * 1.12;
+      const bandH = H * (narrow ? 0.74 : 0.58);
+      const MH = bandTop + bandH + H * 0.4;
+      const tile = narrow ? 11 : 13;
       const dpr = Math.min(window.devicePixelRatio || 1, 1.5);
-      paintMural(muralCv.current!, W * 1.3, H * 1.3, W < 700 ? 10 : 13, dpr * 1.25, { x: W < 700 ? 0.5 : 0.6, y: 0.42 });
       const cv = facadeCv.current!;
       cv.width = Math.round(W * dpr);
       cv.height = Math.round(H * dpr);
-      setGeo({ W, H, f, smax: throughScale(W, H, f) });
+      const band = { x: 0, y: bandTop, w: MW, h: bandH };
+      setGeo({ W, H, f, smax: throughScale(W, H, f), mural: { flower, band, push: { x: MW / 2, y: bandTop + bandH } }, MW, MH, tile, narrow });
+      // The mural is the one heavy paint: do it when the browser is idle, then let it fade in.
+      const mcv = muralCv.current!;
+      mcv.style.opacity = '0';
+      const paint = () => {
+        const mural = paintMural(mcv, MW, MH, tile, dpr * 1.1, { flower, R, bandTop, bandH });
+        mcv.style.width = `${MW}px`;
+        mcv.style.height = `${MH}px`;
+        mcv.style.opacity = '1';
+        setGeo((g) => (g && g.W === W && g.H === H ? { ...g, mural } : g));
+      };
+      const w = window as Window & { requestIdleCallback?: (cb: () => void, o?: { timeout: number }) => number };
+      if (w.requestIdleCallback) w.requestIdleCallback(paint, { timeout: 400 });
+      else window.setTimeout(paint, 60);
     });
     ro.observe(el);
     return () => ro.disconnect();
   }, []);
 
-  // Camera: an exponential zoom reads as a dolly at constant speed.
-  const geoRef = useRef<Geo | null>(null);
-  geoRef.current = geo;
-  const camera = (v: number) => {
-    const g = geoRef.current;
-    if (!g) return 1;
-    return Math.pow(g.smax, inOut(clamp01((v - 0.06) / 0.48)));
-  };
-  const scale = useMotionValue(1);
-  const facadeOn = useMotionValue(1);
-  const muralScale = useMotionValue(1);
-  const signOpacity = useTransform(p, ...span([0.08, 0.24], [1, 0]));
-  const friezeY = useTransform(p, ...span([0.56, 0.68], ['105%', '0%']), { ease: settle });
-  const supportOpacity = useTransform(p, ...span([0.88, 0.95], [0, 1]));
-
   const raf = useRef(0);
   const apply = (v: number) => {
     const g = geoRef.current;
     const cv = facadeCv.current;
-    if (!g || !cv) return;
-    const s = camera(v);
-    scale.set(s);
-    muralScale.set(1 + 0.16 * inOut(clamp01((v - 0.06) / 0.48)) + 0.07 * clamp01((v - 0.54) / 0.46));
+    if (!g || !cv || !muralBox.current || !signBox.current) return;
+    const { W, H, f, mural } = g;
+    const T = f.target;
+    const C = { x: W / 2, y: H / 2 };
+
+    // The facade camera: zoom on an exponential (a constant-speed dolly), pan the opening to centre.
+    const s = Math.pow(g.smax, inOut(seg(v, ...PHASE.facade)));
+    const pan = smooth(seg(v, ...PHASE.pan));
+    const open = settle(seg(v, ...PHASE.doors));
     const through = s >= g.smax * 0.995;
-    facadeOn.set(through ? 0 : 1);
-    if (!through) drawFacade(cv.getContext('2d')!, g.W, g.H, cv.width / g.W, g.f, s);
+    cv.style.opacity = through ? '0' : '1';
+    if (!through) drawFacade(cv.getContext('2d')!, W, H, cv.width / W, f, s, pan, open);
+    const px = T.x + (C.x - T.x) * pan;
+    const py = T.y + (C.y - T.y) * pan;
+    signBox.current.style.transform = `translate(${px}px,${py}px) scale(${s}) translate(${-T.x}px,${-T.y}px)`;
+    signBox.current.style.opacity = String(1 - seg(v, ...PHASE.sign));
+    signBox.current.style.visibility = v > PHASE.sign[1] ? 'hidden' : 'visible';
+
+    // The mural camera: behind the opening, then down to the inscription, then into one tile.
+    const band = { x: mural.band.x + mural.band.w / 2, y: mural.band.y + mural.band.h / 2 };
+    const eA = inOut(seg(v, ...PHASE.facade));
+    const eB = inOut(seg(v, ...PHASE.glide));
+    const tC = seg(v, ...PHASE.push);
+    const eC = tC * tC * tC;
+    let M = { x: mural.flower.x + (band.x - mural.flower.x) * eB, y: mural.flower.y + (band.y - mural.flower.y) * eB };
+    let ms = 1 + 0.1 * eA - 0.1 * eB;
+    if (tC > 0) {
+      const k = Math.min(1, tC * 1.8);
+      M = { x: band.x + (mural.push.x - band.x) * k, y: band.y + (mural.push.y - band.y) * k };
+      ms = Math.pow(Math.max(W, H) / (g.tile * 0.7), eC);
+    }
+    const S = { x: T.x + (C.x - T.x) * pan, y: T.y + (C.y - T.y) * pan };
+    muralBox.current.style.transform = `translate(${S.x - M.x * ms}px,${S.y - M.y * ms}px) scale(${ms})`;
+    // At the very end the tile is the whole frame: hand over to a flat field of its colour.
+    if (fill.current) fill.current.style.opacity = String(seg(v, 0.95, 0.99));
   };
-  useEffect(() => apply(p.get()), [geo]); 
+  useEffect(() => apply(p.get()), [geo]);
   useMotionValueEvent(p, 'change', (v) => {
     cancelAnimationFrame(raf.current);
     raf.current = requestAnimationFrame(() => apply(v));
   });
 
-  const origin = geo ? `${geo.f.target.x}px ${geo.f.target.y}px` : '50% 50%';
-  const bandTop = geo ? geo.f.bandTop : 0;
+  const band = geo?.mural.band;
 
   return (
-    <section
-      id="top"
-      ref={section}
-      aria-labelledby="hero-title"
-      className="relative bg-concrete"
-      style={{ height: reduce ? undefined : '380svh' }}
-    >
-      {/* Where "Mission" in the nav lands: the frieze has risen. */}
-      {!reduce && <div id="mission" aria-hidden className="pointer-events-none absolute left-0" style={{ top: 'calc(280svh * 0.66)' }} />}
-      <div ref={stage} className="sticky top-0 h-[100svh] min-h-[560px] overflow-hidden">
-        <motion.canvas
-          ref={muralCv}
-          aria-hidden
-          className="absolute"
-          style={{ left: '-15%', top: '-15%', width: '130%', height: '130%', scale: muralScale, transformOrigin: origin }}
-        />
-        <motion.canvas ref={facadeCv} aria-hidden className="absolute inset-0 h-full w-full" style={{ opacity: facadeOn }} />
-        <div aria-hidden className="mz-grain pointer-events-none absolute inset-0 opacity-60" />
+    <section id="top" ref={section} aria-labelledby="hero-title" className="relative bg-concrete" style={{ height: reduce ? undefined : '420svh' }}>
+      {/* Where "Mission" in the nav lands: the inscription is in frame. */}
+      {!reduce && <div id="mission" aria-hidden className="pointer-events-none absolute left-0" style={{ top: 'calc(320svh * 0.8)' }} />}
+      <div ref={stage} className="sticky top-0 h-[100svh] min-h-[560px] overflow-hidden bg-concrete">
+        {/* The mural, with the mission inlaid in its inscription band. */}
+        <div ref={muralBox} className="absolute left-0 top-0 origin-top-left" style={{ width: geo?.MW, height: geo?.MH }}>
+          <canvas ref={muralCv} aria-hidden className="absolute left-0 top-0 transition-opacity duration-700" />
+          {band && !reduce && (
+            <motion.div className="absolute flex flex-col justify-center" style={{ left: (geo.MW - geo.W) / 2 + 20, width: geo.W - 40, top: band.y + geo.tile * 2, height: band.h - geo.tile * 4, opacity: inscription }}>
+              <div className="mx-auto w-full max-w-[1280px] px-1 sm:px-6">
+                <Sign id="mission-title" relief={false} className="text-[clamp(1.7rem,4.6vw,4.4rem)] leading-[1.04]">
+                  {MISSION.line}
+                </Sign>
+                <p className="mt-6 max-w-[54ch] font-onest text-[16px] leading-[1.55] text-ink sm:text-[19px]">{MISSION.support}</p>
+              </div>
+            </motion.div>
+          )}
+        </div>
+        <canvas ref={facadeCv} aria-hidden className="absolute inset-0 h-full w-full" />
+        <div ref={fill} aria-hidden className="absolute inset-0 bg-smalt-orange opacity-0" />
 
         {/* The sign band rides the same camera as the facade. */}
-        <motion.div className="absolute inset-x-0 bottom-0" style={{ top: bandTop, scale, transformOrigin: geo ? `${geo.f.target.x}px ${geo.f.target.y - bandTop}px` : '50% 0', opacity: signOpacity }}>
-          <div className="mx-auto flex h-full max-w-[1320px] flex-col justify-center px-5 pb-16 pt-8 sm:px-8">
-            <Sign as="h1" id="hero-title" className="max-w-[17ch] text-[clamp(1.75rem,4.9vw,4.75rem)]">
-              {HERO.title}
-            </Sign>
-            <div className="mt-6 flex flex-col gap-6 sm:mt-8 sm:flex-row sm:items-end sm:justify-between">
-              <p className="max-w-[46ch] font-onest text-[17px] leading-[1.55] text-ink/80 sm:text-[18px]">{HERO.lede}</p>
-              <div className="flex flex-wrap items-center gap-5">
-                <InkButton href="#suggestions" onClick={go('suggestions')}>
-                  Suggest an idea <Arrow />
-                </InkButton>
-                <a href="#projects" onClick={go('projects')} className="font-onest text-[16px] underline decoration-1 underline-offset-[6px] hover:decoration-2">
-                  See what we’ve built
-                </a>
+        <div ref={signBox} className="absolute inset-0 origin-top-left">
+          <div className="mz-grain pointer-events-none absolute inset-x-0 bottom-0 opacity-60" style={{ top: geo?.f.bandTop ?? '60%' }} aria-hidden />
+          <div className="absolute inset-x-0 bottom-0" style={{ top: geo?.f.bandTop ?? '60%' }}>
+            <div className="mx-auto grid h-full max-w-[1320px] content-center gap-4 px-5 pb-6 pt-4 sm:px-8 lg:grid-cols-[7fr_5fr] lg:items-center lg:gap-12">
+              <Sign as="h1" id="hero-title" className="max-w-[17ch] text-[clamp(1.6rem,4.3vw,4.2rem)]">
+                {HERO.title}
+              </Sign>
+              {/* The ink plaque mounted on the band. */}
+              <div className="bg-ink px-5 py-5 text-smalt-white shadow-[0_6px_14px_rgba(28,26,23,0.28)] sm:px-7 sm:py-6">
+                <p className="font-onest text-[15px] leading-[1.5] text-smalt-white/85 sm:text-[17px]">{HERO.lede}</p>
+                <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-2 sm:mt-5">
+                  <InkButton href="#suggestions" onClick={go('suggestions')}>
+                    Suggest an idea <Arrow />
+                  </InkButton>
+                  <a href="#projects" onClick={go('projects')} className="font-onest text-[15px] underline decoration-1 underline-offset-[6px] hover:decoration-2 sm:text-[16px]">
+                    See what we’ve built
+                  </a>
+                </div>
               </div>
             </div>
           </div>
-        </motion.div>
-
-        {/* The mission frieze rises over the mural. */}
-        <motion.div
-          className="absolute inset-x-0 bottom-0 border-t-[3px] border-ink bg-concrete"
-          style={{ y: reduce ? '105%' : friezeY }}
-          aria-hidden={reduce}
-        >
-          <div className="mz-grain pointer-events-none absolute inset-0 opacity-60" aria-hidden />
-          <div className="relative mx-auto max-w-[1320px] px-5 pb-20 pt-10 sm:px-8 sm:pb-24 sm:pt-14">
-            {!reduce && <MissionLine p={p} still={false} />}
-            <motion.p className="mt-6 max-w-[52ch] font-onest text-[17px] leading-[1.55] text-ink/80 sm:text-[18px]" style={{ opacity: supportOpacity }}>
-              {MISSION.support}
-            </motion.p>
-          </div>
-        </motion.div>
+        </div>
       </div>
     </section>
   );
 }
 
-/** Reduced motion: the mission sits as a plain section after the facade. */
+/** Reduced motion: the mission sits as a plain inscription after the facade. */
 function StillMission() {
-  const still = useMotionValue(1);
   return (
-    <section id="mission" aria-labelledby="mission-title" className="border-t-[3px] border-ink bg-concrete py-20">
+    <section id="mission" aria-labelledby="mission-title" className="border-y-[14px] border-ink bg-smalt-white py-20">
       <div className="mx-auto max-w-[1320px] px-5 sm:px-8">
-        <MissionLine p={still} still />
-        <p className="mt-6 max-w-[52ch] font-onest text-[18px] leading-[1.55] text-ink/80">{MISSION.support}</p>
+        <Sign id="mission-title" relief={false} className="text-[clamp(1.7rem,4.6vw,4.4rem)]">
+          {MISSION.line}
+        </Sign>
+        <p className="mt-6 max-w-[54ch] font-onest text-[18px] leading-[1.55]">{MISSION.support}</p>
       </div>
     </section>
   );
 }
 
 /* ------------------------------------------------------------------ */
-/* What we do                                                          */
+/* What we do: three cells of the lattice                              */
 /* ------------------------------------------------------------------ */
 
-function swatch(color: readonly number[], seed: number) {
-  const c = document.createElement('canvas');
-  const t = 9;
-  c.width = c.height = t * 8;
-  const ctx = c.getContext('2d')!;
-  ctx.fillStyle = '#C4BDB0';
-  ctx.fillRect(0, 0, c.width, c.height);
-  let s = seed;
-  const r = () => ((s = (s * 16807) % 2147483647) / 2147483647);
-  for (let y = 0; y < 8; y++)
-    for (let x = 0; x < 8; x++) {
-      const k = 0.88 + r() * 0.18;
-      ctx.fillStyle = `rgb(${(color[0]! * k) | 0},${(color[1]! * k) | 0},${(color[2]! * k) | 0})`;
-      ctx.fillRect(x * t + 0.6, y * t + 0.6, t - 1.2, t - 1.2);
-    }
-  return c.toDataURL('image/png');
+function ArchPanel({ color, seed }: { color: readonly [number, number, number]; seed: number }) {
+  const ref = useRef<HTMLCanvasElement>(null);
+  useEffect(() => {
+    const cv = ref.current!;
+    const paint = () => {
+      const w = cv.parentElement!.clientWidth;
+      const h = Math.round(w * 0.82);
+      paintArchPanel(cv, w, h, w < 300 ? 11 : 12, Math.min(devicePixelRatio || 1, 2), color, seed);
+      cv.style.width = `${w}px`;
+      cv.style.height = `${h}px`;
+    };
+    paint();
+    const ro = new ResizeObserver(paint);
+    ro.observe(cv.parentElement!);
+    return () => ro.disconnect();
+  }, [color, seed]);
+  return <canvas ref={ref} aria-hidden className="block" />;
 }
 
 const WORK_TILES = [TILE.orange, TILE.teal, TILE.cyan] as const;
 
-function About() {
-  const tiles = useMemo(() => WORK_TILES.map((c, i) => swatch(c, 11 + i * 7)), []);
+function Cell({ w, i }: { w: (typeof WORK)[number]; i: number }) {
+  const ref = useRef<HTMLLIElement>(null);
+  const reduce = useReducedMotion();
+  const { scrollYProgress: p } = useScroll({ target: ref, offset: ['start end', 'start 0.45'] });
+  // The cells come forward out of the wall one after another, like a dolly along the facade.
+  const lag = i * 0.1;
+  const y = useTransform(p, ...span([lag, 1], reduce ? [0, 0] : [90, 0]), { ease: settle });
+  const scale = useTransform(p, ...span([lag, 1], reduce ? [1, 1] : [0.92, 1]), { ease: settle });
   return (
-    <section id="about" aria-labelledby="about-title" className="relative bg-concrete py-20 sm:py-28">
+    <motion.li ref={ref} style={{ y, scale }} className={`flex flex-col overflow-hidden rounded-t-full border-[3px] border-ink bg-concrete ${i === 1 ? 'md:mt-16' : i === 2 ? 'md:mt-32' : ''}`}>
+      <ArchPanel color={WORK_TILES[i]!} seed={31 + i * 17} />
+      <div className="border-t-[3px] border-ink px-6 pb-8 pt-6">
+        <h3 className="font-sign text-[clamp(1.05rem,1.6vw,1.35rem)] font-semibold uppercase leading-tight tracking-[0.01em]">{w.title}</h3>
+        <p className="mt-3 font-onest text-[17px] leading-[1.6] text-ink/85">{w.body}</p>
+      </div>
+    </motion.li>
+  );
+}
+
+function About() {
+  return (
+    <section id="about" aria-labelledby="about-title" className="relative bg-concrete pb-24 pt-20 sm:pb-32 sm:pt-28">
       <div className="mz-grain pointer-events-none absolute inset-0 opacity-60" aria-hidden />
-      <div className="relative mx-auto grid max-w-[1320px] gap-12 px-5 sm:px-8 lg:grid-cols-[5fr_7fr] lg:gap-20">
-        <div>
-          <Sign id="about-title" className="text-[clamp(1.75rem,3.2vw,2.9rem)]">
-            {ABOUT.title}
-          </Sign>
+      <div className="relative mx-auto max-w-[1320px] px-5 sm:px-8">
+        <Sign id="about-title" className="max-w-[22ch] text-[clamp(1.75rem,3.6vw,3.3rem)]">
+          {ABOUT.title}
+        </Sign>
+        <div className="mt-6 grid max-w-[980px] gap-4 md:grid-cols-2 md:gap-10">
           {ABOUT.body.map((t) => (
-            <p key={t} className="mt-6 max-w-[48ch] font-onest text-[17px] leading-[1.6] text-ink/80 sm:text-[18px]">
+            <p key={t} className="font-onest text-[17px] leading-[1.6] text-ink/85 sm:text-[18px]">
               {t}
             </p>
           ))}
         </div>
-        <ul className="border-t-[3px] border-ink">
+        <ul className="mt-16 grid gap-8 md:grid-cols-3 md:gap-6 lg:gap-10">
           {WORK.map((w, i) => (
-            <li key={w.title} className="border-b border-ink/25">
-              <PushIn className="flex gap-6 py-8 sm:gap-8" from={0.94} lag={i * 0.08}>
-                <span
-                  aria-hidden
-                  className="h-[96px] w-[64px] shrink-0 rounded-t-full bg-[length:36px_36px] sm:h-[120px] sm:w-[80px]"
-                  style={{ backgroundImage: `url(${tiles[i]})`, boxShadow: 'inset -7px 0 0 #A39B8C' }}
-                />
-                <div>
-                  <h3 className="font-sign text-[clamp(1.1rem,1.8vw,1.45rem)] font-semibold uppercase leading-tight">{w.title}</h3>
-                  <p className="mt-3 max-w-[50ch] font-onest text-[17px] leading-[1.6] text-ink/80">{w.body}</p>
-                </div>
-              </PushIn>
-            </li>
+            <Cell key={w.title} w={w} i={i} />
           ))}
         </ul>
       </div>
@@ -437,35 +499,47 @@ function About() {
 }
 
 /* ------------------------------------------------------------------ */
-/* TISMUN: the building clock                                          */
+/* TISMUN: the plaque and the building clock                           */
 /* ------------------------------------------------------------------ */
 
-function Clock({ start, end, timezoneLabel }: { start: string; end: string; timezoneLabel: string }) {
+function BuildingClock({ start, end, timezoneLabel }: { start: string; end: string; timezoneLabel: string }) {
   const now = useNow();
+  const reduce = useReducedMotion();
   const c = countdownParts(now, start, end);
-  if (c.phase !== 'before') {
-    return <p className="font-sign text-[clamp(1.5rem,3vw,2.4rem)] font-semibold uppercase">{c.phase === 'during' ? 'Happening now' : 'Conference complete'}</p>;
-  }
-  const units = [
-    [c.days, 'Days'],
-    [c.hours, 'Hours'],
-    [c.mins, 'Minutes'],
-    [c.secs, 'Seconds'],
-  ] as const;
+  const pad = (n: number) => String(n).padStart(2, '0');
+  const ticks = Array.from({ length: 60 }, (_, i) => i);
   return (
-    <div>
-      <p className="sr-only">
-        {c.days} days, {c.hours} hours and {c.mins} minutes until the conference ({timezoneLabel}).
-      </p>
-      <div aria-hidden className="grid grid-cols-4 border-y border-smalt-white/25">
-        {units.map(([v, label], i) => (
-          <div key={label} className={`py-5 ${i ? 'border-l border-smalt-white/25 pl-4 sm:pl-6' : ''}`}>
-            <span className="block font-sign text-[clamp(2rem,5.4vw,4.75rem)] font-light leading-none tabular-nums">{String(v).padStart(2, '0')}</span>
-            <span className="mt-3 block font-onest text-[13px] uppercase tracking-[0.08em] text-smalt-white/70">{label}</span>
-          </div>
-        ))}
+    <figure className="flex flex-col items-center">
+      <div className="relative aspect-square w-[min(84vw,420px)] rounded-full bg-concrete p-[5%] text-ink shadow-[inset_0_-6px_14px_rgba(28,26,23,0.25)]">
+        <svg viewBox="0 0 200 200" aria-hidden className="absolute inset-0 h-full w-full">
+          {ticks.map((i) => (
+            <line key={i} x1="100" y1={i % 5 ? 9 : 7} x2="100" y2={i % 5 ? 14 : 20} stroke="#1C1A17" strokeWidth={i % 5 ? 0.8 : 2.2} transform={`rotate(${i * 6} 100 100)`} />
+          ))}
+          {/* The seconds hand counts down with the conference. */}
+          <g style={{ transform: `rotate(${(60 - c.secs) * 6}deg)`, transformOrigin: '100px 100px', transition: reduce || c.secs === 59 ? 'none' : 'transform 0.35s cubic-bezier(0.16,1,0.3,1)' }}>
+            <line x1="100" y1="112" x2="100" y2="24" stroke="#951E34" strokeWidth="1.6" strokeLinecap="round" />
+            <circle cx="100" cy="100" r="3.2" fill="#951E34" />
+          </g>
+        </svg>
+        <div className="relative flex h-full flex-col items-center justify-center text-center">
+          {c.phase === 'before' ? (
+            <>
+              <span className="font-sign text-[clamp(3rem,9vw,5.5rem)] font-light leading-none tabular-nums">{c.days}</span>
+              <span className="mt-1 font-onest text-[14px] uppercase tracking-[0.1em] text-ink/80">days</span>
+              <span className="mt-3 font-sign text-[clamp(1rem,2.2vw,1.35rem)] font-medium tabular-nums">
+                {pad(c.hours)}:{pad(c.mins)}:{pad(c.secs)}
+              </span>
+            </>
+          ) : (
+            <span className="max-w-[10ch] font-sign text-[22px] font-semibold uppercase">{c.phase === 'during' ? 'Happening now' : 'Conference complete'}</span>
+          )}
+        </div>
       </div>
-    </div>
+      <figcaption className="mt-5 text-center font-onest text-[15px] text-smalt-white/80">
+        {c.phase === 'before' && <span className="sr-only">{c.days} days, {c.hours} hours and {c.mins} minutes until the conference. </span>}
+        Until TISMUN begins ({timezoneLabel})
+      </figcaption>
+    </figure>
   );
 }
 
@@ -475,46 +549,41 @@ function Projects() {
   return (
     <section id="projects" aria-labelledby="projects-title" className="relative bg-ink py-20 text-smalt-white sm:py-28">
       <div className="mx-auto max-w-[1320px] px-5 sm:px-8">
-        <Sign id="projects-title" className="text-[clamp(1.75rem,3.2vw,2.9rem)]">
+        <Sign id="projects-title" relief={false} className="text-[clamp(1.75rem,3.6vw,3.3rem)]">
           Things we’ve shipped.
         </Sign>
-        <p className="mt-5 max-w-[46ch] font-onest text-[18px] text-smalt-white/75">Real platforms, used by real people at TIS.</p>
+        <p className="mt-5 max-w-[46ch] font-onest text-[18px] text-smalt-white/80">Real platforms, used by real people at TIS.</p>
 
-        <PushIn className="mt-14 grid gap-10 lg:grid-cols-[1fr_1fr] lg:gap-16" from={0.9}>
-          <div className="flex aspect-[4/3] items-center justify-center bg-smalt-white p-10 text-ink" style={{ boxShadow: 'inset 0 -10px 0 #B4AC9E' }}>
-            <TismunLogo className="w-full max-w-[420px]" />
-          </div>
-          <div className="flex flex-col">
-            <h3 className="font-sign text-[clamp(2rem,4vw,3.4rem)] font-semibold uppercase leading-none">{p.name}</h3>
-            <p className="mt-4 flex items-center gap-2 font-onest text-[14px] uppercase tracking-[0.08em] text-smalt-white/75">
-              <span className="h-2.5 w-2.5 bg-smalt-cyan" aria-hidden />
+        <div className="mt-14 grid items-center gap-14 lg:grid-cols-[7fr_5fr] lg:gap-16">
+          {/* The plaque: cast concrete, the project's mark set into it. */}
+          <div className="bg-concrete p-6 text-ink sm:p-10">
+            <div className="flex items-center justify-center bg-smalt-white px-8 py-10 shadow-[inset_0_3px_10px_rgba(28,26,23,0.25)] sm:px-14 sm:py-14">
+              <TismunLogo className="w-full max-w-[380px]" />
+            </div>
+            <Sign as="h3" className="mt-8 text-[clamp(2rem,4vw,3.2rem)] leading-none">
+              {p.name}
+            </Sign>
+            <p className="mt-3 flex items-center gap-2 font-onest text-[14px] uppercase tracking-[0.08em] text-ink/80">
+              <span className="h-2.5 w-2.5 bg-smalt-teal" aria-hidden />
               Live · {p.date}
             </p>
             <p className="mt-4 font-onest text-[19px]">{p.tagline}</p>
-            <p className="mt-3 max-w-[56ch] font-onest text-[17px] leading-[1.6] text-smalt-white/75">{p.description}</p>
-            <div className="mt-auto flex flex-wrap gap-4 pt-8">
+            <p className="mt-3 max-w-[60ch] font-onest text-[17px] leading-[1.6] text-ink/85">{p.description}</p>
+            <div className="mt-7">
               {p.link ? (
-                <a href={p.link} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-[52px] items-center gap-3 bg-smalt-white px-6 font-sign text-[13px] font-medium uppercase tracking-[0.06em] text-ink hover:bg-smalt-orange">
+                <a href={p.link} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-[52px] items-center gap-3 bg-ink px-6 font-sign text-[13px] font-medium uppercase tracking-[0.06em] text-smalt-white hover:bg-smalt-teal">
                   Visit {p.name} <Arrow />
                   <span className="sr-only">(opens in a new tab)</span>
                 </a>
               ) : (
-                <span className="inline-flex min-h-[52px] cursor-not-allowed items-center border border-smalt-white/40 px-6 font-sign text-[13px] font-medium uppercase tracking-[0.06em] text-smalt-white/70">
-                  Link coming soon
-                </span>
+                <span className="inline-flex min-h-[52px] cursor-not-allowed items-center border border-ink/50 px-6 font-sign text-[13px] font-medium uppercase tracking-[0.06em] text-ink/75">Link coming soon</span>
               )}
             </div>
           </div>
-        </PushIn>
+          {p.event && <BuildingClock {...p.event} />}
+        </div>
 
-        {p.event && (
-          <PushIn className="mt-16" from={0.96}>
-            <p className="mb-4 font-onest text-[14px] text-smalt-white/70">Conference starts in ({p.event.timezoneLabel})</p>
-            <Clock {...p.event} />
-          </PushIn>
-        )}
-
-        <div className="mt-16 grid gap-10 lg:grid-cols-[1fr_1fr] lg:gap-16">
+        <div className="mt-16 grid gap-10 lg:grid-cols-[7fr_5fr] lg:gap-16">
           <ul className="border-t border-smalt-white/25">
             {p.features.map((f) => (
               <li key={f} className="border-b border-smalt-white/25 py-4 font-onest text-[17px]">
@@ -523,7 +592,7 @@ function Projects() {
             ))}
           </ul>
           <div>
-            <p className="font-onest text-[14px] uppercase tracking-[0.08em] text-smalt-white/70">Built with</p>
+            <p className="font-onest text-[14px] uppercase tracking-[0.08em] text-smalt-white/75">Built with</p>
             <p className="mt-3 font-onest text-[17px] leading-[1.7]">{p.stack.join(' · ')}</p>
           </div>
         </div>
@@ -540,32 +609,49 @@ function Niche({ f, i }: { f: (typeof founders)[number]; i: number }) {
   const [open, setOpen] = useState(false);
   const [ok, setOk] = useState(true);
   const id = useId();
-  const pending = isPlaceholder(f.bio);
+  const ref = useRef<HTMLDivElement>(null);
+  const reduce = useReducedMotion();
+  const { scrollYProgress: p } = useScroll({ target: ref, offset: ['start end', 'start 0.5'] });
+  const lag = i * 0.1;
+  const y = useTransform(p, ...span([lag, 1], reduce ? [0, 0] : [70, 0]), { ease: settle });
   return (
-    <PushIn className="flex flex-col" from={0.86} lag={i * 0.12}>
-      <div className="relative aspect-[3/4] overflow-hidden rounded-t-full bg-concrete-deep" style={{ boxShadow: 'inset -10px 0 0 #A39B8C' }}>
-        {ok && <img src={f.photo} alt={`Portrait of ${f.name}`} loading="lazy" decoding="async" onError={() => setOk(false)} className="absolute inset-0 h-full w-full object-cover object-[50%_18%]" />}
+    <motion.div ref={ref} style={{ y }} className="flex flex-col">
+      {/* A square niche: the photo sits back in the wall, in the wall's own light. */}
+      <div className="bg-concrete-deep p-3">
+        <div className="group relative aspect-[4/5] overflow-hidden bg-ink">
+          {ok && (
+            <img
+              src={f.photo}
+              alt={`Portrait of ${f.name}`}
+              loading="lazy"
+              decoding="async"
+              onError={() => setOk(false)}
+              className="mz-photo absolute inset-0 h-full w-full object-cover object-[50%_18%]"
+            />
+          )}
+          <span aria-hidden className="pointer-events-none absolute inset-0 shadow-[inset_10px_12px_22px_rgba(28,26,23,0.45)]" />
+        </div>
       </div>
-      <h3 className="mt-6 font-sign text-[clamp(1.1rem,1.6vw,1.35rem)] font-semibold uppercase leading-tight">{f.name}</h3>
-      <p className="mt-1 font-onest text-[15px] text-ink/75">{f.role}</p>
+      <h3 className="mt-6 font-sign text-[clamp(1.05rem,1.5vw,1.3rem)] font-semibold uppercase leading-tight tracking-[0.01em]">{f.name}</h3>
+      <p className="mt-1 font-onest text-[15px] text-ink/80">{f.role}</p>
       {f.tagline && <p className="mt-3 font-onest text-[17px]">{f.tagline}</p>}
       <button
         type="button"
         aria-expanded={open}
         aria-controls={id}
         onClick={() => setOpen((o) => !o)}
-        className="mt-4 inline-flex min-h-[44px] items-center gap-2 self-start font-onest text-[15px] underline decoration-1 underline-offset-[6px] hover:decoration-2"
+        className="mt-3 inline-flex min-h-[44px] items-center self-start font-onest text-[15px] underline decoration-1 underline-offset-[6px] hover:decoration-2"
       >
         {open ? 'Hide bio' : 'Read bio'}
       </button>
       <AnimatePresence initial={false}>
         {open && (
           <motion.div id={id} className="overflow-hidden" initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.4, ease: EASE }}>
-            <p className="whitespace-pre-line pt-3 font-onest text-[16px] leading-[1.65] text-ink/85">{pending ? 'Bio coming soon.' : f.bio}</p>
+            <p className="whitespace-pre-line pt-2 font-onest text-[16px] leading-[1.65] text-ink/85">{isPlaceholder(f.bio) ? 'Bio coming soon.' : f.bio}</p>
           </motion.div>
         )}
       </AnimatePresence>
-    </PushIn>
+    </motion.div>
   );
 }
 
@@ -574,13 +660,11 @@ function Founders() {
     <section id="founders" aria-labelledby="founders-title" className="relative bg-concrete py-20 sm:py-28">
       <div className="mz-grain pointer-events-none absolute inset-0 opacity-60" aria-hidden />
       <div className="relative mx-auto max-w-[1320px] px-5 sm:px-8">
-        <div className="grid gap-6 lg:grid-cols-[5fr_7fr] lg:gap-20">
-          <Sign id="founders-title" className="text-[clamp(1.75rem,3.2vw,2.9rem)]">
+        <div className="max-w-[760px]">
+          <Sign id="founders-title" className="text-[clamp(1.75rem,3.6vw,3.3rem)]">
             Three students. One campus to upgrade.
           </Sign>
-          <p className="max-w-[48ch] font-onest text-[18px] leading-[1.6] text-ink/80 lg:pt-2">
-            The Tech Council was started by three TIS students who wanted to fix things, not just talk about them.
-          </p>
+          <p className="mt-5 max-w-[48ch] font-onest text-[18px] leading-[1.6] text-ink/85">The Tech Council was started by three TIS students who wanted to fix things, not just talk about them.</p>
         </div>
         <div className="mt-14 grid gap-12 sm:grid-cols-2 sm:gap-8 lg:grid-cols-3 lg:gap-12">
           {founders.map((f, i) => (
@@ -600,26 +684,28 @@ function TileLanded({ color }: { color: readonly number[] }) {
   const ref = useRef<HTMLCanvasElement>(null);
   const wrap = useRef<HTMLDivElement>(null);
   const reduce = useReducedMotion();
-  const [slot, setSlot] = useState<number | null>(null);
-  const tile = 22;
+  const [slot, setSlot] = useState<{ col: number; row: number } | null>(null);
+  const tile = 24;
+  const rows = 4;
   useEffect(() => {
     const w = wrap.current!.clientWidth;
     const cols = Math.floor(w / tile);
-    const gap = Math.floor(cols * 0.62);
-    paintStrip(ref.current!, w, tile, Math.min(devicePixelRatio || 1, 2), gap);
+    const gap = { col: Math.floor(cols * 0.58), row: 1 };
+    paintStrip(ref.current!, w, tile, Math.min(devicePixelRatio || 1, 2), rows, gap);
     ref.current!.style.width = `${cols * tile}px`;
+    ref.current!.style.height = `${rows * tile}px`;
     setSlot(gap);
   }, []);
   return (
-    <div ref={wrap} className="relative mt-10 h-[22px] w-full" aria-hidden>
-      <canvas ref={ref} className="block h-[22px]" />
-      {slot !== null && (
+    <div ref={wrap} className="relative mt-10 w-full" style={{ height: rows * tile }} aria-hidden>
+      <canvas ref={ref} className="block" />
+      {slot && (
         <motion.span
-          className="absolute top-0 block"
-          style={{ left: slot * tile + 1.2, width: tile - 2.4, height: tile - 2.4, marginTop: 1.2, background: rgb(color) }}
-          initial={reduce ? { opacity: 0 } : { y: -140, rotate: -24, opacity: 0 }}
+          className="absolute block"
+          style={{ left: slot.col * tile + 1.5, top: slot.row * tile + 1.5, width: tile - 3, height: tile - 3, background: rgb(color), boxShadow: 'inset 0 2px 0 rgba(255,255,255,0.3)', outline: '2px solid #1C1A17', outlineOffset: 3 }}
+          initial={reduce ? { opacity: 0 } : { y: -180, rotate: -28, opacity: 0 }}
           animate={{ y: 0, rotate: 0, opacity: 1 }}
-          transition={reduce ? { duration: 0.2 } : { type: 'spring', stiffness: 260, damping: 20, delay: 0.15 }}
+          transition={reduce ? { duration: 0.2 } : { type: 'spring', stiffness: 240, damping: 19, delay: 0.2 }}
         />
       )}
     </div>
@@ -633,11 +719,12 @@ function Ideas() {
   });
   const [sentColor, setSentColor] = useState<readonly number[]>(TILE.ink);
   const field =
-    'block w-full border border-ink/35 bg-concrete-light px-4 font-onest text-[17px] text-ink placeholder:text-ink/55 transition-colors focus:border-ink focus:outline-none focus:ring-1 focus:ring-ink aria-[invalid=true]:border-smalt-maroon';
+    'block w-full border border-ink/35 bg-smalt-white px-4 font-onest text-[17px] text-ink placeholder:text-ink/55 transition-colors focus:border-ink focus:outline-none focus:ring-1 focus:ring-ink aria-[invalid=true]:border-smalt-maroon';
 
   return (
-    <section id="suggestions" aria-labelledby="suggest-title" className="relative border-t-[3px] border-ink bg-concrete-light py-20 sm:py-28">
-      <div className="mx-auto grid max-w-[1320px] gap-14 px-5 sm:px-8 lg:grid-cols-[5fr_7fr] lg:gap-20">
+    <section id="suggestions" aria-labelledby="suggest-title" className="relative border-t-[3px] border-ink bg-concrete py-20 sm:py-28">
+      <div className="mz-grain pointer-events-none absolute inset-0 opacity-60" aria-hidden />
+      <div className="relative mx-auto grid max-w-[1320px] gap-14 px-5 sm:px-8 lg:grid-cols-[5fr_7fr] lg:gap-20">
         <div className="lg:sticky lg:top-28 lg:self-start">
           <Sign id="suggest-title" className="text-[clamp(1.75rem,3.2vw,2.9rem)]">
             {SUGGEST.title}
@@ -773,7 +860,7 @@ function Ideas() {
                 </div>
 
                 {form.status === 'error' && form.error && (
-                  <p id={`${uid}-error`} role="alert" className="mt-6 border-l-[3px] border-smalt-maroon bg-concrete px-4 py-3 font-onest text-[15px]">
+                  <p id={`${uid}-error`} role="alert" className="mt-6 border-l-[3px] border-smalt-maroon bg-smalt-white px-4 py-3 font-onest text-[15px]">
                     {form.error}
                   </p>
                 )}
@@ -812,7 +899,7 @@ function Question({ q, a }: { q: string; a: string }) {
       <AnimatePresence initial={false}>
         {open && (
           <motion.div id={id} className="overflow-hidden" initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.4, ease: EASE }}>
-            <p className="max-w-[64ch] pb-6 font-onest text-[17px] leading-[1.65] text-ink/80">{a}</p>
+            <p className="max-w-[64ch] pb-6 font-onest text-[17px] leading-[1.65] text-ink/85">{a}</p>
           </motion.div>
         )}
       </AnimatePresence>
@@ -824,11 +911,11 @@ function Faq() {
   return (
     <section id="faq" aria-labelledby="faq-title" className="relative bg-concrete py-20 sm:py-28">
       <div className="mz-grain pointer-events-none absolute inset-0 opacity-60" aria-hidden />
-      <div className="relative mx-auto grid max-w-[1320px] gap-10 px-5 sm:px-8 lg:grid-cols-[5fr_7fr] lg:gap-20">
-        <Sign id="faq-title" className="text-[clamp(1.75rem,3.2vw,2.9rem)]">
+      <div className="relative mx-auto max-w-[880px] px-5 sm:px-8">
+        <Sign id="faq-title" className="text-center text-[clamp(1.75rem,3.6vw,3.3rem)]">
           Questions
         </Sign>
-        <ul className="border-t-[3px] border-ink">
+        <ul className="mt-12 border-t-[3px] border-ink">
           {FAQ.map((x) => (
             <Question key={x.q} {...x} />
           ))}
@@ -849,23 +936,23 @@ function Footer() {
             <LogoMark className="h-12 w-12 text-smalt-white" />
             <div>
               <p className="font-sign text-[14px] font-semibold uppercase tracking-[0.04em]">TIS Tech Council</p>
-              <p className="font-onest text-[15px] text-smalt-white/70">Tashkent International School</p>
+              <p className="font-onest text-[15px] text-smalt-white/75">Tashkent International School</p>
             </div>
           </div>
           <ul className="grid grid-cols-2 gap-x-10 gap-y-1 sm:grid-cols-3">
             {[...NAV, ['suggestions', 'Suggest an idea'] as const].map(([id, label]) => (
               <li key={id}>
-                <a href={`#${id}`} onClick={go(id)} className="inline-flex min-h-[40px] items-center font-onest text-[16px] text-smalt-white/75 hover:text-smalt-white">
+                <a href={`#${id}`} onClick={go(id)} className="inline-flex min-h-[40px] items-center font-onest text-[16px] text-smalt-white/80 hover:text-smalt-white">
                   {label}
                 </a>
               </li>
             ))}
           </ul>
         </div>
-        <p aria-hidden className="mt-16 font-sign text-[clamp(2.2rem,8.6vw,8rem)] font-semibold uppercase leading-[0.95] tracking-[-0.02em]">
+        <p aria-hidden className="mt-16 font-sign text-[clamp(2.1rem,7.4vw,6rem)] font-semibold uppercase leading-[0.98] tracking-[0.005em]">
           TIS Tech Council
         </p>
-        <div className="mt-8 flex flex-col gap-3 border-t border-smalt-white/25 pt-6 font-onest text-[14px] text-smalt-white/70 sm:flex-row sm:items-center sm:justify-between">
+        <div className="mt-8 flex flex-col gap-3 border-t border-smalt-white/25 pt-6 font-onest text-[14px] text-smalt-white/75 sm:flex-row sm:items-center sm:justify-between">
           <p>© 2026 TIS Tech Council · Tashkent International School</p>
           <p className="flex items-center gap-3">
             <Owl className="h-6 w-6 text-smalt-white" />
@@ -885,14 +972,14 @@ export default function MosaicPage() {
     document.documentElement.style.setProperty('--mz-grain', `url(${grainUrl()})`);
   }, []);
   return (
-    <Shell world="mosaic" switcherClass="bg-ink text-smalt-white/75 [&_[data-here]]:bg-smalt-white [&_[data-here]]:text-ink">
+    <Shell world="mosaic" switcherClass="bg-ink text-smalt-white/80 [&_[data-here]]:bg-smalt-white [&_[data-here]]:text-ink">
       <div className="font-onest text-ink">
         <Nav />
         <main id="main">
           <Approach />
           {reduce && <StillMission />}
-          <Frieze />
           <About />
+          <Frieze />
           <Projects />
           <Founders />
           <Ideas />
