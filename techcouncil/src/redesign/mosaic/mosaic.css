@@ -1,0 +1,26 @@
+/* Option A: Tashkent modernism. Page colours live on <html> so overscroll
+   and the space behind the browser chrome stay concrete. */
+html[data-world='mosaic'],
+html[data-world='mosaic'] body {
+  background: #cfc9be;
+  color: #1c1a17;
+  scrollbar-color: #1c1a17 #cfc9be;
+}
+html[data-world='mosaic'] ::selection {
+  background: #1c1a17;
+  color: #efebe3;
+}
+html[data-world='mosaic'] :focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 3px;
+  border-radius: 0;
+}
+html[data-world='mosaic'] textarea {
+  caret-color: #951e34;
+}
+
+/* Concrete grain, generated at runtime (see paint.ts grainUrl). */
+.mz-grain {
+  background-image: var(--mz-grain);
+  background-size: 160px 160px;
+}

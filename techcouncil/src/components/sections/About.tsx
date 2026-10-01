@@ -5,21 +5,8 @@ import { FlowingMenu } from '../ui/FlowingMenu';
 import { EASE_OUT } from '@/lib/motion';
 import { founders } from '@/data/founders';
 import { projects } from '@/data/projects';
+import { WORK } from '@/data/copy';
 
-const WORK = [
-  {
-    title: 'Build tools for the school',
-    body: 'Websites, bots and small systems that fix everyday problems at TIS, built and maintained by students.',
-  },
-  {
-    title: 'Run tech projects',
-    body: 'Every project goes from an idea to a plan to something people at TIS actually use, with a team and a launch date.',
-  },
-  {
-    title: 'Listen to student ideas',
-    body: 'The best projects start as someone’s suggestion. Anyone at TIS can send one, and the council reads every one.',
-  },
-];
 
 function Counter({ to }: { to: number }) {
   const ref = useRef<HTMLSpanElement>(null);

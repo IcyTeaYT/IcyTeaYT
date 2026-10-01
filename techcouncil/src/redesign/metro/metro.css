@@ -1,0 +1,44 @@
+/* Option B: Tashkent metro. */
+html[data-world='metro'],
+html[data-world='metro'] body {
+  background: #16181b;
+  color: #ece8e0;
+  scrollbar-color: #b08d57 #16181b;
+}
+html[data-world='metro'] ::selection {
+  background: #b08d57;
+  color: #16181b;
+}
+html[data-world='metro'] :focus-visible {
+  outline: 2px solid #b08d57;
+  outline-offset: 3px;
+  border-radius: 6px;
+}
+html[data-world='metro'] textarea {
+  caret-color: #b08d57;
+}
+
+/* Glazed ceramic wall, as in Kosmonavtlar: rounded tiles in a running bond,
+   each with a thin glint of glaze along its top edge. */
+.mt-tiles {
+  background-image: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='96' height='64'><g fill='none' stroke='%23ECE8E0' stroke-opacity='.09'><rect x='.5' y='.5' width='47' height='31' rx='3'/><rect x='48.5' y='.5' width='47' height='31' rx='3'/><rect x='-23.5' y='32.5' width='47' height='31' rx='3'/><rect x='24.5' y='32.5' width='47' height='31' rx='3'/><rect x='72.5' y='32.5' width='47' height='31' rx='3'/></g><g fill='%23ECE8E0'><rect x='4' y='3' width='26' height='2' rx='1' fill-opacity='.05'/><rect x='52' y='3' width='18' height='2' rx='1' fill-opacity='.04'/><rect x='28' y='35' width='22' height='2' rx='1' fill-opacity='.05'/><rect x='76' y='35' width='14' height='2' rx='1' fill-opacity='.04'/></g></svg>");
+  background-size: 96px 64px;
+}
+
+/* The tunnel mouth: rings drift toward you, slowly. Compositor-only. */
+.mt-ring {
+  transform: translate(-50%, -50%) scale(0.04);
+  opacity: 0;
+  animation: mt-ring 9.8s linear infinite;
+}
+@keyframes mt-ring {
+  0% { transform: translate(-50%, -50%) scale(0.04); opacity: 0; }
+  20% { opacity: 1; }
+  100% { transform: translate(-50%, -50%) scale(1.4); opacity: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .mt-ring { animation: none; opacity: 0.6; }
+  .mt-ring:nth-child(3) { transform: translate(-50%, -50%) scale(0.2); }
+  .mt-ring:nth-child(4) { transform: translate(-50%, -50%) scale(0.45); }
+  .mt-ring:nth-child(5) { transform: translate(-50%, -50%) scale(0.8); }
+}

@@ -1,10 +1,9 @@
 import { motion, useMotionTemplate, useReducedMotion, useScroll, useTransform, type MotionValue } from 'motion/react';
 import { useRef } from 'react';
 import { span } from '@/lib/motion';
+import { MISSION as MISSION_COPY } from '@/data/copy';
 
-const MISSION = 'Our mission is to make technology part of TIS’s DNA.';
-const SUPPORT =
-  'We’re students who think our school deserves better tech, so we build it. Tools for teachers and students, projects that make campus run smoother, and a direct line for your ideas.';
+const { line: MISSION, support: SUPPORT } = MISSION_COPY;
 
 function Word({ children, progress, range }: { children: string; progress: MotionValue<number>; range: [number, number] }) {
   const opacity = useTransform(progress, ...span(range, [0.16, 1]));
