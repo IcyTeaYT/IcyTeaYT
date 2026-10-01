@@ -5,6 +5,7 @@ import { featuredProject, pipelineProjects, STATUS_LABEL, type Project } from '@
 import { SectionIntro } from '../ui/SectionIntro';
 import { Arrow } from '../ui/Arrow';
 import { Ripple } from '../ui/Ripple';
+import { WhipPan } from '../ui/WhipPan';
 import { TismunLogo } from '../brand/TismunLogo';
 import { Countdown } from './Countdown';
 import { useSmoothScroll } from '@/lib/smoothScroll';
@@ -218,8 +219,8 @@ export function Projects() {
   if (!featuredProject) return null;
 
   return (
-    <section id="projects" data-surface="dark" aria-labelledby="projects-title" className="bg-obsidian py-20 text-paper sm:py-28">
-      <div className="container-x">
+    <section id="projects" data-surface="dark" aria-labelledby="projects-title" className="overflow-hidden bg-obsidian py-20 text-paper sm:py-28">
+      <WhipPan className="container-x">
         <SectionIntro id="projects-title" title="Things we’ve shipped.">
           <p className="text-fog">Real platforms, used by real people at TIS.</p>
         </SectionIntro>
@@ -247,7 +248,7 @@ export function Projects() {
             </ul>
           </div>
         )}
-      </div>
+      </WhipPan>
 
       {createPortal(<AnimatePresence>{open && <ProjectDetail project={featuredProject} onClose={close} />}</AnimatePresence>, document.body)}
     </section>
