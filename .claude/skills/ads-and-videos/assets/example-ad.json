@@ -1,0 +1,92 @@
+{
+  "fps": 30,
+  "beats": [
+    {
+      "type": "hook",
+      "dur": 90,
+      "text": "\"You can't make a tech company look cool\""
+    },
+    {
+      "type": "footage",
+      "dur": 24,
+      "label": "ARCHIVE: artist at work",
+      "caption": "Only",
+      "stat": {
+        "to": 0.01,
+        "decimals": 2,
+        "suffix": "%"
+      }
+    },
+    {
+      "type": "footage",
+      "dur": 20,
+      "label": "MACRO: eye",
+      "caption": "of people"
+    },
+    {
+      "type": "strobe",
+      "dur": 15,
+      "srcs": [
+        null,
+        null,
+        null,
+        null,
+        null
+      ]
+    },
+    {
+      "type": "footage",
+      "dur": 26,
+      "label": "ROCKET LAUNCH",
+      "caption": "actually change the world."
+    },
+    {
+      "type": "footage",
+      "dur": 30,
+      "kind": "image",
+      "label": "MRI BRAIN",
+      "caption": "Builders are wired differently.",
+      "glitchAt": [
+        16,
+        22
+      ]
+    },
+    {
+      "type": "chart",
+      "dur": 50,
+      "caption": "But even the",
+      "captionTop": "66%"
+    },
+    {
+      "type": "typing",
+      "dur": 55,
+      "text": "ship the launch post",
+      "caption": "greatest builder",
+      "captionTop": "66%"
+    },
+    {
+      "type": "odometer",
+      "dur": 55,
+      "value": "$2,973,795.73",
+      "label": "EARNED",
+      "caption": "needs",
+      "captionTop": "66%"
+    },
+    {
+      "type": "click",
+      "dur": 60,
+      "label": "Create Space",
+      "caption": "the right tool.",
+      "captionTop": "66%"
+    },
+    {
+      "type": "text",
+      "dur": 40,
+      "caption": "yourproduct.com"
+    },
+    {
+      "type": "logo",
+      "dur": 50
+    }
+  ]
+}
