@@ -8,3 +8,4 @@ dist
 *.local
 brag-output/
 ad-output/
+brag-output*/
