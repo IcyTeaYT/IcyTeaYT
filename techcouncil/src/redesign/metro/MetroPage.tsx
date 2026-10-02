@@ -342,55 +342,68 @@ function Ride({ to, color }: { to: StationId; color: string }) {
 /* First station: the platform                                          */
 /* ------------------------------------------------------------------ */
 
-function TunnelMouth() {
-  const ref = useRef<HTMLDivElement>(null);
-  const [visible, setVisible] = useState(true);
-  useEffect(() => {
-    const io = new IntersectionObserver(([e]) => setVisible(!!e?.isIntersecting));
-    io.observe(ref.current!);
-    return () => io.disconnect();
-  }, []);
-  return (
-    <div ref={ref} aria-hidden className="relative h-full min-h-[120px] w-full overflow-hidden rounded-t-full border-[6px] border-b-0 border-marble bg-[#0E0F11] lg:aspect-[3/4] lg:h-auto lg:border-[10px] lg:border-b-0">
-      <div className="absolute inset-0" style={{ background: 'radial-gradient(circle at 50% 58%, rgba(236,232,224,0.32) 0%, rgba(236,232,224,0.06) 22%, transparent 48%)' }} />
-      {Array.from({ length: 7 }, (_, i) => (
-        <span key={i} className="mt-ring absolute left-1/2 top-[58%] block aspect-square w-[140%] rounded-full border border-marble/30" style={{ animationDelay: `${-i * 1.4}s`, animationPlayState: visible ? 'running' : 'paused' }} />
-      ))}
-      <span className="absolute inset-x-0 bottom-0 block h-[14%] bg-granite" />
-      <span className="absolute inset-x-0 bottom-[14%] block h-[3px]" style={{ background: LINE }} />
-    </div>
-  );
-}
-
-function Platform() {
+/** First station: a bullet train crosses Tashkent at night as you scroll. */
+function TrainHero() {
   const go = useGo();
+  const reduce = !!useReducedMotion();
+  const section = useRef<HTMLElement>(null);
+  const canvas = useRef<HTMLCanvasElement>(null);
+  const [failed, setFailed] = useState(false);
+  const { scrollYProgress: p } = useScroll({ target: section, offset: ['start start', 'end end'] });
+  const copyOpacity = useTransform(p, ...span([0.18, 0.4], reduce ? [1, 1] : [1, 0]));
+  const copyY = useTransform(p, ...span([0.18, 0.4], reduce ? [0, 0] : [0, -40]));
+
+  useEffect(() => {
+    let scene: import('./trainScene').TrainScene | null = null;
+    let raf = 0;
+    let alive = true;
+    let unsub = () => {};
+    let ro: ResizeObserver | null = null;
+    import('./trainScene').then(({ createTrainScene }) => {
+      const cv = canvas.current;
+      if (!alive || !cv) return;
+      scene = createTrainScene(cv, { narrow: window.innerWidth < 700 });
+      if (!scene) return setFailed(true);
+      const draw = () => scene!.render(reduce ? 0.12 : p.get());
+      ro = new ResizeObserver(() => {
+        scene!.resize(cv.clientWidth, cv.clientHeight);
+        draw();
+      });
+      ro.observe(cv);
+      // Draw only when the scroll position changes: no idle render loop.
+      unsub = p.on('change', () => {
+        cancelAnimationFrame(raf);
+        raf = requestAnimationFrame(draw);
+      });
+    });
+    return () => {
+      alive = false;
+      cancelAnimationFrame(raf);
+      unsub();
+      ro?.disconnect();
+      scene?.dispose();
+    };
+  }, [p, reduce]);
+
   return (
-    <section id="top" aria-labelledby="hero-title" className="mt-granite relative bg-granite pb-12 pt-[124px] text-marble sm:pb-20 lg:pt-[112px]">
-      <div className="mx-auto grid max-w-[1360px] items-stretch gap-6 px-5 sm:px-8 lg:grid-cols-[7fr_5fr] lg:gap-14">
-        <div className="flex flex-col gap-6">
-          <div className="grid grid-cols-[1fr_88px] gap-4 sm:grid-cols-[1fr_120px] lg:block">
-            <motion.div
-              className="rounded-[18px] border-2 border-brass bg-[#0E0F11] px-5 py-5 sm:px-9 sm:py-7"
-              initial={{ opacity: 0, y: 16 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8, ease: EASE }}
-            >
-              <p className="font-station text-[clamp(2.2rem,6.2vw,5.5rem)] font-extrabold uppercase leading-[0.9] tracking-[0.01em]">TIS Tech Council</p>
-              <p className="mt-2 font-onest text-[14px] text-brass sm:text-[17px]" lang="uz">
+    <section id="top" ref={section} aria-labelledby="hero-title" className="relative bg-[#0a0e1c] text-marble" style={{ height: reduce ? undefined : '260svh' }}>
+      <div className="sticky top-0 h-[100svh] min-h-[600px] overflow-hidden">
+        {!failed && <canvas ref={canvas} aria-hidden className="absolute inset-0 h-full w-full" />}
+        <div aria-hidden className="pointer-events-none absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-[#0a0e1c]/90 to-transparent" />
+        <motion.div className="absolute inset-x-0 bottom-0" style={{ opacity: copyOpacity, y: copyY }}>
+          <div className="mx-auto max-w-[1360px] px-5 pb-20 sm:px-8 sm:pb-16">
+            <div className="inline-block rounded-[14px] border-2 border-brass bg-[#0E0F11]/85 px-5 py-3 sm:px-7 sm:py-4">
+              <p className="font-station text-[clamp(1.8rem,4.6vw,3.6rem)] font-extrabold uppercase leading-[0.9] tracking-[0.01em]">TIS Tech Council</p>
+              <p className="mt-1 font-onest text-[13px] text-brass sm:text-[15px]" lang="uz">
                 TIS Texnologiya kengashi
               </p>
-            </motion.div>
-            <div className="lg:hidden">
-              <TunnelMouth />
             </div>
-          </div>
-          <div className="mt-marble rounded-[18px] bg-marble px-5 py-7 text-granite sm:px-9 sm:py-9">
-            <h1 id="hero-title" className="max-w-[18ch] font-onest text-[clamp(1.9rem,4vw,3.4rem)] font-medium leading-[1.06] tracking-[-0.03em]">
+            <h1 id="hero-title" className="mt-5 max-w-[18ch] font-onest text-[clamp(1.9rem,4.4vw,3.6rem)] font-medium leading-[1.06] tracking-[-0.03em]">
               {HERO.title}
             </h1>
-            <p className="mt-5 max-w-[48ch] font-onest text-[17px] leading-[1.6] text-granite/80 sm:text-[18px]">{HERO.lede}</p>
-            <div className="mt-7 flex flex-wrap items-center gap-x-6 gap-y-3">
-              <a href="#suggestions" onClick={go('suggestions')} className={`${brassBtn} hover:bg-granite hover:text-marble`}>
+            <p className="mt-4 max-w-[48ch] font-onest text-[16px] leading-[1.55] text-marble/80 sm:text-[18px]">{HERO.lede}</p>
+            <div className="mt-6 flex flex-wrap items-center gap-x-6 gap-y-3">
+              <a href="#suggestions" onClick={go('suggestions')} className={brassBtn}>
                 Suggest an idea <Arrow />
               </a>
               <a href="#projects" onClick={go('projects')} className="font-onest text-[17px] underline decoration-1 underline-offset-[6px] hover:decoration-2">
@@ -398,10 +411,7 @@ function Platform() {
               </a>
             </div>
           </div>
-        </div>
-        <div className="hidden lg:block">
-          <TunnelMouth />
-        </div>
+        </motion.div>
       </div>
     </section>
   );
@@ -806,7 +816,7 @@ export default function MetroPage() {
       <div className="font-onest">
         <Nav />
         <main id="main">
-          <Platform />
+          <TrainHero />
           <Ride to="mission" color="#F29839" />
           <MissionStation />
           <AboutStation />
