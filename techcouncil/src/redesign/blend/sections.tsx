@@ -1,4 +1,4 @@
-import { AnimatePresence, motion, useReducedMotion, useScroll, useTransform } from 'motion/react';
+import { AnimatePresence, motion, useMotionValueEvent, useReducedMotion, useScroll, useTransform, type MotionValue } from 'motion/react';
 import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
 import { LogoMark } from '@/components/brand/LogoMark';
 import { Owl } from '@/components/brand/Owl';
@@ -9,7 +9,7 @@ import { founders, isPlaceholder } from '@/data/founders';
 import { featuredProject } from '@/data/projects';
 import { EASE_OUT, span } from '@/lib/motion';
 import { useSmoothScroll } from '@/lib/smoothScroll';
-import { paintNightArch, paintNightStrip, PETAL_RGB } from './night';
+import { drawArchLaid, paintNightArch, paintNightStrip, PETAL_RGB, type ArchMotif } from './night';
 
 /**
  * The Mosaic option's sections, laid in dark glass: the "what we do" cells as
@@ -55,22 +55,41 @@ export function Frieze() {
 
 /* ---------- What we do: three arched cells ---------- */
 
-function Arch({ i }: { i: number }) {
+const MOTIFS: ArchMotif[] = ['code', 'launch', 'talk'];
+
+/** The arch lays itself as it scrolls into view: rings from the outside in, its motif last. */
+function Arch({ i, progress }: { i: number; progress: MotionValue<number> }) {
   const ref = useRef<HTMLCanvasElement>(null);
+  const state = useRef<{ full: HTMLCanvasElement; w: number; h: number; res: number; a: { r: number; tile: number; rings: number } } | null>(null);
+  const draw = (t: number) => {
+    const s = state.current;
+    if (s) drawArchLaid(ref.current!.getContext('2d')!, s.full, s.w, s.h, s.res, s.a, t);
+  };
   useEffect(() => {
     const cv = ref.current!;
     const paint = () => {
       const w = cv.parentElement!.clientWidth;
       const h = Math.round(w * 0.8);
-      paintNightArch(cv, w, h, w < 300 ? 10 : 12, dpr(), PETAL_RGB[(['orange', 'teal', 'cyan'] as const)[i]!], 31 + i * 17);
+      const res = dpr();
+      const full = document.createElement('canvas');
+      const a = paintNightArch(full, w, h, w < 300 ? 10 : 12, res, PETAL_RGB[(['orange', 'teal', 'cyan'] as const)[i]!], 31 + i * 17, MOTIFS[i]!);
+      cv.width = full.width;
+      cv.height = full.height;
       cv.style.width = `${w}px`;
       cv.style.height = `${h}px`;
+      state.current = { full, w, h, res, a };
+      draw(progress.get());
     };
     paint();
     const ro = new ResizeObserver(paint);
     ro.observe(cv.parentElement!);
     return () => ro.disconnect();
   }, [i]);
+  const raf = useRef(0);
+  useMotionValueEvent(progress, 'change', (t) => {
+    cancelAnimationFrame(raf.current);
+    raf.current = requestAnimationFrame(() => draw(t));
+  });
   return <canvas ref={ref} aria-hidden className="block" />;
 }
 
@@ -81,9 +100,12 @@ function Cell({ w, i }: { w: (typeof WORK)[number]; i: number }) {
   const lag = i * 0.1;
   const y = useTransform(p, ...span([lag, 1], reduce ? [0, 0] : [90, 0]), { ease: settle });
   const scale = useTransform(p, ...span([lag, 1], reduce ? [1, 1] : [0.92, 1]), { ease: settle });
+  // The mosaic is laid as the cell rises into place, and finishes a little after it settles.
+  const { scrollYProgress: layP } = useScroll({ target: ref, offset: ['start 0.95', 'start 0.45'] });
+  const laid = useTransform(layP, (v) => (reduce ? 1 : Math.min(1, Math.max(0, (v - lag * 0.5) / 0.9))));
   return (
     <motion.li ref={ref} style={{ y, scale }} className={`flex flex-col overflow-hidden rounded-t-full border border-line-dark bg-[#0a0a0a] ${i === 1 ? 'md:mt-16' : i === 2 ? 'md:mt-32' : ''}`}>
-      <Arch i={i} />
+      <Arch i={i} progress={laid} />
       <div className="border-t border-line-dark px-6 pb-8 pt-6">
         <p className="font-mono text-[12px] tracking-[0.16em] text-fog">0{i + 1}</p>
         <h3 className="mt-3 text-[clamp(1.3rem,1.9vw,1.6rem)] font-light leading-tight tracking-[-0.04em]">{w.title}</h3>
