@@ -385,3 +385,107 @@ export function wallUrl() {
     }
   return c.toDataURL('image/png');
 }
+
+/* ------------------------------------------------------------------ */
+/* Girih: the star tilework of Samarkand and Bukhara                     */
+/* ------------------------------------------------------------------ */
+
+const TURQUOISE = '#3FB6B0';
+const COBALT = '#2C5BB8';
+
+/** One khatam: an eight-point star from two interlaced squares. */
+function khatam(p: Path2D, cx: number, cy: number, a: number) {
+  for (const rot of [0, Math.PI / 4]) {
+    for (let i = 0; i < 4; i++) {
+      const t = rot + Math.PI / 4 + (i * Math.PI) / 2;
+      const x = cx + Math.cos(t) * a;
+      const y = cy + Math.sin(t) * a;
+      if (i === 0) p.moveTo(x, y);
+      else p.lineTo(x, y);
+    }
+    p.closePath();
+  }
+}
+
+/**
+ * A girih screen of eight-point stars on a square grid, with the crosses
+ * between them, for the facade's window lattice. Drawn in facade space over
+ * the band of openings, `cell` apart.
+ */
+export function girihLattice(W: number, top: number, bottom: number, cell: number) {
+  const p = new Path2D();
+  const a = cell * 0.5;
+  for (let y = top - cell; y <= bottom + cell; y += cell)
+    for (let x = -W; x <= W * 2; x += cell) {
+      khatam(p, x, y, a);
+      // The cross between four stars.
+      const s = cell * 0.5;
+      p.moveTo(x + s, y + s - a * 0.42);
+      p.lineTo(x + s, y + s + a * 0.42);
+      p.moveTo(x + s - a * 0.42, y + s);
+      p.lineTo(x + s + a * 0.42, y + s);
+    }
+  return p;
+}
+
+/** A sharp eight-point star {8/3}, the border star of Samarkand tilework. */
+function star83(p: Path2D, cx: number, cy: number, a: number) {
+  for (let i = 0; i <= 8; i++) {
+    const t = -Math.PI / 2 + ((i * 3) % 8) * (Math.PI / 4);
+    const x = cx + Math.cos(t) * a;
+    const y = cy + Math.sin(t) * a;
+    if (i === 0) p.moveTo(x, y);
+    else p.lineTo(x, y);
+  }
+  p.closePath();
+}
+
+/** A border of girih stars between sections: turquoise and cobalt on dark, linked by a gold rule, a council colour now and then. */
+export function paintGirihFrieze(canvas: HTMLCanvasElement, cssW: number, h: number, res: number) {
+  canvas.width = Math.round(cssW * res);
+  canvas.height = Math.round(h * res);
+  const ctx = canvas.getContext('2d')!;
+  ctx.setTransform(res, 0, 0, res, 0, 0);
+  ctx.fillStyle = '#050505';
+  ctx.fillRect(0, 0, cssW, h);
+  const step = h * 1.9;
+  const a = h * 0.42;
+  const cy = h / 2;
+  ctx.lineJoin = 'miter';
+  const gold = 'rgba(176,141,87,0.55)';
+  // Fine rules above and below, and the line that links star to star.
+  ctx.strokeStyle = gold;
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(0, 1.5);
+  ctx.lineTo(cssW, 1.5);
+  ctx.moveTo(0, h - 1.5);
+  ctx.lineTo(cssW, h - 1.5);
+  ctx.stroke();
+  const petals = [PETAL.orange, PETAL.maroon, PETAL.teal, PETAL.cyan];
+  let n = 0;
+  for (let x = step / 2; x < cssW + step; x += step, n++) {
+    ctx.strokeStyle = gold;
+    ctx.beginPath();
+    ctx.moveTo(x + a, cy);
+    ctx.lineTo(x + step - a, cy);
+    ctx.stroke();
+    const star = new Path2D();
+    star83(star, x, cy, a);
+    ctx.fillStyle = n % 2 ? 'rgba(44,91,184,0.16)' : 'rgba(63,182,176,0.14)';
+    ctx.fill(star, 'nonzero');
+    ctx.strokeStyle = n % 2 ? COBALT : TURQUOISE;
+    ctx.globalAlpha = 0.8;
+    ctx.lineWidth = 1.25;
+    ctx.stroke(star);
+    ctx.globalAlpha = 1;
+    // Every fifth star carries a council colour at its heart.
+    if (n % 5 === 2) {
+      const c = petals[((n - 2) / 5) % 4]!;
+      ctx.fillStyle = `rgb(${c[0]},${c[1]},${c[2]})`;
+      const inner = new Path2D();
+      star83(inner, x, cy, a * 0.38);
+      ctx.fill(inner, 'nonzero');
+    }
+  }
+}

@@ -9,7 +9,7 @@ import { founders, isPlaceholder } from '@/data/founders';
 import { featuredProject } from '@/data/projects';
 import { EASE_OUT, span } from '@/lib/motion';
 import { useSmoothScroll } from '@/lib/smoothScroll';
-import { drawArchLaid, paintNightArch, paintNightStrip, PETAL_RGB, type ArchMotif } from './night';
+import { drawArchLaid, paintGirihFrieze, paintNightArch, PETAL_RGB, type ArchMotif } from './night';
 
 /**
  * The Mosaic option's sections, laid in dark glass: the "what we do" cells as
@@ -32,14 +32,15 @@ export function Label({ n, children }: { n: string; children: ReactNode }) {
   );
 }
 
-/** One course of dark glass between sections. */
+/** A girih border between sections, in turquoise and cobalt. */
 export function Frieze() {
   const ref = useRef<HTMLCanvasElement>(null);
   useEffect(() => {
     const cv = ref.current!;
     const paint = () => {
-      const cols = paintNightStrip(cv, cv.parentElement!.clientWidth + 14, 14, dpr(), 1, { col: -1, row: -1 });
-      cv.style.width = `${cols * 14}px`;
+      const w = cv.parentElement!.clientWidth;
+      paintGirihFrieze(cv, w, 34, dpr());
+      cv.style.width = `${w}px`;
     };
     paint();
     const ro = new ResizeObserver(paint);
@@ -47,8 +48,8 @@ export function Frieze() {
     return () => ro.disconnect();
   }, []);
   return (
-    <div aria-hidden className="h-[14px] overflow-hidden bg-obsidian">
-      <canvas ref={ref} className="block h-[14px]" />
+    <div aria-hidden className="h-[34px] overflow-hidden bg-obsidian">
+      <canvas ref={ref} className="block h-[34px]" />
     </div>
   );
 }
