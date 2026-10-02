@@ -79,8 +79,6 @@ function lineGlow(p: Pt, W: number, H: number, k: number) {
 
 export interface NightMural {
   flower: Pt;
-  /** The dark tile at the foot of the inscription the camera ends in. */
-  push: Pt;
 }
 
 /**
@@ -135,19 +133,15 @@ export function paintNightMural(
   // One orbit, thin, in white glass.
   L.row(ellipse(F, R * 1.5, R * 0.48, -0.3), true, t, () => [220, 220, 220]);
 
-  // The inscription band, as on the Mosaic: straight courses of pale glass
-  // for the mission, bordered in the four petal colours, with one black tile
-  // at its foot that the camera ends in.
+  // The inscription band, as on the Mosaic: straight courses of black glass
+  // for the mission, bordered in the four petal colours.
   const bt = t * 1.4;
-  ctx.fillStyle = '#cdc8be'; // pale grout, so the band reads as one calm field
+  ctx.fillStyle = '#060606'; // dark grout, so the band reads as one calm field
   ctx.fillRect(0, band.top, W, band.h);
-  let push: Pt = { x: W / 2, y: band.top + band.h - bt / 2 };
   const border = [PETAL.orange, PETAL.maroon, PETAL.teal, PETAL.cyan];
   for (let y = band.top + bt / 2; y < band.top + band.h; y += bt) {
     const edge = y < band.top + bt || y > band.top + band.h - bt;
-    const foot = y > band.top + band.h - bt;
     let n = 0;
-    let bestD = Infinity;
     L.row(
       [
         { x: (rand() - 1) * bt, y },
@@ -155,18 +149,10 @@ export function paintNightMural(
       ],
       false,
       bt,
-      (p) => {
+      () => {
         if (!edge) {
-          const v = 222 + rand() * 14;
-          return [v, v - 2, v - 7];
-        }
-        if (foot) {
-          const d = Math.abs(p.x - W / 2);
-          if (d < bestD && d < bt) {
-            bestD = d;
-            push = p;
-            return [8, 8, 8];
-          }
+          const v = 24 + rand() * 12;
+          return [v, v, v + 2];
         }
         return border[Math.floor(n++ / 3) % 4]!;
       },
@@ -200,7 +186,7 @@ export function paintNightMural(
       return rand() < 0.006 ? [PETAL.orange, PETAL.maroon, PETAL.teal, PETAL.cyan][Math.floor(rand() * 4)]! : [v, v, v + 2];
     });
   }
-  return { flower: F, push };
+  return { flower: F };
 }
 
 /** A few courses of black glass with one gap: where a sent idea lands. */

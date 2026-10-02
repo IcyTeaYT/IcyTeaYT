@@ -28,7 +28,7 @@ import { CATEGORY_GLASS, courses, LINES, paintNightMural, paintNightStrip } from
  * Option: the original site, with the Mosaic folded in. The opening flies
  * through a black lattice facade to the council's flower in glass mosaic,
  * then glides down the mural to the inscription band where the mission is
- * set, as on the Mosaic, and pushes into one tile. After that it is the
+ * set, as on the Mosaic, then drifts on as the mosaic fades. After that it is the
  * original site, with the countdown as a clock face and a sent idea dropping
  * into the wall as a tile.
  */
@@ -92,7 +92,6 @@ interface Geo {
   H: number;
   flower: Pt;
   band: { top: number; h: number };
-  push: Pt;
   tile: number;
   MH: number;
   f: Facade;
@@ -104,7 +103,7 @@ interface Geo {
  *   0.1–1.3   fly through the lattice (its doors part) to the mural
  *   1.3–1.55  a beat on the flower
  *   1.55–2.35 glide down the mural to the inscription band, the mission set in it
- *   3.0–3.6   push into the black tile at its foot
+ *   3.0–3.6   drift on down as the mosaic fades to black
  */
 function Opening() {
   const section = useRef<HTMLElement>(null);
@@ -117,7 +116,7 @@ function Opening() {
   const geoRef = useRef<Geo | null>(null);
   geoRef.current = geo;
   const { scrollYProgress: p } = useScroll({ target: section, offset: ['start start', 'end end'] });
-  const inscription = useTransform(p, ...span([at(2.0), at(2.3), at(3.0), at(3.15)], [0, 1, 1, 0]));
+  const inscription = useTransform(p, ...span([at(1.95), at(2.3)], [0, 1]));
 
   // Lay out for this viewport; paint the mural when the browser is idle.
   useEffect(() => {
@@ -134,21 +133,20 @@ function Opening() {
       const flower = { x: W * (narrow ? 0.6 : 0.7), y: H * (narrow ? 0.3 : 0.42) };
       const R = Math.min(W, H) * (narrow ? 0.25 : 0.24);
       const band = { top: flower.y + R * 1.2, h: H * (narrow ? 0.74 : 0.58) };
-      const MH = band.top + band.h + H * 0.6;
+      const MH = band.top + band.h + H * 0.8;
       const tile = (H / LINES / 2) * 1.4;
       const f = layoutFacade(W, H, NAV_H);
       const fc = facadeCv.current!;
       fc.width = Math.round(W * dpr);
       fc.height = Math.round(H * dpr);
-      setGeo({ W, H, flower, band, push: { x: W / 2, y: band.top + band.h - tile / 2 }, tile, MH, f, smax: throughScale(W, H, f) });
+      setGeo({ W, H, flower, band, tile, MH, f, smax: throughScale(W, H, f) });
       const mcv = muralCv.current!;
       mcv.style.opacity = '0';
       const paint = () => {
-        const m = paintNightMural(mcv, W, MH, H, dpr, courses(W, H, MH), flower, R, band);
+        paintNightMural(mcv, W, MH, H, dpr, courses(W, H, MH), flower, R, band);
         mcv.style.width = `${W}px`;
         mcv.style.height = `${MH}px`;
         mcv.style.opacity = '1';
-        setGeo((g) => (g && g.W === W && g.H === H ? { ...g, push: m.push } : g));
       };
       const w = window as Window & { requestIdleCallback?: (cb: () => void, o?: { timeout: number }) => number };
       if (w.requestIdleCallback) w.requestIdleCallback(paint, { timeout: 400 });
@@ -185,23 +183,17 @@ function Opening() {
       signBox.current.style.visibility = out >= 1 ? 'hidden' : 'visible';
     }
 
-    // The mural camera: closer on the flower, down to the inscription, then into one tile.
+    // The mural camera, one smooth crane move: settle on the flower, glide down
+    // to the inscription, hold, then drift on down as the mosaic fades out.
     // M is the mural point held at screen point S, at scale ms.
-    const glide = inOut(seg(v, at(1.55), at(2.35)));
+    const glide = inOut(seg(v, at(1.4), at(2.35)));
+    const away = inOut(seg(v, at(3.0), at(3.6)));
     const bandC = { x: W / 2, y: band.top + band.h / 2 };
-    const ms0 = 1 + 0.08 * fly + 0.12 * inOut(seg(v, at(1.3), at(1.55)));
-    let S = { x: mix(flower.x, W / 2, glide), y: mix(flower.y, H / 2, glide) };
-    let M = { x: mix(flower.x, bandC.x, glide), y: mix(flower.y, bandC.y, glide) };
-    let ms = mix(ms0, 1, glide);
-    const tC = seg(v, at(3.0), at(3.6));
-    if (tC > 0) {
-      const k = Math.min(1, tC * 1.8);
-      S = { x: W / 2, y: H / 2 };
-      M = { x: mix(bandC.x, g.push.x, k), y: mix(bandC.y, g.push.y, k) };
-      ms = Math.pow(Math.max(W, H) / (g.tile * 0.7), tC * tC * tC);
-    }
-    muralBox.current.style.transform = `translate(${S.x - M.x * ms}px,${S.y - M.y * ms}px) scale(${ms})`;
-    const gone = seg(v, at(3.4), at(3.55));
+    const ms = 1 + 0.06 * fly * (1 - glide);
+    const S = { x: mix(flower.x, W / 2, glide), y: mix(flower.y, H / 2, glide) };
+    const M = { x: mix(flower.x, bandC.x, glide), y: mix(flower.y, bandC.y, glide) + away * H * 0.45 };
+    muralBox.current.style.transform = `translate3d(${S.x - M.x * ms}px,${S.y - M.y * ms}px,0) scale(${ms})`;
+    const gone = smooth(seg(v, at(3.2), at(3.6)));
     muralBox.current.style.opacity = String(1 - gone);
     muralBox.current.style.visibility = gone >= 1 ? 'hidden' : 'visible';
   };
@@ -221,11 +213,11 @@ function Opening() {
           <canvas ref={muralCv} aria-hidden className="absolute left-0 top-0 transition-opacity duration-700" />
           {geo && (
             <motion.div className="pointer-events-none absolute inset-x-0 flex flex-col justify-center" style={{ top: geo.band.top + geo.tile * 1.5, height: geo.band.h - geo.tile * 3, opacity: inscription }}>
-              <div className="container-x text-obsidian">
+              <div className="container-x text-paper">
                 <h2 id="mission-title" className="type-display max-w-[16ch] text-[clamp(2.1rem,5.2vw,4.75rem)]">
                   {MISSION.line}
                 </h2>
-                <p className="mt-6 max-w-[50ch] text-[17px] leading-[1.5] tracking-[-0.02em] text-[#2b2b2b] sm:mt-8 sm:text-[20px]">{MISSION.support}</p>
+                <p className="mt-6 max-w-[50ch] text-[17px] leading-[1.5] tracking-[-0.02em] text-fog sm:mt-8 sm:text-[20px]">{MISSION.support}</p>
               </div>
             </motion.div>
           )}
