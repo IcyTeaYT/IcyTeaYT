@@ -18,7 +18,7 @@ import { useSmoothScroll } from '@/lib/smoothScroll';
 import { drawFacade, layoutFacade, throughScale, type Facade } from '../mosaic/paint';
 import { CATEGORY_GLASS, courses, paintNightMural, paintNightStrip, wallUrl } from './night';
 import { drawLit, layoutTileText, paintWall, type TileText } from './tileText';
-import { Frieze, MosaicAbout, MosaicFaq, MosaicFooter, MosaicFounders, MosaicProjects } from './sections';
+import { Frieze, MosaicAbout, MosaicFaq, MosaicFooter, MosaicFounders, MosaicProjects, useTileBorders } from './sections';
 
 /**
  * Option: the original site's black and white, with the Mosaic laid in dark
@@ -298,6 +298,7 @@ export default function BlendPage() {
   useEffect(() => {
     document.documentElement.style.setProperty('--bl-wall', `url(${wallUrl()})`);
   }, []);
+  useTileBorders();
   return (
     <Shell world="blend" switcherClass="rounded-pill border border-line-dark bg-obsidian/90 text-fog [&_a]:rounded-pill [&_[data-here]]:bg-paper [&_[data-here]]:text-obsidian">
       <IntroContext.Provider value={true}>

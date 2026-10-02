@@ -12,3 +12,12 @@ html[data-world='blend'] #suggestions {
   background-image: var(--bl-wall);
   background-size: 288px 288px;
 }
+
+/* The idea form is a panel of orange glass, like every panel on the page. */
+html[data-world='blend'] #suggestions form,
+html[data-world='blend'] #suggestions [role='status'] {
+  border: 12px solid transparent;
+  border-image: var(--bl-border-orange) 24 round;
+  background: #070707;
+  padding: 24px;
+}

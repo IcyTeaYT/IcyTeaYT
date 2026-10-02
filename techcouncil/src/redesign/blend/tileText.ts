@@ -125,3 +125,30 @@ export function drawLit(canvas: HTMLCanvasElement, W: number, H: number, res: nu
     ctx.fillRect(tl.x + g / 2, tl.y + g / 2, ts - g, ts - g);
   }
 }
+
+/** One line of lettering in tiles, sized to a width: for the footer's sign-off. */
+export function layoutTileLine(W: number, text: string, ts: number) {
+  const probe = document.createElement('canvas').getContext('2d')!;
+  probe.font = `650 100px "Inter Variable", Inter, system-ui, sans-serif`;
+  const fs = Math.floor((W / probe.measureText(text).width) * 100 * 0.98);
+  const H = Math.ceil((fs * 0.82) / ts) * ts + ts * 2;
+  const cv = document.createElement('canvas');
+  cv.width = W;
+  cv.height = H;
+  const ctx = cv.getContext('2d', { willReadFrequently: true })!;
+  ctx.font = `650 ${fs}px "Inter Variable", Inter, system-ui, sans-serif`;
+  ctx.fillStyle = '#fff';
+  ctx.fillText(text, 0, H - ts * 1.6);
+  const data = ctx.getImageData(0, 0, W, H).data;
+  const rand = rng(64);
+  const tiles: LitTile[] = [];
+  for (let y = 0; y < H; y += ts)
+    for (let x = 0; x < W; x += ts) {
+      let a = 0;
+      for (const dy of [0.25, 0.75]) for (const dx of [0.25, 0.75]) a += data[(Math.min(H - 1, Math.floor(y + dy * ts)) * W + Math.min(W - 1, Math.floor(x + dx * ts))) * 4 + 3]!;
+      if (a / 1020 < 0.45) continue;
+      tiles.push({ x, y, t: 0, flash: PETALS[Math.floor(rand() * 4)]!, v: 226 + rand() * 26 });
+    }
+  for (const tl of tiles) tl.t = Math.min(1, (tl.x / W) * 0.82 + rand() * 0.18);
+  return { tt: { ts, tiles, left: 0, bottom: H } as TileText, H };
+}

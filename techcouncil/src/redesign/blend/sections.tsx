@@ -1,45 +1,104 @@
 import { AnimatePresence, motion, useMotionValueEvent, useReducedMotion, useScroll, useTransform, type MotionValue } from 'motion/react';
-import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useId, useRef, useState, type CSSProperties, type ReactNode, type RefObject } from 'react';
 import { LogoMark } from '@/components/brand/LogoMark';
 import { Owl } from '@/components/brand/Owl';
 import { TismunLogo } from '@/components/brand/TismunLogo';
 import { Arrow } from '@/components/ui/Arrow';
-import { SplitText } from '@/components/ui/SplitText';
 import { ABOUT, FAQ, MOTTO, WORK } from '@/data/copy';
 import { founders, isPlaceholder } from '@/data/founders';
 import { featuredProject } from '@/data/projects';
-import { EASE_OUT, span } from '@/lib/motion';
+import { EASE_OUT } from '@/lib/motion';
 import { useSmoothScroll } from '@/lib/smoothScroll';
-import { drawArchLaid, paintNightArch, paintNightStrip, PETAL_RGB, type ArchMotif } from './night';
+import { drawArchLaid, paintNightArch, paintNightStrip, PETAL_RGB, T, tileBorderUrl, type ArchMotif } from './night';
+import { drawLit, layoutTileLine, paintWall, type TileText } from './tileText';
 
 /**
- * The Mosaic option's sections, laid in dark glass: the "what we do" cells as
- * arches, TISMUN as a mounted plaque, the founders in niches, the questions
- * and the footer, all on the same faint wall of tiles.
- * Thin Inter as on the original site, with small mono labels.
+ * The sections after the opening, in the opening's own grammar. Everything
+ * sits on one wall of 12px glass tiles; each section is a panel set into it,
+ * bordered in its petal colour (projects teal, founders maroon, ideas
+ * orange, questions cyan); and everything arrives the one way the mosaic
+ * does: laid, a course of tiles at a time. The page signs off the way it
+ * opened, its name spelled in lit tiles.
  */
 
-const settle = (t: number) => 1 - Math.pow(1 - t, 3);
 const dpr = () => Math.min(window.devicePixelRatio || 1, 2);
+const clamp01 = (v: number) => Math.min(1, Math.max(0, v));
+export type Petal = 'orange' | 'maroon' | 'teal' | 'cyan';
+export const PETAL_CSS: Record<Petal, string> = {
+  orange: 'rgb(242,152,57)',
+  maroon: 'rgb(176,40,66)',
+  teal: 'rgb(12,128,134)',
+  cyan: 'rgb(16,170,204)',
+};
 
-/** A small mono label: section number and name. */
-export function Label({ n, children }: { n: string; children: ReactNode }) {
+/** Paints the tile borders once and exposes them as CSS variables (--bl-border-<petal>). */
+export function useTileBorders() {
+  useEffect(() => {
+    (['orange', 'maroon', 'teal', 'cyan'] as Petal[]).forEach((k, i) => document.documentElement.style.setProperty(`--bl-border-${k}`, `url(${tileBorderUrl(PETAL_RGB[k], 90 + i * 13)})`));
+  }, []);
+}
+
+/**
+ * Scroll progress for laying something: 0 as it enters, 1 once it has risen
+ * well into view. Under reduced motion it is simply laid.
+ */
+function useLay(ref: RefObject<HTMLElement | null>, until = 0.55) {
+  const reduce = useReducedMotion();
+  const { scrollYProgress } = useScroll({ target: ref, offset: ['start 0.95', `start ${until}`] });
+  return useTransform(scrollYProgress, (v) => (reduce ? 1 : v));
+}
+
+/** Clip that lays an element in whole courses of tiles: rows from the bottom up, or columns left to right. */
+function useLaidClip(ref: RefObject<HTMLElement | null>, p: MotionValue<number>, dir: 'up' | 'right') {
+  return useTransform(p, (v) => {
+    const el = ref.current;
+    if (v >= 1 || !el) return v >= 1 ? 'none' : 'inset(0 0 100% 0)';
+    const size = dir === 'up' ? el.offsetHeight : el.offsetWidth;
+    const shown = Math.min(size, Math.ceil((clamp01(v) * size) / T) * T);
+    const hidden = Math.max(0, size - shown);
+    return dir === 'up' ? `inset(${hidden}px 0 0 0)` : `inset(0 ${hidden}px 0 0)`;
+  });
+}
+
+/** A section heading, laid left to right in courses as it comes into view. */
+function LaidHeading({ id, children, className = '' }: { id: string; children: ReactNode; className?: string }) {
+  const ref = useRef<HTMLHeadingElement>(null);
+  const p = useLay(ref, 0.62);
+  const clipPath = useLaidClip(ref, p, 'right');
   return (
-    <p className="flex items-center gap-3 font-mono text-[12px] uppercase tracking-[0.16em] text-fog">
-      <span className="text-paper">{n}</span>
-      <span aria-hidden className="h-px w-8 bg-line-dark" />
+    <motion.h2 ref={ref} id={id} style={{ clipPath }} className={`type-display text-[clamp(2.4rem,5vw,4.5rem)] ${className}`}>
       {children}
-    </p>
+    </motion.h2>
   );
+}
+
+/** A panel set into the wall: a border of glass tiles in the section's petal, laid from the bottom up. */
+export function Panel({ petal, children, className = '', style }: { petal: Petal; children: ReactNode; className?: string; style?: CSSProperties }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const p = useLay(ref, 0.45);
+  const clipPath = useLaidClip(ref, p, 'up');
+  return (
+    <motion.div
+      ref={ref}
+      className={`bg-[#070707] ${className}`}
+      style={{ ...style, clipPath, borderStyle: 'solid', borderWidth: T, borderImage: `var(--bl-border-${petal}) ${T * 2} round` }}
+    >
+      {children}
+    </motion.div>
+  );
+}
+
+/** A single glass tile, as a bullet or marker, in a petal colour. */
+function Tile({ petal, className = '' }: { petal: Petal; className?: string }) {
+  return <span aria-hidden className={`inline-block h-[10px] w-[10px] shrink-0 rounded-[1px] shadow-[inset_0_1.5px_0_rgba(255,255,255,0.3)] ${className}`} style={{ background: PETAL_CSS[petal] }} />;
 }
 
 /** One course of dark glass between sections, laid left to right as it scrolls past. */
 export function Frieze() {
   const ref = useRef<HTMLCanvasElement>(null);
   const box = useRef<HTMLDivElement>(null);
-  const reduce = useReducedMotion();
-  const { scrollYProgress } = useScroll({ target: box, offset: ['start end', 'start 0.55'] });
-  const clip = useTransform(scrollYProgress, (v) => `inset(0 ${reduce ? 0 : Math.round((1 - v) * 100)}% 0 0)`);
+  const p = useLay(box, 0.6);
+  const clipPath = useLaidClip(box, p, 'right');
   useEffect(() => {
     const cv = ref.current!;
     const paint = () => {
@@ -52,9 +111,9 @@ export function Frieze() {
     return () => ro.disconnect();
   }, []);
   return (
-    <div ref={box} aria-hidden className="h-[14px] overflow-hidden bg-obsidian">
-      <motion.canvas ref={ref} className="block h-[14px]" style={{ clipPath: clip }} />
-    </div>
+    <motion.div ref={box} aria-hidden className="h-[14px] overflow-hidden bg-obsidian" style={{ clipPath }}>
+      <canvas ref={ref} className="block h-[14px]" />
+    </motion.div>
   );
 }
 
@@ -100,23 +159,17 @@ function Arch({ i, progress }: { i: number; progress: MotionValue<number> }) {
 
 function Cell({ w, i }: { w: (typeof WORK)[number]; i: number }) {
   const ref = useRef<HTMLLIElement>(null);
-  const reduce = useReducedMotion();
-  const { scrollYProgress: p } = useScroll({ target: ref, offset: ['start end', 'start 0.45'] });
-  const lag = i * 0.1;
-  const y = useTransform(p, ...span([lag, 1], reduce ? [0, 0] : [90, 0]), { ease: settle });
-  const scale = useTransform(p, ...span([lag, 1], reduce ? [1, 1] : [0.92, 1]), { ease: settle });
-  // The mosaic is laid as the cell rises into place, and finishes a little after it settles.
-  const { scrollYProgress: layP } = useScroll({ target: ref, offset: ['start 0.95', 'start 0.45'] });
-  const laid = useTransform(layP, (v) => (reduce ? 1 : Math.min(1, Math.max(0, (v - lag * 0.5) / 0.9))));
+  const p = useLay(ref, 0.45);
+  // Each arch starts a beat after the one before it, left to right.
+  const laid = useTransform(p, (v) => clamp01((v - i * 0.08) / 0.84));
   return (
-    <motion.li ref={ref} style={{ y, scale }} className={`flex flex-col overflow-hidden rounded-t-full border border-line-dark bg-[#0a0a0a] ${i === 1 ? 'md:mt-16' : i === 2 ? 'md:mt-32' : ''}`}>
+    <li ref={ref} className={`flex flex-col overflow-hidden rounded-t-full bg-[#070707] ${i === 1 ? 'md:mt-16' : i === 2 ? 'md:mt-32' : ''}`}>
       <Arch i={i} progress={laid} />
-      <div className="border-t border-line-dark px-6 pb-8 pt-6">
-        <p className="font-mono text-[12px] tracking-[0.16em] text-fog">0{i + 1}</p>
-        <h3 className="mt-3 text-[clamp(1.3rem,1.9vw,1.6rem)] font-light leading-tight tracking-[-0.04em]">{w.title}</h3>
+      <div className="px-6 pb-8 pt-6">
+        <h3 className="text-[clamp(1.3rem,1.9vw,1.6rem)] font-light leading-tight tracking-[-0.04em]">{w.title}</h3>
         <p className="mt-3 text-body-lg text-fog">{w.body}</p>
       </div>
-    </motion.li>
+    </li>
   );
 }
 
@@ -124,10 +177,9 @@ export function MosaicAbout() {
   return (
     <section id="about" data-surface="dark" aria-labelledby="about-title" className="bl-wall relative pb-24 pt-24 text-paper sm:pb-32 sm:pt-32">
       <div className="container-x">
-        <Label n="01">About</Label>
-        <h2 id="about-title" className="type-display mt-6 max-w-[18ch] text-[clamp(2.4rem,5vw,4.5rem)]">
-          <SplitText text={ABOUT.title} play="inView" stagger={0.05} />
-        </h2>
+        <LaidHeading id="about-title" className="max-w-[18ch]">
+          {ABOUT.title}
+        </LaidHeading>
         <div className="mt-8 grid max-w-[980px] gap-4 md:grid-cols-2 md:gap-10">
           {ABOUT.body.map((t) => (
             <p key={t} className="text-body-lg text-fog">
@@ -148,10 +200,15 @@ export function MosaicAbout() {
 /* ---------- TISMUN: the plaque ---------- */
 
 function Feature({ f, i, n, progress }: { f: string; i: number; n: number; progress: MotionValue<number> }) {
-  const opacity = useTransform(progress, ...span([i / n, (i + 1) / n], [0.25, 1]));
+  // Each line's tile is laid in turn, and the line comes up with it.
+  const on = useTransform(progress, (v) => clamp01(v * n - i));
+  const opacity = useTransform(on, [0, 1], [0.3, 1]);
+  const scale = useTransform(on, [0, 1], [0, 1]);
   return (
-    <motion.li style={{ opacity }} className="flex gap-5 border-b border-line-dark py-4 text-body-lg">
-      <span className="pt-1 font-mono text-[12px] text-fog">{String(i + 1).padStart(2, '0')}</span>
+    <motion.li style={{ opacity }} className="flex items-baseline gap-5 border-b border-line-dark py-4 text-body-lg">
+      <motion.span style={{ scale }} className="inline-flex translate-y-[1px]">
+        <Tile petal="teal" />
+      </motion.span>
       {f}
     </motion.li>
   );
@@ -159,35 +216,26 @@ function Feature({ f, i, n, progress }: { f: string; i: number; n: number; progr
 
 export function MosaicProjects() {
   const p = featuredProject;
-  const plaque = useRef<HTMLDivElement>(null);
   const list = useRef<HTMLUListElement>(null);
   const reduce = useReducedMotion();
-  const { scrollYProgress: pp } = useScroll({ target: plaque, offset: ['start end', 'start 0.4'] });
-  const plaqueClip = useTransform(pp, (v) => (reduce ? 'none' : `inset(${Math.round((1 - settle(v)) * 100)}% 0 0 0 round 0px)`));
-  const logoScale = useTransform(pp, ...span([0, 1], reduce ? [1, 1] : [1.18, 1]), { ease: settle });
   const { scrollYProgress: lp } = useScroll({ target: list, offset: ['start 0.85', 'end 0.55'] });
   const featureP = useTransform(lp, (v) => (reduce ? 1 : v));
   if (!p) return null;
   return (
     <section id="projects" data-surface="dark" aria-labelledby="projects-title" className="bl-wall relative py-24 text-paper sm:py-32">
       <div className="container-x">
-        <Label n="02">Projects</Label>
-        <h2 id="projects-title" className="type-display mt-6 text-[clamp(2.4rem,5vw,4.5rem)]">
-          <SplitText text={'Things we’ve shipped.'} play="inView" stagger={0.05} />
-        </h2>
+        <LaidHeading id="projects-title">Things we’ve shipped.</LaidHeading>
         <p className="mt-5 max-w-[46ch] text-body-lg text-fog">Real platforms, used by real people at TIS.</p>
 
-        {/* The plaque: the project's mark set into a dark glass panel. */}
-        <motion.div ref={plaque} style={{ clipPath: plaqueClip }} className="mt-14 grid gap-8 border border-line-dark bg-[#0a0a0a] p-5 sm:p-8 lg:grid-cols-[5fr_7fr] lg:items-center lg:gap-14">
-          <div className="flex items-center justify-center self-stretch overflow-hidden rounded-[4px] bg-paper px-8 py-10 sm:px-14 sm:py-14">
-            <motion.div style={{ scale: logoScale }} className="w-full max-w-[380px]">
-              <TismunLogo className="w-full" />
-            </motion.div>
+        {/* The plaque: TISMUN's mark set into a panel of teal glass. */}
+        <Panel petal="teal" className="mt-14 grid gap-8 p-5 sm:p-8 lg:grid-cols-[5fr_7fr] lg:items-center lg:gap-14">
+          <div className="flex items-center justify-center self-stretch bg-paper px-8 py-10 sm:px-14 sm:py-14">
+            <TismunLogo className="w-full max-w-[380px]" />
           </div>
           <div>
-            <h3 className=" text-[clamp(2rem,4vw,3rem)] font-light leading-none tracking-[-0.05em]">{p.name}</h3>
-            <p className="mt-3 flex items-center gap-2 font-mono text-[12px] uppercase tracking-[0.14em] text-fog">
-              <span className="h-2 w-2 bg-[#10AACC]" aria-hidden />
+            <h3 className="text-[clamp(2rem,4vw,3rem)] font-light leading-none tracking-[-0.05em]">{p.name}</h3>
+            <p className="mt-4 flex items-center gap-3 text-body text-fog">
+              <Tile petal="teal" />
               Live · {p.date}
             </p>
             <p className="mt-4 text-body-lg">{p.tagline}</p>
@@ -203,7 +251,7 @@ export function MosaicProjects() {
               )}
             </div>
           </div>
-        </motion.div>
+        </Panel>
 
         <div className="mt-16 grid gap-10 lg:grid-cols-[7fr_5fr] lg:gap-16">
           <ul ref={list} className="border-t border-line-dark">
@@ -212,7 +260,7 @@ export function MosaicProjects() {
             ))}
           </ul>
           <div>
-            <p className="font-mono text-[12px] uppercase tracking-[0.16em] text-fog">Built with</p>
+            <p className="text-body text-fog">Built with</p>
             <p className="mt-3 font-mono text-[15px] leading-[1.8]">{p.stack.join(' · ')}</p>
           </div>
         </div>
@@ -227,23 +275,18 @@ function Niche({ f, i }: { f: (typeof founders)[number]; i: number }) {
   const [open, setOpen] = useState(false);
   const [ok, setOk] = useState(true);
   const id = useId();
-  const ref = useRef<HTMLDivElement>(null);
-  const reduce = useReducedMotion();
-  const { scrollYProgress: p } = useScroll({ target: ref, offset: ['start end', 'start 0.5'] });
-  const y = useTransform(p, ...span([i * 0.1, 1], reduce ? [0, 0] : [70, 0]), { ease: settle });
-  const photoScale = useTransform(p, ...span([i * 0.1, 1], reduce ? [1, 1] : [1.22, 1]), { ease: settle });
   return (
-    <motion.div ref={ref} style={{ y }} className="flex flex-col">
-      {/* A square niche: the photo sits back in the dark wall. */}
-      <div className="border border-line-dark bg-[#0d0d0d] p-2.5">
+    <div className="flex flex-col">
+      {/* A niche bordered in maroon glass; the photo sits back in it. */}
+      <Panel petal="maroon" style={{ transitionDelay: `${i * 80}ms` }}>
         <div className="group relative aspect-[4/5] overflow-hidden bg-[#111]">
-          {ok && <motion.img style={{ scale: photoScale }} src={f.photo} alt={`Portrait of ${f.name}`} loading="lazy" decoding="async" onError={() => setOk(false)} className="absolute inset-0 h-full w-full object-cover object-[50%_18%]" />}
-          <span aria-hidden className="pointer-events-none absolute inset-0 shadow-[inset_10px_12px_26px_rgba(0,0,0,0.6)]" />
+          {ok && <img src={f.photo} alt={`Portrait of ${f.name}`} loading="lazy" decoding="async" onError={() => setOk(false)} className="absolute inset-0 h-full w-full object-cover object-[50%_18%]" />}
+          <span aria-hidden className="pointer-events-none absolute inset-0 shadow-[inset_8px_10px_22px_rgba(0,0,0,0.55)]" />
         </div>
-      </div>
-      <p className="mt-5 font-mono text-[12px] uppercase tracking-[0.14em] text-fog">{f.role}</p>
-      <h3 className="mt-2 text-[clamp(1.4rem,2vw,1.7rem)] font-light leading-tight tracking-[-0.04em]">{f.name}</h3>
-      {f.tagline && <p className="mt-3 text-body-lg text-fog">{f.tagline}</p>}
+      </Panel>
+      <h3 className="mt-6 text-[clamp(1.4rem,2vw,1.7rem)] font-light leading-tight tracking-[-0.04em]">{f.name}</h3>
+      <p className="mt-1 text-body text-fog">{f.role}</p>
+      {f.tagline && <p className="mt-3 text-body-lg">{f.tagline}</p>}
       <button type="button" aria-expanded={open} aria-controls={id} onClick={() => setOpen((o) => !o)} className="pill-ghost mt-5 self-start">
         {open ? 'Hide bio' : 'Read bio'}
       </button>
@@ -254,7 +297,7 @@ function Niche({ f, i }: { f: (typeof founders)[number]; i: number }) {
           </motion.div>
         )}
       </AnimatePresence>
-    </motion.div>
+    </div>
   );
 }
 
@@ -262,10 +305,9 @@ export function MosaicFounders() {
   return (
     <section id="founders" data-surface="dark" aria-labelledby="founders-title" className="bl-wall relative py-24 text-paper sm:py-32">
       <div className="container-x">
-        <Label n="03">Founders</Label>
-        <h2 id="founders-title" className="type-display mt-6 max-w-[18ch] text-[clamp(2.4rem,5vw,4.5rem)]">
-          <SplitText text={'Three students. One campus to upgrade.'} play="inView" stagger={0.05} />
-        </h2>
+        <LaidHeading id="founders-title" className="max-w-[18ch]">
+          Three students. One campus to upgrade.
+        </LaidHeading>
         <p className="mt-5 max-w-[48ch] text-body-lg text-fog">The Tech Council was started by three TIS students who wanted to fix things, not just talk about them.</p>
         <div className="mt-14 grid gap-12 sm:grid-cols-2 sm:gap-8 lg:grid-cols-3 lg:gap-12">
           {founders.map((f, i) => (
@@ -279,20 +321,14 @@ export function MosaicFounders() {
 
 /* ---------- Questions ---------- */
 
-function Question({ q, a, i }: { q: string; a: string; i: number }) {
+function Question({ q, a }: { q: string; a: string }) {
   const [open, setOpen] = useState(false);
   const id = useId();
   return (
-    <motion.li
-      className="border-t border-line-dark last:border-b"
-      initial={{ opacity: 0, y: 24 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true, margin: '0px 0px -10% 0px' }}
-      transition={{ duration: 0.8, ease: EASE_OUT, delay: i * 0.07 }}
-    >
+    <li className="border-t border-line-dark first:border-t-0">
       <h3>
         <button type="button" aria-expanded={open} aria-controls={id} onClick={() => setOpen((o) => !o)} className="flex w-full items-center gap-5 py-6 text-left text-subheading font-light">
-          <span className="w-8 shrink-0 font-mono text-[12px] text-fog">{String(i + 1).padStart(2, '0')}</span>
+          <Tile petal="cyan" className={`transition-transform duration-300 ${open ? 'rotate-45' : ''}`} />
           <span className="flex-1">{q}</span>
           <span className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-line-dark" aria-hidden>
             <span className="absolute h-px w-3.5 bg-current" />
@@ -303,11 +339,11 @@ function Question({ q, a, i }: { q: string; a: string; i: number }) {
       <AnimatePresence initial={false}>
         {open && (
           <motion.div id={id} className="overflow-hidden" initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.45, ease: EASE_OUT }}>
-            <p className="max-w-[60ch] pb-8 pl-[52px] text-body-lg text-fog">{a}</p>
+            <p className="max-w-[60ch] pb-8 pl-[30px] text-body-lg text-fog">{a}</p>
           </motion.div>
         )}
       </AnimatePresence>
-    </motion.li>
+    </li>
   );
 }
 
@@ -315,23 +351,20 @@ export function MosaicFaq() {
   return (
     <section id="faq" data-surface="dark" aria-labelledby="faq-title" className="bl-wall relative py-24 text-paper sm:py-32">
       <div className="container-x grid gap-12 md:grid-cols-[1fr_1.4fr] md:gap-16">
-        <div>
-          <Label n="04">Questions</Label>
-          <h2 id="faq-title" className="type-display mt-6 text-[clamp(2.4rem,5vw,4.5rem)]">
-          <SplitText text={'Questions'} play="inView" stagger={0.05} />
-        </h2>
-        </div>
-        <ul>
-          {FAQ.map((x, i) => (
-            <Question key={x.q} {...x} i={i} />
-          ))}
-        </ul>
+        <LaidHeading id="faq-title">Questions</LaidHeading>
+        <Panel petal="cyan" className="px-5 sm:px-8">
+          <ul>
+            {FAQ.map((x) => (
+              <Question key={x.q} {...x} />
+            ))}
+          </ul>
+        </Panel>
       </div>
     </section>
   );
 }
 
-/* ---------- Footer ---------- */
+/* ---------- Footer: the page signs off in lit tiles ---------- */
 
 const FOOT = [
   ['Mission', '#mission'],
@@ -341,6 +374,58 @@ const FOOT = [
   ['Suggest an idea', '#suggestions'],
   ['Questions', '#faq'],
 ] as const;
+
+/** "TIS Tech Council" in tiles, lit left to right as the footer comes up, as the mission was. */
+function SignOff() {
+  const box = useRef<HTMLDivElement>(null);
+  const wall = useRef<HTMLCanvasElement>(null);
+  const lit = useRef<HTMLCanvasElement>(null);
+  const st = useRef<{ W: number; H: number; tt: TileText; res: number } | null>(null);
+  // Lit by the time the page reaches its end, however short the footer's run.
+  const reduce = useReducedMotion();
+  const { scrollYProgress } = useScroll({ target: box, offset: ['start 0.95', 'end end'] });
+  const p = useTransform(scrollYProgress, (v) => (reduce ? 1 : Math.min(1, v * 1.15)));
+  const draw = (k: number) => {
+    const s = st.current;
+    if (s && lit.current) drawLit(lit.current, s.W, s.H, s.res, s.tt, k);
+  };
+  useEffect(() => {
+    const el = box.current!;
+    let last = 0;
+    const paint = async () => {
+      const W = el.clientWidth;
+      if (!W || W === last) return;
+      last = W;
+      await document.fonts.load('650 100px "Inter Variable"').catch(() => undefined);
+      const res = Math.min(window.devicePixelRatio || 1, 1.5);
+      const ts = W < 640 ? 5 : 8;
+      const { tt, H } = layoutTileLine(W, 'TIS Tech Council', ts);
+      paintWall(wall.current!, W, H, ts, res);
+      for (const c of [wall.current!, lit.current!]) {
+        c.style.width = `${W}px`;
+        c.style.height = `${H}px`;
+      }
+      el.style.height = `${H}px`;
+      st.current = { W, H, tt, res };
+      draw(p.get());
+    };
+    void paint();
+    const ro = new ResizeObserver(() => void paint());
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+  const raf = useRef(0);
+  useMotionValueEvent(p, 'change', (k) => {
+    cancelAnimationFrame(raf.current);
+    raf.current = requestAnimationFrame(() => draw(k));
+  });
+  return (
+    <div ref={box} className="relative mt-20 w-full" aria-hidden>
+      <canvas ref={wall} className="absolute left-0 top-0" />
+      <canvas ref={lit} className="absolute left-0 top-0" />
+    </div>
+  );
+}
 
 export function MosaicFooter() {
   const { scrollTo } = useSmoothScroll();
@@ -353,7 +438,7 @@ export function MosaicFooter() {
             <LogoMark className="h-10 w-10" />
             <div>
               <p className="text-body font-medium">TIS Tech Council</p>
-              <p className="font-mono text-[12px] uppercase tracking-[0.14em] text-fog">Tashkent International School</p>
+              <p className="text-body-sm text-fog">Tashkent International School</p>
             </div>
           </div>
           <nav aria-label="Footer">
@@ -366,7 +451,7 @@ export function MosaicFooter() {
                       e.preventDefault();
                       scrollTo(href);
                     }}
-                    className="inline-flex min-h-[40px] items-center text-body text-fog transition-colors hover:text-paper"
+                    className="inline-flex min-h-[44px] items-center text-body text-fog transition-colors hover:text-paper"
                   >
                     {label}
                   </a>
@@ -375,11 +460,9 @@ export function MosaicFooter() {
             </ul>
           </nav>
         </div>
-        <p className="type-display mt-20 text-[clamp(3.25rem,12vw,11rem)] leading-[0.9]">
-          <SplitText text="TIS Tech Council" play="inView" stagger={0.09} />
-        </p>
-        <div className="mt-8 flex flex-col gap-2 border-t border-line-dark pt-6 font-mono text-[12px] uppercase tracking-[0.12em] text-fog sm:flex-row sm:items-center sm:justify-between">
-          <p>© 2026 TIS Tech Council</p>
+        <SignOff />
+        <div className="mt-8 flex flex-col gap-2 border-t border-line-dark pt-6 text-body-sm text-fog sm:flex-row sm:items-center sm:justify-between">
+          <p>© 2026 TIS Tech Council · Tashkent International School</p>
           <p className="flex items-center gap-3">
             <Owl className="h-6 w-6 text-paper" />
             {MOTTO}

@@ -385,3 +385,39 @@ export function wallUrl() {
     }
   return c.toDataURL('image/png');
 }
+
+/* ------------------------------------------------------------------ */
+/* The page's one grammar: tiles on a 12px course, laid in colour       */
+/* ------------------------------------------------------------------ */
+
+export const T = 12;
+
+/**
+ * A border of glass tiles in one petal colour, for panels set into the wall
+ * (used as a CSS border-image: slice T, repeat round). Each edge carries ten
+ * tiles of slightly different tone so the repeat never looks stamped.
+ */
+export function tileBorderUrl(c: Rgb, seed: number) {
+  const n = 12;
+  const cv = document.createElement('canvas');
+  cv.width = cv.height = n * T * 2;
+  const ctx = cv.getContext('2d')!;
+  ctx.scale(2, 2);
+  const rand = rng(seed);
+  for (let y = 0; y < n; y++)
+    for (let x = 0; x < n; x++) {
+      if (x > 0 && x < n - 1 && y > 0 && y < n - 1) continue;
+      const corner = (x === 0 || x === n - 1) && (y === 0 || y === n - 1);
+      const k = corner ? 0.55 : 0.7 + rand() * 0.38;
+      const dark = !corner && rand() < 0.18;
+      const v: Rgb = dark ? [22, 22, 24] : [c[0] * k, c[1] * k, c[2] * k];
+      ctx.fillStyle = `rgb(${v[0] | 0},${v[1] | 0},${v[2] | 0})`;
+      const j = (rand() - 0.5) * 0.8;
+      ctx.fillRect(x * T + 1 + j, y * T + 1 - j, T - 2, T - 2);
+      if (!dark && rand() < 0.3) {
+        ctx.fillStyle = 'rgba(255,255,255,0.22)';
+        ctx.fillRect(x * T + 1.5, y * T + 1.5, T - 3, 1.2);
+      }
+    }
+  return cv.toDataURL('image/png');
+}
