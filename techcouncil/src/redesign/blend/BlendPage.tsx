@@ -1,10 +1,9 @@
-import { motion, useMotionValueEvent, useReducedMotion, useScroll, useTransform, type MotionValue } from 'motion/react';
+import { motion, useMotionTemplate, useMotionValueEvent, useReducedMotion, useScroll, useTransform, type MotionValue } from 'motion/react';
 import { useEffect, useRef, useState } from 'react';
 import { Shell } from '../shared/Shell';
 import { AnnouncementBar, BAR_HEIGHT } from '@/components/AnnouncementBar';
 import { Navbar } from '@/components/Navbar';
 import { Hero } from '@/components/sections/Hero';
-import { Mission } from '@/components/sections/Mission';
 import { Marquee } from '@/components/sections/Marquee';
 import { About } from '@/components/sections/About';
 import { Projects } from '@/components/sections/Projects';
@@ -16,105 +15,81 @@ import { useNow } from '@/components/sections/Countdown';
 import { SplitText } from '@/components/ui/SplitText';
 import { Magnetic } from '@/components/ui/Magnetic';
 import { Arrow } from '@/components/ui/Arrow';
-import { HERO, MISSION, MOTTO } from '@/data/copy';
+import { HERO, STATEMENT } from '@/data/copy';
 import { IntroContext } from '@/lib/intro';
 import { EASE_OUT, span } from '@/lib/motion';
 import { useSmoothScroll } from '@/lib/smoothScroll';
 import { countdownParts } from '@/lib/suggestion';
 import { drawFacade, layoutFacade, throughScale, type Facade } from '../mosaic/paint';
-import { CATEGORY_GLASS, courses, paintNightMural, paintNightStrip, type Course } from './night';
-import { LineField } from './LineField';
+import { CATEGORY_GLASS, courses, paintNightMural, paintNightStrip } from './night';
 
 /**
- * Option: the original site, with the Mosaic folded in. Two openings to
- * compare (`?hero=`): the wave lines are laid as glass tiles ("lines"), or the
- * camera flies through a concrete lattice at night into the same mural
- * ("night"). After that it is the original site, with the countdown as a
- * clock face and a sent idea dropping into the wall as a tile.
+ * Option: the original site, with the Mosaic folded in. The opening flies
+ * through a black lattice facade to the council's flower in glass mosaic,
+ * then on into it, and the original statement comes into focus out of the
+ * dark and lights up word by word. After that it is the original site, with
+ * the countdown as a clock face and a sent idea dropping into the wall as a
+ * tile.
  */
-type Variant = 'lines' | 'night';
-const VARIANTS: { id: Variant; label: string }[] = [
-  { id: 'lines', label: 'Lines → tiles' },
-  { id: 'night', label: 'Night lattice' },
-];
 const NAV_H = 72;
 const NIGHT_WALL = { wall: '#0b0b0b', shade: '#050505', joint: '#1c1c1c' };
-// Scroll progress at which the lines have settled, and at which the last of them is tiled.
-const SETTLED = 0.05;
-const TILED = 0.42;
+/** The opening's scroll, in screens; `at` turns a point in it into progress. */
+const SCROLL = 3.5;
+const at = (screens: number) => screens / SCROLL;
+/** Where "Mission" in the nav lands: the statement in focus, about to light up. */
+const MISSION_AT = at(2.4);
 
 const inOut = (t: number) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);
 const smooth = (t: number) => t * t * (3 - 2 * t);
 const settle = (t: number) => 1 - Math.pow(1 - t, 3);
 const seg = (v: number, a: number, b: number) => Math.min(1, Math.max(0, (v - a) / (b - a)));
 
-function readVariant(): Variant {
-  const q = new URLSearchParams(window.location.search).get('hero');
-  return q === 'night' ? 'night' : 'lines';
-}
-
-/* ------------------------------------------------------------------ */
-/* Shared pieces of the opening                                        */
-/* ------------------------------------------------------------------ */
-
 function Word({ children, p, range }: { children: string; p: MotionValue<number>; range: [number, number] }) {
-  const opacity = useTransform(p, ...span(range, [0.16, 1]));
+  const opacity = useTransform(p, ...span(range, [0.18, 1]));
   return <motion.span style={{ opacity }}>{children} </motion.span>;
 }
 
-/** The original pinned mission, lit word by word, set over the mural. */
-function MissionOverlay({ p }: { p: MotionValue<number> }) {
-  const words = MISSION.line.split(' ');
-  const scrim = useTransform(p, ...span([0.48, 0.6], [0, 1]));
-  const textOpacity = useTransform(p, ...span([0.5, 0.58], [0, 1]));
-  const support = useTransform(p, ...span([0.86, 0.93], [0, 1]));
-  const supportY = useTransform(p, ...span([0.86, 0.93], [20, 0]));
+/**
+ * The original statement, lit word by word as before, now arriving the way
+ * the camera does: out of the mosaic, pushing in and pulling focus.
+ */
+function StatementScene({ p }: { p: MotionValue<number> }) {
+  const words = STATEMENT.split(' ');
+  const opacity = useTransform(p, ...span([at(1.9), at(2.15)], [0, 1]));
+  const scale = useTransform(p, ...span([at(1.9), at(2.6)], [0.84, 1]), { ease: (t) => 1 - Math.pow(1 - t, 3) });
+  const blurPx = useTransform(p, ...span([at(1.9), at(2.4)], [10, 0]));
+  const filter = useMotionTemplate`blur(${blurPx}px)`;
+  const [from, to] = [MISSION_AT, at(3.35)];
   return (
-    <>
-      <motion.div aria-hidden className="pointer-events-none absolute inset-0 bg-[linear-gradient(to_top,rgba(0,0,0,0.94)_0%,rgba(0,0,0,0.86)_48%,rgba(0,0,0,0)_74%)] sm:bg-[radial-gradient(120%_90%_at_0%_100%,rgba(0,0,0,0.92)_0%,rgba(0,0,0,0.7)_45%,rgba(0,0,0,0)_75%)]" style={{ opacity: scrim }} />
-      <motion.div className="absolute inset-x-0 bottom-0" style={{ opacity: textOpacity }}>
-        <div className="container-x pb-24 sm:pb-28">
-          <h2 id="mission-title" className="type-display max-w-[16ch] text-[clamp(2.6rem,6.2vw,5.5rem)] text-paper">
-            <span className="sr-only">{MISSION.line}</span>
-            <span aria-hidden>
-              {words.map((w, i) => (
-                <Word key={i} p={p} range={[0.58 + (i / words.length) * 0.26, 0.58 + ((i + 1) / words.length) * 0.26]}>
-                  {w}
-                </Word>
-              ))}
-            </span>
-          </h2>
-          <motion.p className="mt-8 max-w-[46ch] text-body-lg text-fog" style={{ opacity: support, y: supportY }}>
-            {MISSION.support}
-          </motion.p>
-        </div>
+    <motion.div className="pointer-events-none absolute inset-0 flex items-center" style={{ opacity }}>
+      <motion.div className="container-x" style={{ scale, filter, originX: 0.2, originY: 0.5 }}>
+        <p className="type-heading text-[clamp(2rem,4.4vw,3.5rem)]">
+          <span className="sr-only">{STATEMENT}</span>
+          <span aria-hidden>
+            {words.map((w, i) => (
+              <Word key={i} p={p} range={[from + (i / words.length) * (to - from), from + ((i + 1) / words.length) * (to - from)]}>
+                {w}
+              </Word>
+            ))}
+          </span>
+        </p>
       </motion.div>
-    </>
+    </motion.div>
   );
 }
 
-function HeroCopy({ compact = false }: { compact?: boolean }) {
+function HeroCopy() {
   const { scrollTo } = useSmoothScroll();
   return (
     <>
-      <h1 id="hero-title" className={`type-display max-w-[14ch] ${compact ? 'text-[clamp(2.3rem,4.8vw,4.2rem)]' : 'text-[clamp(3rem,7.4vw,6rem)]'}`}>
+      <h1 id="hero-title" className="type-display max-w-[14ch] text-[clamp(2.3rem,4.8vw,4.2rem)]">
         <SplitText text={HERO.title} play delay={0.15} stagger={0.07} />
       </h1>
-      <div className={compact ? 'mt-5 flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between' : ''}>
-        <motion.p
-          className={`max-w-[40ch] text-body-lg text-fog ${compact ? '' : 'mt-8'}`}
-          initial={{ opacity: 0, y: 16 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.9, ease: EASE_OUT, delay: 0.7 }}
-        >
+      <div className="mt-5 flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+        <motion.p className="max-w-[40ch] text-body-lg text-fog" initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.9, ease: EASE_OUT, delay: 0.7 }}>
           {HERO.lede}
         </motion.p>
-        <motion.div
-          className={`flex flex-wrap items-center ${compact ? 'gap-x-3 gap-y-2' : 'mt-10 gap-4'}`}
-          initial={{ opacity: 0, y: 16 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.9, ease: EASE_OUT, delay: 0.85 }}
-        >
+        <motion.div className="flex flex-wrap items-center gap-x-3 gap-y-2" initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.9, ease: EASE_OUT, delay: 0.85 }}>
           <Magnetic strength={0.2}>
             <a
               href="#suggestions"
@@ -134,7 +109,7 @@ function HeroCopy({ compact = false }: { compact?: boolean }) {
               e.preventDefault();
               scrollTo('#projects');
             }}
-            className={`min-h-[48px] items-center px-2 text-body text-fog transition-colors hover:text-paper ${compact ? 'hidden sm:inline-flex' : 'inline-flex'}`}
+            className="hidden min-h-[48px] items-center px-2 text-body text-fog transition-colors hover:text-paper sm:inline-flex"
           >
             See what we’ve built
           </a>
@@ -147,35 +122,31 @@ function HeroCopy({ compact = false }: { compact?: boolean }) {
 interface Geo {
   W: number;
   H: number;
-  cs: Course[];
   flower: { x: number; y: number };
-  R: number;
   f: Facade;
   smax: number;
-  narrow: boolean;
 }
 
-/* ------------------------------------------------------------------ */
-/* The opening                                                          */
-/* ------------------------------------------------------------------ */
-
-function Opening({ variant }: { variant: Variant }) {
+/**
+ * The opening, pinned for 3.5 screens of scroll:
+ *   0.1–1.3   fly through the lattice (its doors part) to the mural
+ *   1.3–1.65  a beat on the flower
+ *   1.65–2.2  on into the flower, until the glass goes dark
+ *   1.9–3.35  the statement comes into focus and lights up word by word
+ */
+function Opening() {
   const section = useRef<HTMLElement>(null);
   const stage = useRef<HTMLDivElement>(null);
-  const linesBox = useRef<HTMLDivElement>(null);
   const muralBox = useRef<HTMLDivElement>(null);
   const muralCv = useRef<HTMLCanvasElement>(null);
   const facadeCv = useRef<HTMLCanvasElement>(null);
   const signBox = useRef<HTMLDivElement>(null);
-  const copyBox = useRef<HTMLDivElement>(null);
-  const sweepLine = useRef<HTMLDivElement>(null);
   const [geo, setGeo] = useState<Geo | null>(null);
   const geoRef = useRef<Geo | null>(null);
   geoRef.current = geo;
   const { scrollYProgress: p } = useScroll({ target: section, offset: ['start start', 'end end'] });
-  const night = variant === 'night';
 
-  // Lay out and paint for this viewport: lines at once, the mural when the browser is idle.
+  // Lay out for this viewport; paint the mural when the browser is idle.
   useEffect(() => {
     const el = stage.current!;
     let last = '';
@@ -187,20 +158,17 @@ function Opening({ variant }: { variant: Variant }) {
       last = key;
       const narrow = W < 700;
       const dpr = Math.min(window.devicePixelRatio || 1, 1.5);
-      const cs = courses(W, H);
       const flower = { x: W * (narrow ? 0.6 : 0.7), y: H * (narrow ? 0.3 : 0.42) };
       const R = Math.min(W, H) * (narrow ? 0.25 : 0.24);
       const f = layoutFacade(W, H, NAV_H);
-      const fc = facadeCv.current;
-      if (fc) {
-        fc.width = Math.round(W * dpr);
-        fc.height = Math.round(H * dpr);
-      }
-      setGeo({ W, H, cs, flower, R, f, smax: throughScale(W, H, f), narrow });
+      const fc = facadeCv.current!;
+      fc.width = Math.round(W * dpr);
+      fc.height = Math.round(H * dpr);
+      setGeo({ W, H, flower, f, smax: throughScale(W, H, f) });
       const mcv = muralCv.current!;
       mcv.style.opacity = '0';
       const paint = () => {
-        paintNightMural(mcv, W, H, dpr, cs, flower, R);
+        paintNightMural(mcv, W, H, dpr, courses(W, H), flower, R);
         mcv.style.width = `${W}px`;
         mcv.style.height = `${H}px`;
         mcv.style.opacity = '1';
@@ -211,56 +179,43 @@ function Opening({ variant }: { variant: Variant }) {
     });
     ro.observe(el);
     return () => ro.disconnect();
-  }, [night]);
+  }, []);
 
   const raf = useRef(0);
   const apply = (v: number) => {
     const g = geoRef.current;
     if (!g || !muralBox.current) return;
-    const { W, H, flower, narrow } = g;
-    if (!night) {
-      // The lines settle, are laid as tiles from left to right, then the camera moves in on the flower.
-      const sweep = seg(v, SETTLED + 0.01, TILED - 0.02);
-      const x = -60 + sweep * (W + 120);
-      muralBox.current.style.clipPath = `inset(0 ${Math.max(0, W - x)}px 0 0)`;
-      if (linesBox.current) linesBox.current.style.clipPath = `inset(0 0 0 ${Math.max(0, x)}px)`;
-      if (sweepLine.current) {
-        sweepLine.current.style.transform = `translate3d(${x}px,0,0)`;
-        sweepLine.current.style.opacity = sweep > 0 && sweep < 1 ? '1' : '0';
-      }
-      const ms = 1 + (narrow ? 0.16 : 0.24) * inOut(seg(v, 0.4, 0.62));
-      muralBox.current.style.transformOrigin = `${flower.x}px ${flower.y}px`;
-      muralBox.current.style.transform = `scale(${ms})`;
-      if (copyBox.current) {
-        const out = seg(v, 0.02, 0.09);
-        copyBox.current.style.opacity = String(1 - out);
-        copyBox.current.style.transform = `translate3d(0,${-40 * out}px,0)`;
-      }
-      return;
-    }
-    // Night: fly through the lattice; the mural waits behind it.
-    const f = g.f;
+    const { W, H, flower, f } = g;
     const T = f.target;
-    const s = Math.pow(g.smax, inOut(seg(v, 0.04, 0.42)));
-    const pan = smooth(seg(v, 0.04, 0.28));
-    const doors = settle(seg(v, 0.06, 0.18));
+
+    // Through the lattice.
+    const fly = inOut(seg(v, at(0.1), at(1.3)));
+    const s = Math.pow(g.smax, fly);
+    const pan = smooth(seg(v, at(0.1), at(0.7)));
+    const doors = settle(seg(v, at(0.15), at(0.5)));
     const cv = facadeCv.current;
     if (cv) {
       const through = s >= g.smax * 0.995;
       cv.style.opacity = through ? '0' : '1';
       if (!through) drawFacade(cv.getContext('2d')!, W, H, cv.width / W, f, s, pan, doors, NIGHT_WALL);
     }
-    const px = T.x + (W / 2 - T.x) * pan;
-    const py = T.y + (H / 2 - T.y) * pan;
     if (signBox.current) {
+      const px = T.x + (W / 2 - T.x) * pan;
+      const py = T.y + (H / 2 - T.y) * pan;
       signBox.current.style.transform = `translate(${px}px,${py}px) scale(${s}) translate(${-T.x}px,${-T.y}px)`;
-      const out = seg(v, 0.05, 0.16);
+      const out = seg(v, at(0.14), at(0.42));
       signBox.current.style.opacity = String(1 - out);
       signBox.current.style.visibility = out >= 1 ? 'hidden' : 'visible';
     }
-    const ms = 1 + (narrow ? 0.06 : 0.08) * inOut(seg(v, 0.04, 0.42)) + (narrow ? 0.1 : 0.14) * inOut(seg(v, 0.45, 0.62));
+
+    // The mural drifts closer behind the lattice, holds on the flower, then the camera dives into it.
+    const dive = seg(v, at(1.65), at(2.2));
+    const ms = (1 + 0.08 * fly + 0.12 * inOut(seg(v, at(1.3), at(1.65)))) * Math.pow(6, dive * dive);
+    const fade = smooth(seg(v, at(1.85), at(2.2)));
     muralBox.current.style.transformOrigin = `${flower.x}px ${flower.y}px`;
     muralBox.current.style.transform = `scale(${ms})`;
+    muralBox.current.style.opacity = String(1 - fade);
+    muralBox.current.style.visibility = fade >= 1 ? 'hidden' : 'visible';
   };
   useEffect(() => apply(p.get()), [geo]); // first frame and every re-layout
   useMotionValueEvent(p, 'change', (v) => {
@@ -269,45 +224,22 @@ function Opening({ variant }: { variant: Variant }) {
   });
 
   return (
-    <section id="top" ref={section} data-surface="dark" aria-labelledby="hero-title" className="relative bg-obsidian text-paper" style={{ height: 'calc(430svh - var(--bar, 0px))' }}>
-      {/* Where "Mission" in the nav lands: the mission is on the mural. */}
-      <div id="mission" aria-hidden className="pointer-events-none absolute inset-x-0 bottom-0" style={{ top: 'calc(330svh * 0.62)' }} />
+    <section id="top" ref={section} data-surface="dark" aria-labelledby="hero-title" className="relative bg-obsidian text-paper" style={{ height: `calc(${(SCROLL + 1) * 100}svh - var(--bar, 0px))` }}>
+      {/* Where "Mission" in the nav lands. */}
+      <div id="mission" aria-hidden className="pointer-events-none absolute inset-x-0 bottom-0" style={{ top: `calc((${SCROLL * 100}svh - var(--bar, 0px)) * ${MISSION_AT})` }} />
       <div ref={stage} className="sticky top-0 h-[100svh] min-h-[600px] overflow-hidden">
-        <div ref={muralBox} className="absolute inset-0" style={night ? undefined : { clipPath: 'inset(0 100% 0 0)' }}>
+        <div ref={muralBox} className="absolute inset-0">
           <canvas ref={muralCv} aria-hidden className="absolute left-0 top-0 transition-opacity duration-700" />
         </div>
-
-        {!night && (
-          <>
-            <div ref={linesBox} className="absolute inset-0">
-              <LineField progress={p} settleBy={SETTLED} goneAt={TILED} />
+        <canvas ref={facadeCv} aria-hidden className="absolute inset-0 h-full w-full" />
+        <div ref={signBox} className="absolute inset-0 origin-top-left">
+          <div className="absolute inset-x-0 bottom-0" style={{ top: geo?.f.bandTop ?? '60%' }}>
+            <div className="container-x flex h-full flex-col justify-center pb-[calc(4rem+var(--bar,0px))] pt-4 sm:pb-[calc(2.5rem+var(--bar,0px))]">
+              <HeroCopy />
             </div>
-            {/* The laying edge: a seam of light where lines become glass. */}
-            <div ref={sweepLine} aria-hidden className="pointer-events-none absolute inset-y-0 left-0 w-[2px] bg-paper opacity-0 shadow-[0_0_24px_6px_rgba(255,255,255,0.35)]" />
-            <div aria-hidden className="pointer-events-none absolute inset-x-0 bottom-0 h-2/3 bg-gradient-to-t from-obsidian via-obsidian/70 to-transparent" style={{ opacity: 0.9 }} />
-            <div ref={copyBox} className="absolute inset-x-0 bottom-0">
-              <div className="container-x pb-[calc(5rem+var(--bar,0px))] pt-40 sm:pb-[calc(7rem+var(--bar,0px))]">
-                <HeroCopy />
-              </div>
-              <p className="absolute bottom-[calc(2rem+var(--bar,0px))] right-5 hidden text-caption text-fog sm:right-8 md:block">{MOTTO}</p>
-            </div>
-          </>
-        )}
-
-        {night && (
-          <>
-            <canvas ref={facadeCv} aria-hidden className="absolute inset-0 h-full w-full" />
-            <div ref={signBox} className="absolute inset-0 origin-top-left">
-              <div className="absolute inset-x-0 bottom-0" style={{ top: geo?.f.bandTop ?? '60%' }}>
-                <div className="container-x flex h-full flex-col justify-center pb-[calc(4rem+var(--bar,0px))] pt-4 sm:pb-[calc(2.5rem+var(--bar,0px))]">
-                  <HeroCopy compact />
-                </div>
-              </div>
-            </div>
-          </>
-        )}
-
-        <MissionOverlay p={p} />
+          </div>
+        </div>
+        <StatementScene p={p} />
       </div>
     </section>
   );
@@ -397,36 +329,8 @@ function TileSuccess({ category, reset }: { category: string | null; reset: () =
   );
 }
 
-/**
- * Preview-only: compare the two openings. Above the switcher on wide
- * screens; on phones it sits under the nav at the top of the page and gets
- * out of the way once the opening starts.
- */
-function VariantPicker({ current, offset }: { current: Variant; offset: number }) {
-  const { scrollY } = useScroll();
-  const [narrow] = useState(() => window.matchMedia('(max-width: 767px)').matches);
-  const top = useTransform(scrollY, (y) => Math.max(0, offset - y) + NAV_H + 8);
-  const opacity = useTransform(scrollY, (y) => (narrow ? Math.max(0, 1 - y / 160) : 1));
-  const [shown, setShown] = useState(true);
-  useMotionValueEvent(opacity, 'change', (o) => setShown(o > 0.05));
-  return (
-    <motion.nav
-      aria-label="Compare openings"
-      style={{ top, opacity }}
-      className={`fixed left-1/2 z-40 flex -translate-x-1/2 items-center gap-1 whitespace-nowrap rounded-pill border border-line-dark bg-obsidian/90 p-1 text-[12px] text-fog md:!top-auto md:bottom-[68px] md:text-[13px] ${shown ? '' : 'pointer-events-none invisible'}`}
-    >
-      {VARIANTS.map((v) => (
-        <a key={v.id} href={`?hero=${v.id}`} aria-current={v.id === current ? 'page' : undefined} className={`rounded-pill px-3 py-1 transition-colors md:py-1.5 ${v.id === current ? 'bg-paper text-obsidian' : 'hover:text-paper'}`}>
-          {v.label}
-        </a>
-      ))}
-    </motion.nav>
-  );
-}
-
 export default function BlendPage() {
   const reduce = useReducedMotion();
-  const [variant] = useState(readVariant);
   const [barOpen, setBarOpen] = useState(true);
   const barHeight = barOpen ? BAR_HEIGHT : 0;
   return (
@@ -438,10 +342,12 @@ export default function BlendPage() {
           {reduce ? (
             <>
               <Hero />
-              <Mission />
+              <section id="mission" data-surface="dark" aria-label="What we believe" className="bg-obsidian py-28 text-paper">
+                <p className="container-x type-heading text-[clamp(2rem,4.4vw,3.5rem)]">{STATEMENT}</p>
+              </section>
             </>
           ) : (
-            <Opening variant={variant} />
+            <Opening />
           )}
           <Marquee />
           <About />
@@ -451,7 +357,6 @@ export default function BlendPage() {
           <Faq />
         </main>
         <Footer />
-        {!reduce && <VariantPicker current={variant} offset={barHeight} />}
       </IntroContext.Provider>
     </Shell>
   );

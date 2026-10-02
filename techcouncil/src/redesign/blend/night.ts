@@ -1,9 +1,8 @@
 import { ellipse, Layer, petal, rng, type Pt, type Rgb } from '../mosaic/paint';
 
 /**
- * The night mosaic: the original site's wave lines, and the same lines laid
- * as glass tesserae on black. Both are drawn from one set of course curves,
- * so the tiles land exactly where the lines were. Painted once per size.
+ * The night mosaic: the original site's wave lines laid as glass tesserae on
+ * black, around the council's flower. Painted once per size.
  */
 
 export const LINES = 46;
@@ -17,10 +16,7 @@ const GROUT = '#040404';
 
 const fract = (v: number) => v - Math.floor(v);
 
-/**
- * Dave Hoskins' hash12. It has no sine in it, so the line shader and this
- * file agree to within float error, and the tiles land on the lines.
- */
+/** Dave Hoskins' hash12, for the value noise the courses follow. */
 function hash12(x: number, y: number) {
   const a = fract(x * 0.1031);
   const b = fract(y * 0.1031);
@@ -48,7 +44,7 @@ const smoothstep = (a: number, b: number, x: number) => {
   return t * t * (3 - 2 * t);
 };
 
-/** The shape the lines settle into (LineField's shader at rest): uv units, x scaled by height. */
+/** The wave each course follows, in the hero shader's terms: uv units, x scaled by height. */
 function wave(xn: number) {
   return (noise2(xn * 1.4 + 0.37, 0.5) - 0.5) * 0.42 + Math.sin(xn * 2.6 + 0.9) * 0.035;
 }
@@ -78,29 +74,6 @@ function lineGlow(p: Pt, W: number, H: number, k: number) {
   const mask = smoothstep(0, 1, (p.x / W) * 0.8 + (1 - p.y / H) * 0.7 - 0.2);
   const shimmer = 0.35 + 0.65 * noise2((p.x / H) * 3, (k / LINES) * 6);
   return 0.16 + 0.4 * mask * shimmer;
-}
-
-/** The lines at rest, drawn once: the fallback when WebGL is unavailable. */
-export function drawLines(canvas: HTMLCanvasElement, W: number, H: number, res: number, cs: Course[]) {
-  canvas.width = Math.round(W * res);
-  canvas.height = Math.round(H * res);
-  const ctx = canvas.getContext('2d')!;
-  ctx.setTransform(res, 0, 0, res, 0, 0);
-  ctx.clearRect(0, 0, W, H);
-  ctx.lineWidth = 1.3;
-  ctx.lineCap = 'round';
-  for (const c of cs) {
-    if (!Number.isInteger(c.k)) continue;
-    for (let i = 0; i < c.pts.length - 1; i++) {
-      const a = c.pts[i]!;
-      const b = c.pts[i + 1]!;
-      ctx.strokeStyle = `rgba(255,255,255,${lineGlow(a, W, H, c.k).toFixed(3)})`;
-      ctx.beginPath();
-      ctx.moveTo(a.x, a.y);
-      ctx.lineTo(b.x, b.y);
-      ctx.stroke();
-    }
-  }
 }
 
 export interface NightMural {

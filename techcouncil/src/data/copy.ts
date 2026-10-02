@@ -7,10 +7,13 @@ export const HERO = {
   lede: 'The TIS Tech Council is making Tashkent International School a smarter, more connected campus, with tools and projects built by students.',
 };
 
+/** The original site's statement, lit word by word on black. */
+export const STATEMENT =
+  'We’re students who think our school deserves better tech, so we build it. Tools for teachers and students, projects that make campus run smoother, and a direct line for your ideas.';
+
 export const MISSION = {
   line: 'Our mission is to make technology part of TIS’s DNA.',
-  support:
-    'We’re students who think our school deserves better tech, so we build it. Tools for teachers and students, projects that make campus run smoother, and a direct line for your ideas.',
+  support: STATEMENT,
 };
 
 export const ABOUT = {
