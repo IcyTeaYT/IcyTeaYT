@@ -4,6 +4,7 @@ import { LogoMark } from '@/components/brand/LogoMark';
 import { Owl } from '@/components/brand/Owl';
 import { TismunLogo } from '@/components/brand/TismunLogo';
 import { Arrow } from '@/components/ui/Arrow';
+import { SplitText } from '@/components/ui/SplitText';
 import { ABOUT, FAQ, MOTTO, WORK } from '@/data/copy';
 import { founders, isPlaceholder } from '@/data/founders';
 import { featuredProject } from '@/data/projects';
@@ -32,9 +33,13 @@ export function Label({ n, children }: { n: string; children: ReactNode }) {
   );
 }
 
-/** One course of dark glass between sections. */
+/** One course of dark glass between sections, laid left to right as it scrolls past. */
 export function Frieze() {
   const ref = useRef<HTMLCanvasElement>(null);
+  const box = useRef<HTMLDivElement>(null);
+  const reduce = useReducedMotion();
+  const { scrollYProgress } = useScroll({ target: box, offset: ['start end', 'start 0.55'] });
+  const clip = useTransform(scrollYProgress, (v) => `inset(0 ${reduce ? 0 : Math.round((1 - v) * 100)}% 0 0)`);
   useEffect(() => {
     const cv = ref.current!;
     const paint = () => {
@@ -47,8 +52,8 @@ export function Frieze() {
     return () => ro.disconnect();
   }, []);
   return (
-    <div aria-hidden className="h-[14px] overflow-hidden bg-obsidian">
-      <canvas ref={ref} className="block h-[14px]" />
+    <div ref={box} aria-hidden className="h-[14px] overflow-hidden bg-obsidian">
+      <motion.canvas ref={ref} className="block h-[14px]" style={{ clipPath: clip }} />
     </div>
   );
 }
@@ -121,7 +126,7 @@ export function MosaicAbout() {
       <div className="container-x">
         <Label n="01">About</Label>
         <h2 id="about-title" className="type-display mt-6 max-w-[18ch] text-[clamp(2.4rem,5vw,4.5rem)]">
-          {ABOUT.title}
+          <SplitText text={ABOUT.title} play="inView" stagger={0.05} />
         </h2>
         <div className="mt-8 grid max-w-[980px] gap-4 md:grid-cols-2 md:gap-10">
           {ABOUT.body.map((t) => (
@@ -142,22 +147,42 @@ export function MosaicAbout() {
 
 /* ---------- TISMUN: the plaque ---------- */
 
+function Feature({ f, i, n, progress }: { f: string; i: number; n: number; progress: MotionValue<number> }) {
+  const opacity = useTransform(progress, ...span([i / n, (i + 1) / n], [0.25, 1]));
+  return (
+    <motion.li style={{ opacity }} className="flex gap-5 border-b border-line-dark py-4 text-body-lg">
+      <span className="pt-1 font-mono text-[12px] text-fog">{String(i + 1).padStart(2, '0')}</span>
+      {f}
+    </motion.li>
+  );
+}
+
 export function MosaicProjects() {
   const p = featuredProject;
+  const plaque = useRef<HTMLDivElement>(null);
+  const list = useRef<HTMLUListElement>(null);
+  const reduce = useReducedMotion();
+  const { scrollYProgress: pp } = useScroll({ target: plaque, offset: ['start end', 'start 0.4'] });
+  const plaqueClip = useTransform(pp, (v) => (reduce ? 'none' : `inset(${Math.round((1 - settle(v)) * 100)}% 0 0 0 round 0px)`));
+  const logoScale = useTransform(pp, ...span([0, 1], reduce ? [1, 1] : [1.18, 1]), { ease: settle });
+  const { scrollYProgress: lp } = useScroll({ target: list, offset: ['start 0.85', 'end 0.55'] });
+  const featureP = useTransform(lp, (v) => (reduce ? 1 : v));
   if (!p) return null;
   return (
     <section id="projects" data-surface="dark" aria-labelledby="projects-title" className="bl-wall relative py-24 text-paper sm:py-32">
       <div className="container-x">
         <Label n="02">Projects</Label>
         <h2 id="projects-title" className="type-display mt-6 text-[clamp(2.4rem,5vw,4.5rem)]">
-          Things we’ve shipped.
+          <SplitText text={'Things we’ve shipped.'} play="inView" stagger={0.05} />
         </h2>
         <p className="mt-5 max-w-[46ch] text-body-lg text-fog">Real platforms, used by real people at TIS.</p>
 
         {/* The plaque: the project's mark set into a dark glass panel. */}
-        <div className="mt-14 grid gap-8 border border-line-dark bg-[#0a0a0a] p-5 sm:p-8 lg:grid-cols-[5fr_7fr] lg:items-center lg:gap-14">
-          <div className="flex items-center justify-center self-stretch rounded-[4px] bg-paper px-8 py-10 sm:px-14 sm:py-14">
-            <TismunLogo className="w-full max-w-[380px]" />
+        <motion.div ref={plaque} style={{ clipPath: plaqueClip }} className="mt-14 grid gap-8 border border-line-dark bg-[#0a0a0a] p-5 sm:p-8 lg:grid-cols-[5fr_7fr] lg:items-center lg:gap-14">
+          <div className="flex items-center justify-center self-stretch overflow-hidden rounded-[4px] bg-paper px-8 py-10 sm:px-14 sm:py-14">
+            <motion.div style={{ scale: logoScale }} className="w-full max-w-[380px]">
+              <TismunLogo className="w-full" />
+            </motion.div>
           </div>
           <div>
             <h3 className=" text-[clamp(2rem,4vw,3rem)] font-light leading-none tracking-[-0.05em]">{p.name}</h3>
@@ -178,15 +203,12 @@ export function MosaicProjects() {
               )}
             </div>
           </div>
-        </div>
+        </motion.div>
 
         <div className="mt-16 grid gap-10 lg:grid-cols-[7fr_5fr] lg:gap-16">
-          <ul className="border-t border-line-dark">
+          <ul ref={list} className="border-t border-line-dark">
             {p.features.map((f, i) => (
-              <li key={f} className="flex gap-5 border-b border-line-dark py-4 text-body-lg">
-                <span className="pt-1 font-mono text-[12px] text-fog">{String(i + 1).padStart(2, '0')}</span>
-                {f}
-              </li>
+              <Feature key={f} f={f} i={i} n={p.features.length} progress={featureP} />
             ))}
           </ul>
           <div>
@@ -209,12 +231,13 @@ function Niche({ f, i }: { f: (typeof founders)[number]; i: number }) {
   const reduce = useReducedMotion();
   const { scrollYProgress: p } = useScroll({ target: ref, offset: ['start end', 'start 0.5'] });
   const y = useTransform(p, ...span([i * 0.1, 1], reduce ? [0, 0] : [70, 0]), { ease: settle });
+  const photoScale = useTransform(p, ...span([i * 0.1, 1], reduce ? [1, 1] : [1.22, 1]), { ease: settle });
   return (
     <motion.div ref={ref} style={{ y }} className="flex flex-col">
       {/* A square niche: the photo sits back in the dark wall. */}
       <div className="border border-line-dark bg-[#0d0d0d] p-2.5">
         <div className="group relative aspect-[4/5] overflow-hidden bg-[#111]">
-          {ok && <img src={f.photo} alt={`Portrait of ${f.name}`} loading="lazy" decoding="async" onError={() => setOk(false)} className="absolute inset-0 h-full w-full object-cover object-[50%_18%]" />}
+          {ok && <motion.img style={{ scale: photoScale }} src={f.photo} alt={`Portrait of ${f.name}`} loading="lazy" decoding="async" onError={() => setOk(false)} className="absolute inset-0 h-full w-full object-cover object-[50%_18%]" />}
           <span aria-hidden className="pointer-events-none absolute inset-0 shadow-[inset_10px_12px_26px_rgba(0,0,0,0.6)]" />
         </div>
       </div>
@@ -241,7 +264,7 @@ export function MosaicFounders() {
       <div className="container-x">
         <Label n="03">Founders</Label>
         <h2 id="founders-title" className="type-display mt-6 max-w-[18ch] text-[clamp(2.4rem,5vw,4.5rem)]">
-          Three students. One campus to upgrade.
+          <SplitText text={'Three students. One campus to upgrade.'} play="inView" stagger={0.05} />
         </h2>
         <p className="mt-5 max-w-[48ch] text-body-lg text-fog">The Tech Council was started by three TIS students who wanted to fix things, not just talk about them.</p>
         <div className="mt-14 grid gap-12 sm:grid-cols-2 sm:gap-8 lg:grid-cols-3 lg:gap-12">
@@ -260,7 +283,13 @@ function Question({ q, a, i }: { q: string; a: string; i: number }) {
   const [open, setOpen] = useState(false);
   const id = useId();
   return (
-    <li className="border-t border-line-dark last:border-b">
+    <motion.li
+      className="border-t border-line-dark last:border-b"
+      initial={{ opacity: 0, y: 24 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true, margin: '0px 0px -10% 0px' }}
+      transition={{ duration: 0.8, ease: EASE_OUT, delay: i * 0.07 }}
+    >
       <h3>
         <button type="button" aria-expanded={open} aria-controls={id} onClick={() => setOpen((o) => !o)} className="flex w-full items-center gap-5 py-6 text-left text-subheading font-light">
           <span className="w-8 shrink-0 font-mono text-[12px] text-fog">{String(i + 1).padStart(2, '0')}</span>
@@ -278,7 +307,7 @@ function Question({ q, a, i }: { q: string; a: string; i: number }) {
           </motion.div>
         )}
       </AnimatePresence>
-    </li>
+    </motion.li>
   );
 }
 
@@ -289,8 +318,8 @@ export function MosaicFaq() {
         <div>
           <Label n="04">Questions</Label>
           <h2 id="faq-title" className="type-display mt-6 text-[clamp(2.4rem,5vw,4.5rem)]">
-            Questions
-          </h2>
+          <SplitText text={'Questions'} play="inView" stagger={0.05} />
+        </h2>
         </div>
         <ul>
           {FAQ.map((x, i) => (
@@ -346,8 +375,8 @@ export function MosaicFooter() {
             </ul>
           </nav>
         </div>
-        <p aria-hidden className="type-display mt-20 text-[clamp(3.25rem,12vw,11rem)] leading-[0.9]">
-          TIS Tech Council
+        <p className="type-display mt-20 text-[clamp(3.25rem,12vw,11rem)] leading-[0.9]">
+          <SplitText text="TIS Tech Council" play="inView" stagger={0.09} />
         </p>
         <div className="mt-8 flex flex-col gap-2 border-t border-line-dark pt-6 font-mono text-[12px] uppercase tracking-[0.12em] text-fog sm:flex-row sm:items-center sm:justify-between">
           <p>© 2026 TIS Tech Council</p>
