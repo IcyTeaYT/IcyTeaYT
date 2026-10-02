@@ -16,7 +16,7 @@ import { IntroContext } from '@/lib/intro';
 import { EASE_OUT, span } from '@/lib/motion';
 import { useSmoothScroll } from '@/lib/smoothScroll';
 import { drawFacade, layoutFacade, throughScale, type Facade } from '../mosaic/paint';
-import { CATEGORY_GLASS, courses, girihLattice, paintNightMural, paintNightStrip, wallUrl } from './night';
+import { CATEGORY_GLASS, courses, paintNightMural, paintNightStrip, wallUrl } from './night';
 import { drawLit, layoutTileText, paintWall, type TileText } from './tileText';
 import { Frieze, MosaicAbout, MosaicFaq, MosaicFooter, MosaicFounders, MosaicProjects } from './sections';
 
@@ -29,7 +29,7 @@ import { Frieze, MosaicAbout, MosaicFaq, MosaicFooter, MosaicFounders, MosaicPro
  * and a sent idea dropping into the wall as a tile.
  */
 const NAV_H = 72;
-const NIGHT_WALL = { wall: '#0b0b0b', shade: '#050505', joint: '#1c1c1c', glaze: 'rgba(63,182,176,0.3)' };
+const NIGHT_WALL = { wall: '#0b0b0b', shade: '#050505', joint: '#1c1c1c' };
 /** The opening's scroll, in screens; `at` turns a point in it into progress. */
 const SCROLL = 3.6;
 const at = (screens: number) => screens / SCROLL;
@@ -130,9 +130,7 @@ function Opening() {
       const dpr = Math.min(window.devicePixelRatio || 1, 1.5);
       const flower = { x: W * (narrow ? 0.6 : 0.7), y: H * (narrow ? 0.3 : 0.42) };
       const R = Math.min(W, H) * (narrow ? 0.25 : 0.24);
-      const f0 = layoutFacade(W, H, NAV_H);
-      // The window screens are girih: eight-point stars, as on Samarkand's facades.
-      const f = { ...f0, lattice: girihLattice(W, NAV_H, f0.bandTop, (f0.latticeWidth / 0.075) / 2.4), latticeWidth: f0.latticeWidth * 0.8 };
+      const f = layoutFacade(W, H, NAV_H);
       const fc = facadeCv.current!;
       fc.width = Math.round(W * dpr);
       fc.height = Math.round(H * dpr);

@@ -408,21 +408,8 @@ export interface FacadeColors {
   wall: string;
   shade: string;
   joint: string;
-  /** Optional glazed edge drawn along the lattice bars. */
-  glaze?: string;
 }
 const DAY: FacadeColors = { wall: CONCRETE, shade: CONCRETE_SHADE, joint: CONCRETE_DEEP };
-
-function strokeLattice(ctx: CanvasRenderingContext2D, f: Facade, colors: FacadeColors) {
-  ctx.strokeStyle = colors.wall;
-  ctx.lineWidth = f.latticeWidth;
-  ctx.stroke(f.lattice);
-  if (colors.glaze) {
-    ctx.strokeStyle = colors.glaze;
-    ctx.lineWidth = f.latticeWidth * 0.22;
-    ctx.stroke(f.lattice);
-  }
-}
 
 /**
  * Draws the facade for camera scale `s`, the target opening panned `pan` of
@@ -446,7 +433,7 @@ export function drawFacade(ctx: CanvasRenderingContext2D, W: number, H: number, 
   notTarget.rect(-W * 4, -H * 4, W * 9, H * 9);
   notTarget.addPath(T.path);
   ctx.clip(notTarget, 'evenodd');
-  strokeLattice(ctx, f, colors);
+  ctx.stroke(f.lattice);
   ctx.restore();
 
   // The target's lattice parts like two doors.
@@ -458,7 +445,7 @@ export function drawFacade(ctx: CanvasRenderingContext2D, W: number, H: number, 
       half.rect(side < 0 ? T.left - T.w : T.x, T.top - T.w, T.w * 1.5, T.h + T.w * 2);
       ctx.clip(half);
       ctx.translate(side * open * T.w * 0.56, 0);
-      strokeLattice(ctx, f, colors);
+      ctx.stroke(f.lattice);
       ctx.restore();
     }
   }
