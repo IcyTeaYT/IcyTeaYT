@@ -248,3 +248,29 @@ export function paintNightArch(canvas: HTMLCanvasElement, W: number, H: number, 
 }
 
 export const PETAL_RGB = PETAL;
+
+/** A faint wall of dark glass tiles, as a repeating background for the sections. */
+export function wallUrl() {
+  const tile = 12;
+  const n = 24;
+  const c = document.createElement('canvas');
+  c.width = c.height = tile * n;
+  const ctx = c.getContext('2d')!;
+  ctx.fillStyle = '#020202';
+  ctx.fillRect(0, 0, c.width, c.height);
+  const rand = rng(12);
+  for (let y = 0; y < n; y++)
+    for (let x = 0; x < n; x++) {
+      const r = rand();
+      const v = 9 + rand() * 9;
+      let col = `rgb(${v | 0},${v | 0},${(v + 1) | 0})`;
+      if (r > 0.996) {
+        const pc = [PETAL.orange, PETAL.maroon, PETAL.teal, PETAL.cyan][Math.floor(rand() * 4)]!;
+        col = `rgb(${(pc[0] * 0.3) | 0},${(pc[1] * 0.3) | 0},${(pc[2] * 0.3) | 0})`;
+      }
+      ctx.fillStyle = col;
+      const j = (rand() - 0.5) * 1.2;
+      ctx.fillRect(x * tile + 1 + j, y * tile + 1 - j, tile - 2, tile - 2);
+    }
+  return c.toDataURL('image/png');
+}

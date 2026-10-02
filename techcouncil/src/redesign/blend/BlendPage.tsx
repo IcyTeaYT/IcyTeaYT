@@ -8,8 +8,6 @@ import { Navbar } from '@/components/Navbar';
 import { Hero } from '@/components/sections/Hero';
 import { Mission } from '@/components/sections/Mission';
 import { SuggestionBox } from '@/components/sections/SuggestionBox';
-import { Faq } from '@/components/sections/Faq';
-import { Footer } from '@/components/sections/Footer';
 import { SplitText } from '@/components/ui/SplitText';
 import { Magnetic } from '@/components/ui/Magnetic';
 import { Arrow } from '@/components/ui/Arrow';
@@ -18,9 +16,9 @@ import { IntroContext } from '@/lib/intro';
 import { EASE_OUT, span } from '@/lib/motion';
 import { useSmoothScroll } from '@/lib/smoothScroll';
 import { drawFacade, layoutFacade, throughScale, type Facade } from '../mosaic/paint';
-import { CATEGORY_GLASS, courses, paintNightMural, paintNightStrip } from './night';
+import { CATEGORY_GLASS, courses, paintNightMural, paintNightStrip, wallUrl } from './night';
 import { drawLit, layoutTileText, paintWall, type TileText } from './tileText';
-import { Frieze, MosaicAbout, MosaicFounders, MosaicProjects } from './sections';
+import { Frieze, MosaicAbout, MosaicFaq, MosaicFooter, MosaicFounders, MosaicProjects } from './sections';
 
 /**
  * Option: the original site's black and white, with the Mosaic laid in dark
@@ -297,6 +295,9 @@ export default function BlendPage() {
   const reduce = useReducedMotion();
   const [barOpen, setBarOpen] = useState(true);
   const barHeight = barOpen ? BAR_HEIGHT : 0;
+  useEffect(() => {
+    document.documentElement.style.setProperty('--bl-wall', `url(${wallUrl()})`);
+  }, []);
   return (
     <Shell world="blend" switcherClass="rounded-pill border border-line-dark bg-obsidian/90 text-fog [&_a]:rounded-pill [&_[data-here]]:bg-paper [&_[data-here]]:text-obsidian">
       <IntroContext.Provider value={true}>
@@ -318,9 +319,10 @@ export default function BlendPage() {
           <MosaicFounders />
           <Frieze />
           <SuggestionBox renderSuccess={(o) => <TileSuccess {...o} />} />
-          <Faq />
+          <Frieze />
+          <MosaicFaq />
         </main>
-        <Footer />
+        <MosaicFooter />
       </IntroContext.Provider>
     </Shell>
   );

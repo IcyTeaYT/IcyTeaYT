@@ -1,18 +1,20 @@
 import { AnimatePresence, motion, useReducedMotion, useScroll, useTransform } from 'motion/react';
 import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
+import { LogoMark } from '@/components/brand/LogoMark';
+import { Owl } from '@/components/brand/Owl';
 import { TismunLogo } from '@/components/brand/TismunLogo';
-import { useNow } from '@/components/sections/Countdown';
 import { Arrow } from '@/components/ui/Arrow';
-import { ABOUT, WORK } from '@/data/copy';
+import { ABOUT, FAQ, MOTTO, WORK } from '@/data/copy';
 import { founders, isPlaceholder } from '@/data/founders';
 import { featuredProject } from '@/data/projects';
 import { EASE_OUT, span } from '@/lib/motion';
-import { countdownParts } from '@/lib/suggestion';
+import { useSmoothScroll } from '@/lib/smoothScroll';
 import { paintNightArch, paintNightStrip, PETAL_RGB } from './night';
 
 /**
  * The Mosaic option's sections, laid in dark glass: the "what we do" cells as
- * arches, TISMUN as a mounted plaque beside a clock, the founders in niches.
+ * arches, TISMUN as a mounted plaque, the founders in niches, the questions
+ * and the footer, all on the same faint wall of tiles.
  * Thin Inter as on the original site, with small mono labels.
  */
 
@@ -93,7 +95,7 @@ function Cell({ w, i }: { w: (typeof WORK)[number]; i: number }) {
 
 export function MosaicAbout() {
   return (
-    <section id="about" data-surface="dark" aria-labelledby="about-title" className="relative bg-obsidian pb-24 pt-24 text-paper sm:pb-32 sm:pt-32">
+    <section id="about" data-surface="dark" aria-labelledby="about-title" className="bl-wall relative pb-24 pt-24 text-paper sm:pb-32 sm:pt-32">
       <div className="container-x">
         <Label n="01">About</Label>
         <h2 id="about-title" className="type-display mt-6 max-w-[18ch] text-[clamp(2.4rem,5vw,4.5rem)]">
@@ -116,52 +118,13 @@ export function MosaicAbout() {
   );
 }
 
-/* ---------- TISMUN: the plaque and the clock ---------- */
-
-function Clock({ start, end, timezoneLabel }: { start: string; end: string; timezoneLabel: string }) {
-  const now = useNow();
-  const reduce = useReducedMotion();
-  const c = countdownParts(now, start, end);
-  const pad = (n: number) => String(n).padStart(2, '0');
-  return (
-    <figure className="flex flex-col items-center">
-      <div className="relative aspect-square w-[min(80vw,400px)] rounded-full border border-line-dark bg-[#0a0a0a]">
-        <svg viewBox="0 0 200 200" aria-hidden className="absolute inset-0 h-full w-full">
-          {Array.from({ length: 60 }, (_, i) => (
-            <line key={i} x1="100" y1={i % 5 ? 9 : 7} x2="100" y2={i % 5 ? 14 : 20} stroke="#fff" strokeOpacity={i % 5 ? 0.35 : 0.9} strokeWidth={i % 5 ? 0.7 : 1.6} transform={`rotate(${i * 6} 100 100)`} />
-          ))}
-          <g style={{ transform: `rotate(${(60 - c.secs) * 6}deg)`, transformOrigin: '100px 100px', transition: reduce || c.secs === 59 ? 'none' : 'transform 0.35s cubic-bezier(0.16,1,0.3,1)' }}>
-            <line x1="100" y1="114" x2="100" y2="24" stroke="#F29839" strokeWidth="1.3" strokeLinecap="round" />
-            <circle cx="100" cy="100" r="3" fill="#F29839" />
-          </g>
-        </svg>
-        <div className="relative flex h-full flex-col items-center justify-center text-center">
-          {c.phase === 'before' ? (
-            <>
-              <span className="type-display text-[clamp(3.2rem,9vw,5.5rem)] tabular">{c.days}</span>
-              <span className="mt-1 font-mono text-[12px] uppercase tracking-[0.16em] text-fog">days</span>
-              <span className="mt-3 font-mono text-[clamp(1rem,2vw,1.25rem)] tabular">
-                {pad(c.hours)}:{pad(c.mins)}:{pad(c.secs)}
-              </span>
-            </>
-          ) : (
-            <span className="max-w-[10ch] text-subheading font-light">{c.phase === 'during' ? 'Happening now' : 'Conference complete'}</span>
-          )}
-        </div>
-      </div>
-      <figcaption className="mt-5 text-center font-mono text-[12px] uppercase tracking-[0.14em] text-fog">
-        {c.phase === 'before' && <span className="sr-only">{c.days} days, {c.hours} hours and {c.mins} minutes until the conference. </span>}
-        Until TISMUN · {timezoneLabel}
-      </figcaption>
-    </figure>
-  );
-}
+/* ---------- TISMUN: the plaque ---------- */
 
 export function MosaicProjects() {
   const p = featuredProject;
   if (!p) return null;
   return (
-    <section id="projects" data-surface="dark" aria-labelledby="projects-title" className="relative bg-obsidian py-24 text-paper sm:py-32">
+    <section id="projects" data-surface="dark" aria-labelledby="projects-title" className="bl-wall relative py-24 text-paper sm:py-32">
       <div className="container-x">
         <Label n="02">Projects</Label>
         <h2 id="projects-title" className="type-display mt-6 text-[clamp(2.4rem,5vw,4.5rem)]">
@@ -169,13 +132,13 @@ export function MosaicProjects() {
         </h2>
         <p className="mt-5 max-w-[46ch] text-body-lg text-fog">Real platforms, used by real people at TIS.</p>
 
-        <div className="mt-14 grid items-center gap-14 lg:grid-cols-[7fr_5fr] lg:gap-16">
-          {/* The plaque: the project's mark set into a dark glass panel. */}
-          <div className="border border-line-dark bg-[#0a0a0a] p-5 sm:p-8">
-            <div className="flex items-center justify-center rounded-[4px] bg-paper px-8 py-10 sm:px-14 sm:py-14">
-              <TismunLogo className="w-full max-w-[380px]" />
-            </div>
-            <h3 className="mt-8 text-[clamp(2rem,4vw,3rem)] font-light leading-none tracking-[-0.05em]">{p.name}</h3>
+        {/* The plaque: the project's mark set into a dark glass panel. */}
+        <div className="mt-14 grid gap-8 border border-line-dark bg-[#0a0a0a] p-5 sm:p-8 lg:grid-cols-[5fr_7fr] lg:items-center lg:gap-14">
+          <div className="flex items-center justify-center self-stretch rounded-[4px] bg-paper px-8 py-10 sm:px-14 sm:py-14">
+            <TismunLogo className="w-full max-w-[380px]" />
+          </div>
+          <div>
+            <h3 className=" text-[clamp(2rem,4vw,3rem)] font-light leading-none tracking-[-0.05em]">{p.name}</h3>
             <p className="mt-3 flex items-center gap-2 font-mono text-[12px] uppercase tracking-[0.14em] text-fog">
               <span className="h-2 w-2 bg-[#10AACC]" aria-hidden />
               Live · {p.date}
@@ -193,7 +156,6 @@ export function MosaicProjects() {
               )}
             </div>
           </div>
-          {p.event && <Clock {...p.event} />}
         </div>
 
         <div className="mt-16 grid gap-10 lg:grid-cols-[7fr_5fr] lg:gap-16">
@@ -230,7 +192,7 @@ function Niche({ f, i }: { f: (typeof founders)[number]; i: number }) {
       {/* A square niche: the photo sits back in the dark wall. */}
       <div className="border border-line-dark bg-[#0d0d0d] p-2.5">
         <div className="group relative aspect-[4/5] overflow-hidden bg-[#111]">
-          {ok && <img src={f.photo} alt={`Portrait of ${f.name}`} loading="lazy" decoding="async" onError={() => setOk(false)} className="bl-photo absolute inset-0 h-full w-full object-cover object-[50%_18%]" />}
+          {ok && <img src={f.photo} alt={`Portrait of ${f.name}`} loading="lazy" decoding="async" onError={() => setOk(false)} className="absolute inset-0 h-full w-full object-cover object-[50%_18%]" />}
           <span aria-hidden className="pointer-events-none absolute inset-0 shadow-[inset_10px_12px_26px_rgba(0,0,0,0.6)]" />
         </div>
       </div>
@@ -253,7 +215,7 @@ function Niche({ f, i }: { f: (typeof founders)[number]; i: number }) {
 
 export function MosaicFounders() {
   return (
-    <section id="founders" data-surface="dark" aria-labelledby="founders-title" className="relative bg-obsidian py-24 text-paper sm:py-32">
+    <section id="founders" data-surface="dark" aria-labelledby="founders-title" className="bl-wall relative py-24 text-paper sm:py-32">
       <div className="container-x">
         <Label n="03">Founders</Label>
         <h2 id="founders-title" className="type-display mt-6 max-w-[18ch] text-[clamp(2.4rem,5vw,4.5rem)]">
@@ -267,5 +229,112 @@ export function MosaicFounders() {
         </div>
       </div>
     </section>
+  );
+}
+
+/* ---------- Questions ---------- */
+
+function Question({ q, a, i }: { q: string; a: string; i: number }) {
+  const [open, setOpen] = useState(false);
+  const id = useId();
+  return (
+    <li className="border-t border-line-dark last:border-b">
+      <h3>
+        <button type="button" aria-expanded={open} aria-controls={id} onClick={() => setOpen((o) => !o)} className="flex w-full items-center gap-5 py-6 text-left text-subheading font-light">
+          <span className="w-8 shrink-0 font-mono text-[12px] text-fog">{String(i + 1).padStart(2, '0')}</span>
+          <span className="flex-1">{q}</span>
+          <span className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-line-dark" aria-hidden>
+            <span className="absolute h-px w-3.5 bg-current" />
+            <motion.span className="absolute h-3.5 w-px bg-current" animate={{ scaleY: open ? 0 : 1 }} transition={{ duration: 0.3 }} />
+          </span>
+        </button>
+      </h3>
+      <AnimatePresence initial={false}>
+        {open && (
+          <motion.div id={id} className="overflow-hidden" initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.45, ease: EASE_OUT }}>
+            <p className="max-w-[60ch] pb-8 pl-[52px] text-body-lg text-fog">{a}</p>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </li>
+  );
+}
+
+export function MosaicFaq() {
+  return (
+    <section id="faq" data-surface="dark" aria-labelledby="faq-title" className="bl-wall relative py-24 text-paper sm:py-32">
+      <div className="container-x grid gap-12 md:grid-cols-[1fr_1.4fr] md:gap-16">
+        <div>
+          <Label n="04">Questions</Label>
+          <h2 id="faq-title" className="type-display mt-6 text-[clamp(2.4rem,5vw,4.5rem)]">
+            Questions
+          </h2>
+        </div>
+        <ul>
+          {FAQ.map((x, i) => (
+            <Question key={x.q} {...x} i={i} />
+          ))}
+        </ul>
+      </div>
+    </section>
+  );
+}
+
+/* ---------- Footer ---------- */
+
+const FOOT = [
+  ['Mission', '#mission'],
+  ['About', '#about'],
+  ['Projects', '#projects'],
+  ['Founders', '#founders'],
+  ['Suggest an idea', '#suggestions'],
+  ['Questions', '#faq'],
+] as const;
+
+export function MosaicFooter() {
+  const { scrollTo } = useSmoothScroll();
+  return (
+    <footer data-surface="dark" className="bl-wall relative text-paper">
+      <Frieze />
+      <div className="container-x pb-28 pt-20">
+        <div className="flex flex-col gap-12 md:flex-row md:items-start md:justify-between">
+          <div className="flex items-center gap-3">
+            <LogoMark className="h-10 w-10" />
+            <div>
+              <p className="text-body font-medium">TIS Tech Council</p>
+              <p className="font-mono text-[12px] uppercase tracking-[0.14em] text-fog">Tashkent International School</p>
+            </div>
+          </div>
+          <nav aria-label="Footer">
+            <ul className="grid grid-cols-2 gap-x-12 gap-y-1 sm:grid-cols-3">
+              {FOOT.map(([label, href]) => (
+                <li key={href}>
+                  <a
+                    href={href}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      scrollTo(href);
+                    }}
+                    className="inline-flex min-h-[40px] items-center text-body text-fog transition-colors hover:text-paper"
+                  >
+                    {label}
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </nav>
+        </div>
+        <p aria-hidden className="type-display mt-20 text-[clamp(3.25rem,12vw,11rem)] leading-[0.9]">
+          TIS Tech Council
+        </p>
+        <div className="mt-8 flex flex-col gap-2 border-t border-line-dark pt-6 font-mono text-[12px] uppercase tracking-[0.12em] text-fog sm:flex-row sm:items-center sm:justify-between">
+          <p>© 2026 TIS Tech Council</p>
+          <p className="flex items-center gap-3">
+            <Owl className="h-6 w-6 text-paper" />
+            {MOTTO}
+          </p>
+        </div>
+      </div>
+    </footer>
   );
 }
