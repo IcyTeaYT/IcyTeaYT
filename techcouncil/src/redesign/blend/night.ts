@@ -54,17 +54,18 @@ export interface Course {
   pts: Pt[];
 }
 
-/** Course centre-lines covering the frame: whole k are the lines, k + 0.5 the ground between. */
-export function courses(W: number, H: number): Course[] {
+/** Course centre-lines covering W × `bottom` (the frame is H tall): whole k are the lines, k + 0.5 the ground between. */
+export function courses(W: number, H: number, bottom = H): Course[] {
   const out: Course[] = [];
   const step = 6;
-  for (let k = -14; k <= LINES + 14; k += 0.5) {
+  const kMin = Math.floor(LINES * (1 - bottom / H)) - 14;
+  for (let k = kMin; k <= LINES + 14; k += 0.5) {
     const pts: Pt[] = [];
     for (let x = -24; x <= W + 24; x += step) {
       const uvy = k / LINES - wave(x / H);
       pts.push({ x, y: (1 - uvy) * H });
     }
-    if (pts.some((p) => p.y > -30 && p.y < H + 30)) out.push({ k, pts });
+    if (pts.some((p) => p.y > -30 && p.y < bottom + 30)) out.push({ k, pts });
   }
   return out;
 }
@@ -78,6 +79,8 @@ function lineGlow(p: Pt, W: number, H: number, k: number) {
 
 export interface NightMural {
   flower: Pt;
+  /** The dark tile at the foot of the inscription the camera ends in. */
+  push: Pt;
 }
 
 /**
@@ -85,17 +88,27 @@ export interface NightMural {
  * of black glass between them, around the council's flower-atom in the four
  * petal colours.
  */
-export function paintNightMural(canvas: HTMLCanvasElement, W: number, H: number, res: number, cs: Course[], flower: Pt, R: number): NightMural {
+export function paintNightMural(
+  canvas: HTMLCanvasElement,
+  W: number,
+  MH: number,
+  H: number,
+  res: number,
+  cs: Course[],
+  flower: Pt,
+  R: number,
+  band: { top: number; h: number },
+): NightMural {
   canvas.width = Math.round(W * res);
-  canvas.height = Math.round(H * res);
+  canvas.height = Math.round(MH * res);
   const ctx = canvas.getContext('2d')!;
   ctx.setTransform(res, 0, 0, res, 0, 0);
   ctx.fillStyle = GROUT;
-  ctx.fillRect(0, 0, W, H);
+  ctx.fillRect(0, 0, W, MH);
   const rand = rng(1966);
   const spacing = H / LINES;
   const t = spacing / 2; // one course per half line
-  const L = new Layer(ctx, W, H, t / 2, rand);
+  const L = new Layer(ctx, W, MH, t / 2, rand);
   const F = flower;
 
   // The nucleus: rings of white and navy glass.
@@ -122,10 +135,61 @@ export function paintNightMural(canvas: HTMLCanvasElement, W: number, H: number,
   // One orbit, thin, in white glass.
   L.row(ellipse(F, R * 1.5, R * 0.48, -0.3), true, t, () => [220, 220, 220]);
 
+  // The inscription band, as on the Mosaic: straight courses of pale glass
+  // for the mission, bordered in the four petal colours, with one black tile
+  // at its foot that the camera ends in.
+  const bt = t * 1.4;
+  ctx.fillStyle = '#cdc8be'; // pale grout, so the band reads as one calm field
+  ctx.fillRect(0, band.top, W, band.h);
+  let push: Pt = { x: W / 2, y: band.top + band.h - bt / 2 };
+  const border = [PETAL.orange, PETAL.maroon, PETAL.teal, PETAL.cyan];
+  for (let y = band.top + bt / 2; y < band.top + band.h; y += bt) {
+    const edge = y < band.top + bt || y > band.top + band.h - bt;
+    const foot = y > band.top + band.h - bt;
+    let n = 0;
+    let bestD = Infinity;
+    L.row(
+      [
+        { x: (rand() - 1) * bt, y },
+        { x: W + bt, y },
+      ],
+      false,
+      bt,
+      (p) => {
+        if (!edge) {
+          const v = 222 + rand() * 14;
+          return [v, v - 2, v - 7];
+        }
+        if (foot) {
+          const d = Math.abs(p.x - W / 2);
+          if (d < bestD && d < bt) {
+            bestD = d;
+            push = p;
+            return [8, 8, 8];
+          }
+        }
+        return border[Math.floor(n++ / 3) % 4]!;
+      },
+      false,
+      0.05,
+      !edge,
+    );
+  }
+
   // The wave courses around it all.
+  const inBand = (p: Pt) => p.y > band.top - t * 0.6 && p.y < band.top + band.h + t * 0.6;
+  const runs = (pts: Pt[]) => {
+    const out: Pt[][] = [[]];
+    for (const p of pts) {
+      if (inBand(p)) {
+        if (out[out.length - 1]!.length) out.push([]);
+      } else out[out.length - 1]!.push(p);
+    }
+    return out;
+  };
   for (const c of cs) {
     const line = Number.isInteger(c.k);
-    L.row(c.pts, false, t, (p) => {
+    for (const run of runs(c.pts)) L.row(run, false, t, (p) => {
       if (line) {
         // As bright as the line was, so the field reads as the same lines, laid in glass.
         const v = Math.round(18 + 190 * lineGlow(p, W, H, c.k));
@@ -136,7 +200,7 @@ export function paintNightMural(canvas: HTMLCanvasElement, W: number, H: number,
       return rand() < 0.006 ? [PETAL.orange, PETAL.maroon, PETAL.teal, PETAL.cyan][Math.floor(rand() * 4)]! : [v, v, v + 2];
     });
   }
-  return { flower: F };
+  return { flower: F, push };
 }
 
 /** A few courses of black glass with one gap: where a sent idea lands. */

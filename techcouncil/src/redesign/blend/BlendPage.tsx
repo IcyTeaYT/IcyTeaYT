@@ -1,9 +1,10 @@
-import { motion, useMotionTemplate, useMotionValueEvent, useReducedMotion, useScroll, useTransform, type MotionValue } from 'motion/react';
+import { motion, useMotionValueEvent, useReducedMotion, useScroll, useTransform } from 'motion/react';
 import { useEffect, useRef, useState } from 'react';
 import { Shell } from '../shared/Shell';
 import { AnnouncementBar, BAR_HEIGHT } from '@/components/AnnouncementBar';
 import { Navbar } from '@/components/Navbar';
 import { Hero } from '@/components/sections/Hero';
+import { Mission } from '@/components/sections/Mission';
 import { Marquee } from '@/components/sections/Marquee';
 import { About } from '@/components/sections/About';
 import { Projects } from '@/components/sections/Projects';
@@ -15,68 +16,35 @@ import { useNow } from '@/components/sections/Countdown';
 import { SplitText } from '@/components/ui/SplitText';
 import { Magnetic } from '@/components/ui/Magnetic';
 import { Arrow } from '@/components/ui/Arrow';
-import { HERO, STATEMENT } from '@/data/copy';
+import { HERO, MISSION } from '@/data/copy';
 import { IntroContext } from '@/lib/intro';
 import { EASE_OUT, span } from '@/lib/motion';
 import { useSmoothScroll } from '@/lib/smoothScroll';
 import { countdownParts } from '@/lib/suggestion';
-import { drawFacade, layoutFacade, throughScale, type Facade } from '../mosaic/paint';
-import { CATEGORY_GLASS, courses, paintNightMural, paintNightStrip } from './night';
+import { drawFacade, layoutFacade, throughScale, type Facade, type Pt } from '../mosaic/paint';
+import { CATEGORY_GLASS, courses, LINES, paintNightMural, paintNightStrip } from './night';
 
 /**
  * Option: the original site, with the Mosaic folded in. The opening flies
  * through a black lattice facade to the council's flower in glass mosaic,
- * then on into it, and the original statement comes into focus out of the
- * dark and lights up word by word. After that it is the original site, with
- * the countdown as a clock face and a sent idea dropping into the wall as a
- * tile.
+ * then glides down the mural to the inscription band where the mission is
+ * set, as on the Mosaic, and pushes into one tile. After that it is the
+ * original site, with the countdown as a clock face and a sent idea dropping
+ * into the wall as a tile.
  */
 const NAV_H = 72;
 const NIGHT_WALL = { wall: '#0b0b0b', shade: '#050505', joint: '#1c1c1c' };
 /** The opening's scroll, in screens; `at` turns a point in it into progress. */
-const SCROLL = 3.5;
+const SCROLL = 3.6;
 const at = (screens: number) => screens / SCROLL;
-/** Where "Mission" in the nav lands: the statement in focus, about to light up. */
-const MISSION_AT = at(2.4);
+/** Where "Mission" in the nav lands: the inscription in frame. */
+const MISSION_AT = at(2.35);
 
 const inOut = (t: number) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);
 const smooth = (t: number) => t * t * (3 - 2 * t);
 const settle = (t: number) => 1 - Math.pow(1 - t, 3);
 const seg = (v: number, a: number, b: number) => Math.min(1, Math.max(0, (v - a) / (b - a)));
-
-function Word({ children, p, range }: { children: string; p: MotionValue<number>; range: [number, number] }) {
-  const opacity = useTransform(p, ...span(range, [0.18, 1]));
-  return <motion.span style={{ opacity }}>{children} </motion.span>;
-}
-
-/**
- * The original statement, lit word by word as before, now arriving the way
- * the camera does: out of the mosaic, pushing in and pulling focus.
- */
-function StatementScene({ p }: { p: MotionValue<number> }) {
-  const words = STATEMENT.split(' ');
-  const opacity = useTransform(p, ...span([at(1.9), at(2.15)], [0, 1]));
-  const scale = useTransform(p, ...span([at(1.9), at(2.6)], [0.84, 1]), { ease: (t) => 1 - Math.pow(1 - t, 3) });
-  const blurPx = useTransform(p, ...span([at(1.9), at(2.4)], [10, 0]));
-  const filter = useMotionTemplate`blur(${blurPx}px)`;
-  const [from, to] = [MISSION_AT, at(3.35)];
-  return (
-    <motion.div className="pointer-events-none absolute inset-0 flex items-center" style={{ opacity }}>
-      <motion.div className="container-x" style={{ scale, filter, originX: 0.2, originY: 0.5 }}>
-        <p className="type-heading text-[clamp(2rem,4.4vw,3.5rem)]">
-          <span className="sr-only">{STATEMENT}</span>
-          <span aria-hidden>
-            {words.map((w, i) => (
-              <Word key={i} p={p} range={[from + (i / words.length) * (to - from), from + ((i + 1) / words.length) * (to - from)]}>
-                {w}
-              </Word>
-            ))}
-          </span>
-        </p>
-      </motion.div>
-    </motion.div>
-  );
-}
+const mix = (a: number, b: number, t: number) => a + (b - a) * t;
 
 function HeroCopy() {
   const { scrollTo } = useSmoothScroll();
@@ -122,17 +90,21 @@ function HeroCopy() {
 interface Geo {
   W: number;
   H: number;
-  flower: { x: number; y: number };
+  flower: Pt;
+  band: { top: number; h: number };
+  push: Pt;
+  tile: number;
+  MH: number;
   f: Facade;
   smax: number;
 }
 
 /**
- * The opening, pinned for 3.5 screens of scroll:
+ * The opening, pinned for 3.6 screens of scroll:
  *   0.1–1.3   fly through the lattice (its doors part) to the mural
- *   1.3–1.65  a beat on the flower
- *   1.65–2.2  on into the flower, until the glass goes dark
- *   1.9–3.35  the statement comes into focus and lights up word by word
+ *   1.3–1.55  a beat on the flower
+ *   1.55–2.35 glide down the mural to the inscription band, the mission set in it
+ *   3.0–3.6   push into the black tile at its foot
  */
 function Opening() {
   const section = useRef<HTMLElement>(null);
@@ -145,6 +117,7 @@ function Opening() {
   const geoRef = useRef<Geo | null>(null);
   geoRef.current = geo;
   const { scrollYProgress: p } = useScroll({ target: section, offset: ['start start', 'end end'] });
+  const inscription = useTransform(p, ...span([at(2.0), at(2.3), at(3.0), at(3.15)], [0, 1, 1, 0]));
 
   // Lay out for this viewport; paint the mural when the browser is idle.
   useEffect(() => {
@@ -160,18 +133,22 @@ function Opening() {
       const dpr = Math.min(window.devicePixelRatio || 1, 1.5);
       const flower = { x: W * (narrow ? 0.6 : 0.7), y: H * (narrow ? 0.3 : 0.42) };
       const R = Math.min(W, H) * (narrow ? 0.25 : 0.24);
+      const band = { top: flower.y + R * 1.2, h: H * (narrow ? 0.74 : 0.58) };
+      const MH = band.top + band.h + H * 0.6;
+      const tile = (H / LINES / 2) * 1.4;
       const f = layoutFacade(W, H, NAV_H);
       const fc = facadeCv.current!;
       fc.width = Math.round(W * dpr);
       fc.height = Math.round(H * dpr);
-      setGeo({ W, H, flower, f, smax: throughScale(W, H, f) });
+      setGeo({ W, H, flower, band, push: { x: W / 2, y: band.top + band.h - tile / 2 }, tile, MH, f, smax: throughScale(W, H, f) });
       const mcv = muralCv.current!;
       mcv.style.opacity = '0';
       const paint = () => {
-        paintNightMural(mcv, W, H, dpr, courses(W, H), flower, R);
+        const m = paintNightMural(mcv, W, MH, H, dpr, courses(W, H, MH), flower, R, band);
         mcv.style.width = `${W}px`;
-        mcv.style.height = `${H}px`;
+        mcv.style.height = `${MH}px`;
         mcv.style.opacity = '1';
+        setGeo((g) => (g && g.W === W && g.H === H ? { ...g, push: m.push } : g));
       };
       const w = window as Window & { requestIdleCallback?: (cb: () => void, o?: { timeout: number }) => number };
       if (w.requestIdleCallback) w.requestIdleCallback(paint, { timeout: 400 });
@@ -185,7 +162,7 @@ function Opening() {
   const apply = (v: number) => {
     const g = geoRef.current;
     if (!g || !muralBox.current) return;
-    const { W, H, flower, f } = g;
+    const { W, H, flower, f, band } = g;
     const T = f.target;
 
     // Through the lattice.
@@ -208,14 +185,25 @@ function Opening() {
       signBox.current.style.visibility = out >= 1 ? 'hidden' : 'visible';
     }
 
-    // The mural drifts closer behind the lattice, holds on the flower, then the camera dives into it.
-    const dive = seg(v, at(1.65), at(2.2));
-    const ms = (1 + 0.08 * fly + 0.12 * inOut(seg(v, at(1.3), at(1.65)))) * Math.pow(6, dive * dive);
-    const fade = smooth(seg(v, at(1.85), at(2.2)));
-    muralBox.current.style.transformOrigin = `${flower.x}px ${flower.y}px`;
-    muralBox.current.style.transform = `scale(${ms})`;
-    muralBox.current.style.opacity = String(1 - fade);
-    muralBox.current.style.visibility = fade >= 1 ? 'hidden' : 'visible';
+    // The mural camera: closer on the flower, down to the inscription, then into one tile.
+    // M is the mural point held at screen point S, at scale ms.
+    const glide = inOut(seg(v, at(1.55), at(2.35)));
+    const bandC = { x: W / 2, y: band.top + band.h / 2 };
+    const ms0 = 1 + 0.08 * fly + 0.12 * inOut(seg(v, at(1.3), at(1.55)));
+    let S = { x: mix(flower.x, W / 2, glide), y: mix(flower.y, H / 2, glide) };
+    let M = { x: mix(flower.x, bandC.x, glide), y: mix(flower.y, bandC.y, glide) };
+    let ms = mix(ms0, 1, glide);
+    const tC = seg(v, at(3.0), at(3.6));
+    if (tC > 0) {
+      const k = Math.min(1, tC * 1.8);
+      S = { x: W / 2, y: H / 2 };
+      M = { x: mix(bandC.x, g.push.x, k), y: mix(bandC.y, g.push.y, k) };
+      ms = Math.pow(Math.max(W, H) / (g.tile * 0.7), tC * tC * tC);
+    }
+    muralBox.current.style.transform = `translate(${S.x - M.x * ms}px,${S.y - M.y * ms}px) scale(${ms})`;
+    const gone = seg(v, at(3.4), at(3.55));
+    muralBox.current.style.opacity = String(1 - gone);
+    muralBox.current.style.visibility = gone >= 1 ? 'hidden' : 'visible';
   };
   useEffect(() => apply(p.get()), [geo]); // first frame and every re-layout
   useMotionValueEvent(p, 'change', (v) => {
@@ -228,8 +216,19 @@ function Opening() {
       {/* Where "Mission" in the nav lands. */}
       <div id="mission" aria-hidden className="pointer-events-none absolute inset-x-0 bottom-0" style={{ top: `calc((${SCROLL * 100}svh - var(--bar, 0px)) * ${MISSION_AT})` }} />
       <div ref={stage} className="sticky top-0 h-[100svh] min-h-[600px] overflow-hidden">
-        <div ref={muralBox} className="absolute inset-0">
+        {/* The mural, with the mission set in its inscription band. */}
+        <div ref={muralBox} className="absolute left-0 top-0 origin-top-left" style={{ width: geo?.W, height: geo?.MH }}>
           <canvas ref={muralCv} aria-hidden className="absolute left-0 top-0 transition-opacity duration-700" />
+          {geo && (
+            <motion.div className="pointer-events-none absolute inset-x-0 flex flex-col justify-center" style={{ top: geo.band.top + geo.tile * 1.5, height: geo.band.h - geo.tile * 3, opacity: inscription }}>
+              <div className="container-x text-obsidian">
+                <h2 id="mission-title" className="type-display max-w-[16ch] text-[clamp(2.1rem,5.2vw,4.75rem)]">
+                  {MISSION.line}
+                </h2>
+                <p className="mt-6 max-w-[50ch] text-[17px] leading-[1.5] tracking-[-0.02em] text-[#2b2b2b] sm:mt-8 sm:text-[20px]">{MISSION.support}</p>
+              </div>
+            </motion.div>
+          )}
         </div>
         <canvas ref={facadeCv} aria-hidden className="absolute inset-0 h-full w-full" />
         <div ref={signBox} className="absolute inset-0 origin-top-left">
@@ -239,7 +238,6 @@ function Opening() {
             </div>
           </div>
         </div>
-        <StatementScene p={p} />
       </div>
     </section>
   );
@@ -342,9 +340,7 @@ export default function BlendPage() {
           {reduce ? (
             <>
               <Hero />
-              <section id="mission" data-surface="dark" aria-label="What we believe" className="bg-obsidian py-28 text-paper">
-                <p className="container-x type-heading text-[clamp(2rem,4.4vw,3.5rem)]">{STATEMENT}</p>
-              </section>
+              <Mission />
             </>
           ) : (
             <Opening />
