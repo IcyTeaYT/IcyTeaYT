@@ -1,3 +1,5 @@
+import './blend.css';
+import '@fontsource-variable/jetbrains-mono';
 import { motion, useMotionValueEvent, useReducedMotion, useScroll, useTransform } from 'motion/react';
 import { useEffect, useRef, useState } from 'react';
 import { Shell } from '../shared/Shell';
@@ -5,14 +7,9 @@ import { AnnouncementBar, BAR_HEIGHT } from '@/components/AnnouncementBar';
 import { Navbar } from '@/components/Navbar';
 import { Hero } from '@/components/sections/Hero';
 import { Mission } from '@/components/sections/Mission';
-import { Marquee } from '@/components/sections/Marquee';
-import { About } from '@/components/sections/About';
-import { Projects } from '@/components/sections/Projects';
-import { Founders } from '@/components/sections/Founders';
 import { SuggestionBox } from '@/components/sections/SuggestionBox';
 import { Faq } from '@/components/sections/Faq';
 import { Footer } from '@/components/sections/Footer';
-import { useNow } from '@/components/sections/Countdown';
 import { SplitText } from '@/components/ui/SplitText';
 import { Magnetic } from '@/components/ui/Magnetic';
 import { Arrow } from '@/components/ui/Arrow';
@@ -20,31 +17,31 @@ import { HERO, MISSION } from '@/data/copy';
 import { IntroContext } from '@/lib/intro';
 import { EASE_OUT, span } from '@/lib/motion';
 import { useSmoothScroll } from '@/lib/smoothScroll';
-import { countdownParts } from '@/lib/suggestion';
-import { drawFacade, layoutFacade, throughScale, type Facade, type Pt } from '../mosaic/paint';
-import { CATEGORY_GLASS, courses, LINES, paintNightMural, paintNightStrip } from './night';
+import { drawFacade, layoutFacade, throughScale, type Facade } from '../mosaic/paint';
+import { CATEGORY_GLASS, courses, paintNightMural, paintNightStrip } from './night';
+import { drawLit, layoutTileText, paintWall, type TileText } from './tileText';
+import { Frieze, MosaicAbout, MosaicFounders, MosaicProjects } from './sections';
 
 /**
- * Option: the original site, with the Mosaic folded in. The opening flies
- * through a black lattice facade to the council's flower in glass mosaic,
- * then glides down the mural to the inscription band where the mission is
- * set, as on the Mosaic, then drifts on as the mosaic fades. After that it is the
- * original site, with the countdown as a clock face and a sent idea dropping
- * into the wall as a tile.
+ * Option: the original site's black and white, with the Mosaic laid in dark
+ * glass. The opening flies through a black lattice facade to the council's
+ * flower in mosaic and dives into it; inside, a wall of dark tiles lights up
+ * to spell the mission. The sections after it are the Mosaic option's, made
+ * dark: arched cells, the TISMUN plaque and clock, the founders in niches,
+ * and a sent idea dropping into the wall as a tile.
  */
 const NAV_H = 72;
 const NIGHT_WALL = { wall: '#0b0b0b', shade: '#050505', joint: '#1c1c1c' };
 /** The opening's scroll, in screens; `at` turns a point in it into progress. */
 const SCROLL = 3.6;
 const at = (screens: number) => screens / SCROLL;
-/** Where "Mission" in the nav lands: the inscription in frame. */
-const MISSION_AT = at(2.35);
+/** Where "Mission" in the nav lands: inside the tile wall, the letters about to light. */
+const MISSION_AT = at(2.3);
 
 const inOut = (t: number) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);
 const smooth = (t: number) => t * t * (3 - 2 * t);
 const settle = (t: number) => 1 - Math.pow(1 - t, 3);
 const seg = (v: number, a: number, b: number) => Math.min(1, Math.max(0, (v - a) / (b - a)));
-const mix = (a: number, b: number, t: number) => a + (b - a) * t;
 
 function HeroCopy() {
   const { scrollTo } = useSmoothScroll();
@@ -90,20 +87,19 @@ function HeroCopy() {
 interface Geo {
   W: number;
   H: number;
-  flower: Pt;
-  band: { top: number; h: number };
-  tile: number;
-  MH: number;
+  dpr: number;
+  flower: { x: number; y: number };
   f: Facade;
   smax: number;
+  tt: TileText | null;
 }
 
 /**
  * The opening, pinned for 3.6 screens of scroll:
  *   0.1–1.3   fly through the lattice (its doors part) to the mural
- *   1.3–1.55  a beat on the flower
- *   1.55–2.35 glide down the mural to the inscription band, the mission set in it
- *   3.0–3.6   drift on down as the mosaic fades to black
+ *   1.3–1.65  a beat on the flower
+ *   1.65–2.2  dive into the flower until the glass goes dark
+ *   1.95–3.1  inside: a wall of dark tiles, and the mission lights up in it
  */
 function Opening() {
   const section = useRef<HTMLElement>(null);
@@ -112,13 +108,17 @@ function Opening() {
   const muralCv = useRef<HTMLCanvasElement>(null);
   const facadeCv = useRef<HTMLCanvasElement>(null);
   const signBox = useRef<HTMLDivElement>(null);
+  const wallBox = useRef<HTMLDivElement>(null);
+  const wallCv = useRef<HTMLCanvasElement>(null);
+  const litCv = useRef<HTMLCanvasElement>(null);
   const [geo, setGeo] = useState<Geo | null>(null);
   const geoRef = useRef<Geo | null>(null);
   geoRef.current = geo;
   const { scrollYProgress: p } = useScroll({ target: section, offset: ['start start', 'end end'] });
-  const inscription = useTransform(p, ...span([at(1.95), at(2.3)], [0, 1]));
+  const support = useTransform(p, ...span([at(3.0), at(3.25)], [0, 1]));
+  const supportY = useTransform(p, ...span([at(3.0), at(3.25)], [20, 0]));
 
-  // Lay out for this viewport; paint the mural when the browser is idle.
+  // Lay out for this viewport; paint the mural and the tile wall when the browser is idle.
   useEffect(() => {
     const el = stage.current!;
     let last = '';
@@ -132,25 +132,30 @@ function Opening() {
       const dpr = Math.min(window.devicePixelRatio || 1, 1.5);
       const flower = { x: W * (narrow ? 0.6 : 0.7), y: H * (narrow ? 0.3 : 0.42) };
       const R = Math.min(W, H) * (narrow ? 0.25 : 0.24);
-      const band = { top: flower.y + R * 1.2, h: H * (narrow ? 0.74 : 0.58) };
-      const MH = band.top + band.h + H * 0.8;
-      const tile = (H / LINES / 2) * 1.4;
       const f = layoutFacade(W, H, NAV_H);
       const fc = facadeCv.current!;
       fc.width = Math.round(W * dpr);
       fc.height = Math.round(H * dpr);
-      setGeo({ W, H, flower, band, tile, MH, f, smax: throughScale(W, H, f) });
+      setGeo({ W, H, dpr, flower, f, smax: throughScale(W, H, f), tt: null });
       const mcv = muralCv.current!;
       mcv.style.opacity = '0';
-      const paint = () => {
-        paintNightMural(mcv, W, MH, H, dpr, courses(W, H, MH), flower, R, band);
+      const paint = async () => {
+        paintNightMural(mcv, W, H, H, dpr, courses(W, H), flower, R);
         mcv.style.width = `${W}px`;
-        mcv.style.height = `${MH}px`;
+        mcv.style.height = `${H}px`;
         mcv.style.opacity = '1';
+        // The letters are cut from the real type, so wait for it.
+        await document.fonts.load('650 100px "Inter Variable"').catch(() => undefined);
+        const pad = Math.max(0, (W - 1200) / 2) + (W >= 640 ? 32 : 20);
+        const tt = layoutTileText(W, H, MISSION.line, pad);
+        paintWall(wallCv.current!, W, H, tt.ts, dpr);
+        wallCv.current!.style.width = litCv.current!.style.width = `${W}px`;
+        wallCv.current!.style.height = litCv.current!.style.height = `${H}px`;
+        setGeo((g) => (g && g.W === W && g.H === H ? { ...g, tt } : g));
       };
       const w = window as Window & { requestIdleCallback?: (cb: () => void, o?: { timeout: number }) => number };
-      if (w.requestIdleCallback) w.requestIdleCallback(paint, { timeout: 400 });
-      else window.setTimeout(paint, 60);
+      if (w.requestIdleCallback) w.requestIdleCallback(() => void paint(), { timeout: 400 });
+      else window.setTimeout(() => void paint(), 60);
     });
     ro.observe(el);
     return () => ro.disconnect();
@@ -160,7 +165,7 @@ function Opening() {
   const apply = (v: number) => {
     const g = geoRef.current;
     if (!g || !muralBox.current) return;
-    const { W, H, flower, f, band } = g;
+    const { W, H, flower, f } = g;
     const T = f.target;
 
     // Through the lattice.
@@ -183,19 +188,24 @@ function Opening() {
       signBox.current.style.visibility = out >= 1 ? 'hidden' : 'visible';
     }
 
-    // The mural camera, one smooth crane move: settle on the flower, glide down
-    // to the inscription, hold, then drift on down as the mosaic fades out.
-    // M is the mural point held at screen point S, at scale ms.
-    const glide = inOut(seg(v, at(1.4), at(2.35)));
-    const away = inOut(seg(v, at(3.0), at(3.6)));
-    const bandC = { x: W / 2, y: band.top + band.h / 2 };
-    const ms = 1 + 0.06 * fly * (1 - glide);
-    const S = { x: mix(flower.x, W / 2, glide), y: mix(flower.y, H / 2, glide) };
-    const M = { x: mix(flower.x, bandC.x, glide), y: mix(flower.y, bandC.y, glide) + away * H * 0.45 };
-    muralBox.current.style.transform = `translate3d(${S.x - M.x * ms}px,${S.y - M.y * ms}px,0) scale(${ms})`;
-    const gone = smooth(seg(v, at(3.2), at(3.6)));
-    muralBox.current.style.opacity = String(1 - gone);
-    muralBox.current.style.visibility = gone >= 1 ? 'hidden' : 'visible';
+    // The mural drifts closer behind the lattice, holds on the flower, then the camera dives into it.
+    const dive = seg(v, at(1.65), at(2.2));
+    const ms = (1 + 0.08 * fly + 0.12 * inOut(seg(v, at(1.3), at(1.65)))) * Math.pow(6, dive * dive);
+    const fade = smooth(seg(v, at(1.85), at(2.2)));
+    muralBox.current.style.transformOrigin = `${flower.x}px ${flower.y}px`;
+    muralBox.current.style.transform = `scale(${ms})`;
+    muralBox.current.style.opacity = String(1 - fade);
+    muralBox.current.style.visibility = fade >= 1 ? 'hidden' : 'visible';
+
+    // Inside: the tile wall comes up out of the dark, settling from close in, then the letters light.
+    if (wallBox.current) {
+      const inn = seg(v, at(1.95), at(2.2));
+      const land = settle(seg(v, at(1.95), at(2.4)));
+      wallBox.current.style.opacity = String(inn);
+      wallBox.current.style.visibility = inn <= 0 ? 'hidden' : 'visible';
+      wallBox.current.style.transform = `scale(${1.25 - 0.25 * land})`;
+      if (g.tt && litCv.current && inn > 0) drawLit(litCv.current, W, H, g.dpr, g.tt, seg(v, at(2.3), at(3.1)));
+    }
   };
   useEffect(() => apply(p.get()), [geo]); // first frame and every re-layout
   useMotionValueEvent(p, 'change', (v) => {
@@ -208,19 +218,8 @@ function Opening() {
       {/* Where "Mission" in the nav lands. */}
       <div id="mission" aria-hidden className="pointer-events-none absolute inset-x-0 bottom-0" style={{ top: `calc((${SCROLL * 100}svh - var(--bar, 0px)) * ${MISSION_AT})` }} />
       <div ref={stage} className="sticky top-0 h-[100svh] min-h-[600px] overflow-hidden">
-        {/* The mural, with the mission set in its inscription band. */}
-        <div ref={muralBox} className="absolute left-0 top-0 origin-top-left" style={{ width: geo?.W, height: geo?.MH }}>
+        <div ref={muralBox} className="absolute inset-0">
           <canvas ref={muralCv} aria-hidden className="absolute left-0 top-0 transition-opacity duration-700" />
-          {geo && (
-            <motion.div className="pointer-events-none absolute inset-x-0 flex flex-col justify-center" style={{ top: geo.band.top + geo.tile * 1.5, height: geo.band.h - geo.tile * 3, opacity: inscription }}>
-              <div className="container-x text-paper">
-                <h2 id="mission-title" className="type-display max-w-[16ch] text-[clamp(2.1rem,5.2vw,4.75rem)]">
-                  {MISSION.line}
-                </h2>
-                <p className="mt-6 max-w-[50ch] text-[17px] leading-[1.5] tracking-[-0.02em] text-fog sm:mt-8 sm:text-[20px]">{MISSION.support}</p>
-              </div>
-            </motion.div>
-          )}
         </div>
         <canvas ref={facadeCv} aria-hidden className="absolute inset-0 h-full w-full" />
         <div ref={signBox} className="absolute inset-0 origin-top-left">
@@ -230,52 +229,27 @@ function Opening() {
             </div>
           </div>
         </div>
+        {/* Inside the flower: the mission, spelled in tiles. */}
+        <div ref={wallBox} className="pointer-events-none absolute inset-0 origin-center" style={{ visibility: 'hidden' }}>
+          <canvas ref={wallCv} aria-hidden className="absolute left-0 top-0" />
+          <canvas ref={litCv} aria-hidden className="absolute left-0 top-0" />
+          <h2 id="mission-title" className="sr-only">
+            {MISSION.line}
+          </h2>
+          {geo?.tt && (
+            <motion.p className="absolute max-w-[46ch] text-body-lg text-fog" style={{ left: geo.tt.left, top: geo.tt.bottom + 24, right: 20, opacity: support, y: supportY }}>
+              {MISSION.support}
+            </motion.p>
+          )}
+        </div>
       </div>
     </section>
   );
 }
 
 /* ------------------------------------------------------------------ */
-/* Mosaic ideas, in the original's clothes                              */
+/* A sent idea, laid into the wall                                      */
 /* ------------------------------------------------------------------ */
-
-/** The TISMUN countdown as a clock face: white ticks on black, a petal-orange seconds hand. */
-function ClockDial({ start, end, timezoneLabel }: { start: string; end: string; timezoneLabel: string }) {
-  const now = useNow();
-  const reduce = useReducedMotion();
-  const c = countdownParts(now, start, end);
-  const pad = (n: number) => String(n).padStart(2, '0');
-  if (c.phase !== 'before') return <p className="text-subheading font-light">{c.phase === 'during' ? 'Happening now' : 'Conference complete'}</p>;
-  return (
-    <div className="flex items-center gap-8">
-      <p className="sr-only">
-        {c.days} days, {c.hours} hours and {c.mins} minutes until the conference ({timezoneLabel}).
-      </p>
-      <div aria-hidden className="relative aspect-square w-[min(56vw,220px)] shrink-0">
-        <svg viewBox="0 0 200 200" className="absolute inset-0 h-full w-full">
-          <circle cx="100" cy="100" r="97" fill="none" stroke="rgba(255,255,255,0.16)" strokeWidth="1" />
-          {Array.from({ length: 60 }, (_, i) => (
-            <line key={i} x1="100" y1={i % 5 ? 8 : 6} x2="100" y2={i % 5 ? 13 : 18} stroke="#fff" strokeOpacity={i % 5 ? 0.35 : 0.9} strokeWidth={i % 5 ? 0.8 : 1.6} transform={`rotate(${i * 6} 100 100)`} />
-          ))}
-          <g style={{ transform: `rotate(${(60 - c.secs) * 6}deg)`, transformOrigin: '100px 100px', transition: reduce || c.secs === 59 ? 'none' : 'transform 0.35s cubic-bezier(0.16,1,0.3,1)' }}>
-            <line x1="100" y1="114" x2="100" y2="22" stroke="#F29839" strokeWidth="1.4" strokeLinecap="round" />
-            <circle cx="100" cy="100" r="3" fill="#F29839" />
-          </g>
-        </svg>
-        <div className="absolute inset-0 flex flex-col items-center justify-center">
-          <span className="type-display text-[clamp(2.75rem,8vw,4rem)] tabular">{c.days}</span>
-          <span className="mt-1 text-caption text-fog">days</span>
-        </div>
-      </div>
-      <div aria-hidden className="flex flex-col gap-1">
-        <span className="text-[clamp(1.6rem,3vw,2.25rem)] font-light leading-none tracking-[-0.04em] tabular">
-          {pad(c.hours)}:{pad(c.mins)}:{pad(c.secs)}
-        </span>
-        <span className="text-caption text-fog">hours · minutes · seconds</span>
-      </div>
-    </div>
-  );
-}
 
 /** A sent idea drops into the wall as a glass tile of its category's colour. */
 function TileSuccess({ category, reset }: { category: string | null; reset: () => void }) {
@@ -328,7 +302,7 @@ export default function BlendPage() {
       <IntroContext.Provider value={true}>
         {barOpen && <AnnouncementBar onClose={() => setBarOpen(false)} />}
         <Navbar offset={barHeight} />
-        <main id="main" className="relative z-10" style={{ ['--bar' as string]: `${barHeight}px` }}>
+        <main id="main" className="relative z-10 bg-obsidian" style={{ ['--bar' as string]: `${barHeight}px` }}>
           {reduce ? (
             <>
               <Hero />
@@ -337,10 +311,12 @@ export default function BlendPage() {
           ) : (
             <Opening />
           )}
-          <Marquee />
-          <About />
-          <Projects eventView={(e) => <ClockDial {...e} />} />
-          <Founders />
+          <MosaicAbout />
+          <Frieze />
+          <MosaicProjects />
+          <Frieze />
+          <MosaicFounders />
+          <Frieze />
           <SuggestionBox renderSuccess={(o) => <TileSuccess {...o} />} />
           <Faq />
         </main>

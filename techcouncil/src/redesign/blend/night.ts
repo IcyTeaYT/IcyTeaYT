@@ -95,7 +95,7 @@ export function paintNightMural(
   cs: Course[],
   flower: Pt,
   R: number,
-  band: { top: number; h: number },
+  band?: { top: number; h: number },
 ): NightMural {
   canvas.width = Math.round(W * res);
   canvas.height = Math.round(MH * res);
@@ -133,37 +133,39 @@ export function paintNightMural(
   // One orbit, thin, in white glass.
   L.row(ellipse(F, R * 1.5, R * 0.48, -0.3), true, t, () => [220, 220, 220]);
 
-  // The inscription band, as on the Mosaic: straight courses of black glass
-  // for the mission, bordered in the four petal colours.
-  const bt = t * 1.4;
-  ctx.fillStyle = '#060606'; // dark grout, so the band reads as one calm field
-  ctx.fillRect(0, band.top, W, band.h);
-  const border = [PETAL.orange, PETAL.maroon, PETAL.teal, PETAL.cyan];
-  for (let y = band.top + bt / 2; y < band.top + band.h; y += bt) {
-    const edge = y < band.top + bt || y > band.top + band.h - bt;
-    let n = 0;
-    L.row(
-      [
-        { x: (rand() - 1) * bt, y },
-        { x: W + bt, y },
-      ],
-      false,
-      bt,
-      () => {
-        if (!edge) {
-          const v = 24 + rand() * 12;
-          return [v, v, v + 2];
-        }
-        return border[Math.floor(n++ / 3) % 4]!;
-      },
-      false,
-      0.05,
-      !edge,
-    );
+  if (band) {
+    // The inscription band, as on the Mosaic: straight courses of black glass
+    // for the mission, bordered in the four petal colours.
+    const bt = t * 1.4;
+    ctx.fillStyle = '#060606'; // dark grout, so the band reads as one calm field
+    ctx.fillRect(0, band.top, W, band.h);
+    const border = [PETAL.orange, PETAL.maroon, PETAL.teal, PETAL.cyan];
+    for (let y = band.top + bt / 2; y < band.top + band.h; y += bt) {
+      const edge = y < band.top + bt || y > band.top + band.h - bt;
+      let n = 0;
+      L.row(
+        [
+          { x: (rand() - 1) * bt, y },
+          { x: W + bt, y },
+        ],
+        false,
+        bt,
+        () => {
+          if (!edge) {
+            const v = 24 + rand() * 12;
+            return [v, v, v + 2];
+          }
+          return border[Math.floor(n++ / 3) % 4]!;
+        },
+        false,
+        0.05,
+        !edge,
+      );
+    }
   }
 
   // The wave courses around it all.
-  const inBand = (p: Pt) => p.y > band.top - t * 0.6 && p.y < band.top + band.h + t * 0.6;
+  const inBand = (p: Pt) => !!band && p.y > band.top - t * 0.6 && p.y < band.top + band.h + t * 0.6;
   const runs = (pts: Pt[]) => {
     const out: Pt[][] = [[]];
     for (const p of pts) {
@@ -221,3 +223,28 @@ export const CATEGORY_GLASS: Record<string, string> = {
   campus: 'rgb(176,40,66)',
   other: 'rgb(235,235,235)',
 };
+
+/** An arched cell of dark glass in one petal colour, laid in rings, for the "what we do" cells. */
+export function paintNightArch(canvas: HTMLCanvasElement, W: number, H: number, tile: number, res: number, color: Rgb, seed: number) {
+  canvas.width = Math.round(W * res);
+  canvas.height = Math.round(H * res);
+  const ctx = canvas.getContext('2d')!;
+  ctx.setTransform(res, 0, 0, res, 0, 0);
+  ctx.fillStyle = GROUT;
+  ctx.fillRect(0, 0, W, H);
+  const L = new Layer(ctx, W, H, tile / 2, rng(seed));
+  const r = W / 2;
+  const dim: Rgb = [color[0] * 0.35, color[1] * 0.35, color[2] * 0.35];
+  for (let k = 0; k * tile < r; k++) {
+    const rr = r - (k + 0.5) * tile;
+    const pts: Pt[] = [{ x: W / 2 - rr, y: H + tile }];
+    for (let i = 0; i <= 40; i++) {
+      const a = Math.PI + (i / 40) * Math.PI;
+      pts.push({ x: W / 2 + Math.cos(a) * rr, y: r + Math.sin(a) * rr });
+    }
+    pts.push({ x: W / 2 + rr, y: H + tile });
+    L.row(pts, false, tile, () => (k % 4 === 0 ? color : k % 4 === 2 ? [26, 26, 28] : dim));
+  }
+}
+
+export const PETAL_RGB = PETAL;

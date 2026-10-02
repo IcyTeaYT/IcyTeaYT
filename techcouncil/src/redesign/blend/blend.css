@@ -1,0 +1,16 @@
+/* Blend option: the page is black end to end, so overscroll matches. */
+html[data-world='blend'],
+html[data-world='blend'] body {
+  background: #000;
+}
+
+/* Founder photos sit in the dark wall; colour comes back on hover. */
+.bl-photo {
+  filter: grayscale(1) contrast(1.05) brightness(0.92);
+  transition: filter 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+}
+@media (hover: hover) {
+  .group:hover .bl-photo {
+    filter: none;
+  }
+}

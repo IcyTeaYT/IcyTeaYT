@@ -41,6 +41,7 @@ export default {
         onest: ['"Onest Variable"', 'system-ui', 'sans-serif'],
         station: ['"Big Shoulders Display Variable"', 'system-ui', 'sans-serif'],
         geist: ['"Geist Variable"', 'system-ui', '-apple-system', 'sans-serif'],
+        mono: ['"JetBrains Mono Variable"', 'ui-monospace', 'SFMono-Regular', 'monospace'],
       },
       fontSize: {
         caption: ['12px', { lineHeight: '1.5', letterSpacing: '-0.015em' }],
