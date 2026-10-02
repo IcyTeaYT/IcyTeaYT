@@ -1,5 +1,5 @@
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { featuredProject, pipelineProjects, STATUS_LABEL, type Project } from '@/data/projects';
 import { SectionIntro } from '../ui/SectionIntro';
@@ -58,7 +58,9 @@ function VisitButton({ project, solid }: { project: Project; solid: 'dark' | 'li
 
 /* ---------- Featured project ---------- */
 
-function Featured({ project, onOpen }: { project: Project; onOpen: () => void }) {
+type EventView = (e: NonNullable<Project['event']>) => ReactNode;
+
+function Featured({ project, onOpen, eventView }: { project: Project; onOpen: () => void; eventView?: EventView }) {
   return (
     <motion.article layoutId={`project-${project.id}`} className="grid gap-10 md:grid-cols-2 md:gap-16" transition={SPRING_SOFT}>
       <button
@@ -87,7 +89,7 @@ function Featured({ project, onOpen }: { project: Project; onOpen: () => void })
         {project.event && (
           <div className="mt-10">
             <p className="mb-4 text-caption text-fog">Conference starts in ({project.event.timezoneLabel})</p>
-            <Countdown {...project.event} />
+            {eventView ? eventView(project.event) : <Countdown {...project.event} />}
           </div>
         )}
 
@@ -203,7 +205,8 @@ function PipelineCard({ project, index }: { project: Project; index: number }) {
 
 /* ---------- Section ---------- */
 
-export function Projects() {
+/** `eventView` swaps the countdown for another view of the same dates (used by a redesign option). */
+export function Projects({ eventView }: { eventView?: EventView } = {}) {
   const [open, setOpen] = useState(false);
   const [holdHeight, setHoldHeight] = useState<number>();
   const slotRef = useRef<HTMLDivElement>(null);
@@ -229,6 +232,7 @@ export function Projects() {
         <div ref={slotRef} className="mt-16 sm:mt-20" style={{ minHeight: open ? holdHeight : undefined }}>
           {!open && (
             <Featured
+              eventView={eventView}
               project={featuredProject}
               onOpen={() => {
                 setHoldHeight(slotRef.current?.offsetHeight);

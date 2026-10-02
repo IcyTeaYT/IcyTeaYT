@@ -12,7 +12,7 @@ export const TILE = {
   cyan: [8, 151, 182],
   ink: [28, 26, 23],
 } as const;
-type Rgb = readonly [number, number, number];
+export type Rgb = readonly [number, number, number];
 export const GROUT = '#C4BDB0';
 export const CONCRETE = '#CFC9BE';
 export const CONCRETE_DEEP = '#B4AC9E';
@@ -30,7 +30,7 @@ export function rng(seed: number) {
   };
 }
 
-type Pt = { x: number; y: number };
+export type Pt = { x: number; y: number };
 
 /* ------------------------------------------------------------------ */
 /* Tesserae                                                            */
@@ -42,7 +42,7 @@ type Pt = { x: number; y: number };
  * occupancy grid keeps later rows from laying over earlier figures, the way
  * a mosaicist lays the figure first and fills the ground around it.
  */
-class Layer {
+export class Layer {
   private occ: Uint8Array;
   private cols: number;
   private rows: number;
@@ -146,7 +146,7 @@ class Layer {
   }
 }
 
-const ellipse = (c: Pt, rx: number, ry: number, rot: number, n = 360): Pt[] =>
+export const ellipse = (c: Pt, rx: number, ry: number, rot: number, n = 360): Pt[] =>
   Array.from({ length: n }, (_, i) => {
     const t = (i / n) * Math.PI * 2;
     const x = Math.cos(t) * rx;
@@ -155,7 +155,7 @@ const ellipse = (c: Pt, rx: number, ry: number, rot: number, n = 360): Pt[] =>
   });
 
 /** Outline of a petal (a pointed lens) inset by `inset`, pointing along `ang`. */
-function petal(c: Pt, ang: number, r0: number, r1: number, w: number, inset: number): Pt[] | null {
+export function petal(c: Pt, ang: number, r0: number, r1: number, w: number, inset: number): Pt[] | null {
   const L = r1 - r0 - inset * 2;
   const hw = w - inset;
   if (L < 4 || hw < 2) return null;
@@ -404,11 +404,18 @@ export function throughScale(W: number, H: number, f: Facade) {
   return Math.max(W / (f.target.w * 0.96), H / (rectH * 0.96)) * 1.06;
 }
 
+export interface FacadeColors {
+  wall: string;
+  shade: string;
+  joint: string;
+}
+const DAY: FacadeColors = { wall: CONCRETE, shade: CONCRETE_SHADE, joint: CONCRETE_DEEP };
+
 /**
  * Draws the facade for camera scale `s`, the target opening panned `pan` of
  * the way to the screen centre, and its lattice doors `open` of the way apart.
  */
-export function drawFacade(ctx: CanvasRenderingContext2D, W: number, H: number, res: number, f: Facade, s: number, pan: number, open: number) {
+export function drawFacade(ctx: CanvasRenderingContext2D, W: number, H: number, res: number, f: Facade, s: number, pan: number, open: number, colors: FacadeColors = DAY) {
   const T = f.target;
   const px = T.x + (W / 2 - T.x) * pan;
   const py = T.y + (H / 2 - T.y) * pan;
@@ -417,7 +424,7 @@ export function drawFacade(ctx: CanvasRenderingContext2D, W: number, H: number, 
   ctx.translate(px, py);
   ctx.scale(s, s);
   ctx.translate(-T.x, -T.y);
-  ctx.strokeStyle = CONCRETE;
+  ctx.strokeStyle = colors.wall;
   ctx.lineWidth = f.latticeWidth;
 
   // Every lattice but the target's.
@@ -443,11 +450,11 @@ export function drawFacade(ctx: CanvasRenderingContext2D, W: number, H: number, 
     }
   }
 
-  ctx.fillStyle = CONCRETE;
+  ctx.fillStyle = colors.wall;
   ctx.fill(f.wall, 'evenodd');
-  ctx.fillStyle = CONCRETE_SHADE;
+  ctx.fillStyle = colors.shade;
   ctx.fill(f.reveals);
-  ctx.fillStyle = CONCRETE_DEEP;
+  ctx.fillStyle = colors.joint;
   ctx.fillRect(-W * 4, f.bandTop - 2, W * 9, 2);
 }
 

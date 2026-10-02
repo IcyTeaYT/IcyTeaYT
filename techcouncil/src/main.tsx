@@ -10,11 +10,12 @@ const WORLDS = {
   mosaic: lazy(() => import('./redesign/mosaic/MosaicPage')),
   metro: lazy(() => import('./redesign/metro/MetroPage')),
   keynote: lazy(() => import('./redesign/keynote/KeynotePage')),
+  blend: lazy(() => import('./redesign/blend/BlendPage')),
 };
 
 const path = window.location.pathname.replace(/\/+$/, '');
 const isAdmin = path === '/admin';
-const world = /^\/redesign\/(mosaic|metro|keynote)$/.exec(path)?.[1] as keyof typeof WORLDS | undefined;
+const world = /^\/redesign\/(mosaic|metro|keynote|blend)$/.exec(path)?.[1] as keyof typeof WORLDS | undefined;
 const World = world ? WORLDS[world] : null;
 
 createRoot(document.getElementById('root')!).render(

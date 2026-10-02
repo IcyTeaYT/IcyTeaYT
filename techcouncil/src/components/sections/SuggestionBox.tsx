@@ -1,5 +1,5 @@
 import { AnimatePresence, motion, useAnimationControls, useReducedMotion, useSpring, useTransform } from 'motion/react';
-import { useEffect, useId } from 'react';
+import { useEffect, useId, type ReactNode } from 'react';
 import { CATEGORIES, GRADE_MAX, NAME_MAX, SUGGESTION_MAX, SUGGESTION_MIN } from '@/data/categories';
 import { useSuggestionForm } from '@/lib/suggestion';
 import { Arrow } from '../ui/Arrow';
@@ -77,7 +77,8 @@ function SuccessPanel({ onReset }: { onReset: () => void }) {
 
 /* ---------- Form ---------- */
 
-export function SuggestionBox() {
+/** `renderSuccess` swaps the thank-you panel (used by a redesign option); the form is the same. */
+export function SuggestionBox({ renderSuccess }: { renderSuccess?: (o: { category: string | null; reset: () => void }) => ReactNode } = {}) {
   const reduce = useReducedMotion();
   const uid = useId();
   const shake = useAnimationControls();
@@ -119,7 +120,13 @@ export function SuggestionBox() {
         <motion.div animate={shake} className="grid min-h-[600px]" style={{ perspective: 1200 }}>
           <AnimatePresence initial={false}>
             {status === 'sent' ? (
-              <SuccessPanel key="success" onReset={reset} />
+              renderSuccess ? (
+                <motion.div key="success" className="[grid-area:1/1]" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+                  {renderSuccess({ category, reset })}
+                </motion.div>
+              ) : (
+                <SuccessPanel key="success" onReset={reset} />
+              )
             ) : (
               <motion.form
                 key="form"

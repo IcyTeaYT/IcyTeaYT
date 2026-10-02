@@ -7,6 +7,7 @@ export const OPTIONS = [
   { href: '/redesign/mosaic', label: 'Mosaic' },
   { href: '/redesign/metro', label: 'Metro' },
   { href: '/redesign/keynote', label: 'Keynote' },
+  { href: '/redesign/blend', label: 'Blend' },
 ] as const;
 
 /**
