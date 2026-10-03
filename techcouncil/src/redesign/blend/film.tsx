@@ -98,16 +98,28 @@ export function FilmOpening({ cut }: { cut: Cut }) {
       .catch(() => {
         if (alive) v.src = `/landing/${cut}.mp4`;
       });
-    let cur = 0;
+    // Scrolling forward plays the shot, sped up or slowed to keep pace: the
+    // decoder runs frame after frame, which stays smooth. Scrolling back (or a
+    // long jump) seeks instead.
     let raf = 0;
     const tick = () => {
       raf = requestAnimationFrame(tick);
-      const v2 = p.get();
-      if (!v.duration || v.readyState < 1 || v2 > T.fade[1] + 0.02) return;
-      const target = seg(v2, ...T.film) * (v.duration - 0.05);
-      cur += (target - cur) * 0.2;
-      if (Math.abs(target - cur) < 0.004) cur = target;
-      if (!v.seeking && Math.abs(v.currentTime - cur) > 0.008) v.currentTime = cur;
+      const at = p.get();
+      if (!v.duration || v.readyState < 2 || at > T.fade[1] + 0.02) {
+        if (!v.paused) v.pause();
+        return;
+      }
+      const target = seg(at, ...T.film) * (v.duration - 0.05);
+      const ahead = target - v.currentTime;
+      if (ahead > 0.06 && ahead < 2) {
+        v.playbackRate = Math.min(3, Math.max(0.35, ahead * 2.2));
+        if (v.paused) v.play().catch(() => {});
+      } else if (Math.abs(ahead) <= 0.06) {
+        if (!v.paused) v.pause();
+      } else if (!v.seeking) {
+        if (!v.paused) v.pause();
+        v.currentTime = target;
+      }
     };
     raf = requestAnimationFrame(tick);
     return () => {
@@ -120,9 +132,7 @@ export function FilmOpening({ cut }: { cut: Cut }) {
   // Copy and grade.
   const titleO = useTransform(p, ...span(T.title, [1, 0]));
   const titleY = useTransform(p, ...span(T.title, [0, -60]));
-  const titleBlur = useTransform(p, ...span(T.title, ['blur(0px)', 'blur(12px)']));
   const filmO = useTransform(p, ...span(T.fade, [1, 0]));
-  const filmScale = useTransform(p, ...span([0, T.fade[1]], [cut === 'day' ? 1.05 : 1, 1.03]));
   const domeP = useTransform(p, (v) => seg(v, T.fade[0], T.words[0] + 0.05) * 1.25);
   const turn = useTransform(p, (v) => v * 0.9);
   const missionO = useTransform(p, ...span([T.fade[1] - 0.02, T.words[0]], [0, 1]));
@@ -167,7 +177,7 @@ export function FilmOpening({ cut }: { cut: Cut }) {
         <motion.div className="absolute inset-0" style={{ opacity: filmO, clipPath: cut === 'day' ? clip : undefined }}>
           {/* On a portrait phone a full-screen crop would blow the 16:9 shot up four times; it plays as a wide band fading into the black instead. */}
           <div className="absolute inset-0 portrait:flex portrait:items-center portrait:justify-center portrait:pt-[14svh]">
-            <motion.video
+            <video
               ref={video}
               aria-hidden
               muted
@@ -175,26 +185,25 @@ export function FilmOpening({ cut }: { cut: Cut }) {
               preload="auto"
               poster={`/landing/${cut}.jpg`}
               className="absolute inset-0 h-full w-full object-cover portrait:relative portrait:inset-auto portrait:aspect-video portrait:h-auto portrait:w-[180%] portrait:max-w-none portrait:shrink-0 portrait:[mask-image:linear-gradient(to_bottom,transparent,#000_22%,#000_80%,transparent)]"
-              style={{ scale: filmScale }}
             />
           </div>
           {cut === 'night' ? (
             <>
-              <div aria-hidden className="absolute inset-0 bg-[radial-gradient(120%_90%_at_50%_45%,rgba(0,0,0,0)_45%,rgba(0,0,0,0.65)_100%)]" />
-              <div aria-hidden className="absolute inset-x-0 bottom-0 h-[62%] bg-gradient-to-t from-black/85 via-black/45 to-transparent" />
-              <div aria-hidden className="absolute inset-x-0 top-0 h-40 bg-gradient-to-b from-black/60 to-transparent" />
+              <div aria-hidden className="absolute inset-0 bg-[radial-gradient(130%_100%_at_50%_45%,rgba(0,0,0,0)_55%,rgba(0,0,0,0.4)_100%)]" />
+              {/* Shade for the headline only: it lifts with the headline, leaving the shot clean. */}
+              <motion.div aria-hidden className="absolute inset-x-0 bottom-0 h-[62%] bg-gradient-to-t from-black/85 via-black/45 to-transparent" style={{ opacity: titleO }} />
+              <div aria-hidden className="absolute inset-x-0 top-0 h-32 bg-gradient-to-b from-black/50 to-transparent" />
             </>
           ) : (
             <>
-              <div aria-hidden className="absolute inset-0 bg-[radial-gradient(130%_100%_at_50%_40%,rgba(0,0,0,0)_50%,rgba(0,0,0,0.45)_100%)]" />
-              <motion.div aria-hidden className="absolute inset-0 bg-black/30" style={{ opacity: grow }} />
+              <div aria-hidden className="absolute inset-0 bg-[radial-gradient(130%_100%_at_50%_40%,rgba(0,0,0,0)_60%,rgba(0,0,0,0.3)_100%)]" />
             </>
           )}
         </motion.div>
 
         {/* The headline. */}
         {cut === 'night' ? (
-          <motion.div className="absolute inset-0 flex flex-col justify-between" style={{ opacity: titleO, y: titleY, filter: titleBlur }}>
+          <motion.div className="absolute inset-0 flex flex-col justify-between" style={{ opacity: titleO, y: titleY }}>
             <div className="container-x flex items-start justify-between pt-[calc(96px+var(--bar,0px))] font-mono text-[11px] uppercase tracking-[0.2em] text-paper/70 md:text-[12px]">
               <span>Registan · Samarkand</span>
               <span className="hidden md:block">39.6547° N &nbsp;66.9758° E</span>
@@ -211,7 +220,7 @@ export function FilmOpening({ cut }: { cut: Cut }) {
             </div>
           </motion.div>
         ) : (
-          <motion.div className="pointer-events-none absolute inset-x-0 top-0 h-[46svh]" style={{ opacity: titleO, y: titleY, filter: titleBlur }}>
+          <motion.div className="pointer-events-none absolute inset-x-0 top-0 h-[46svh]" style={{ opacity: titleO, y: titleY }}>
             <div className="container-x pointer-events-auto flex h-full flex-col justify-end gap-5 pb-6 md:flex-row md:items-end md:justify-between md:gap-10 md:pb-8">
               <div>
                 <motion.p className="font-mono text-[11px] uppercase tracking-[0.2em] text-fog md:text-[12px]" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.8, delay: 0.15 }}>

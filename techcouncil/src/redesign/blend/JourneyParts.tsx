@@ -1,14 +1,16 @@
-import { motion, useMotionValueEvent, useReducedMotion, useScroll, useTransform, type MotionValue } from 'motion/react';
+import { motion, useMotionValue, useMotionValueEvent, useReducedMotion, useScroll, useTransform, type MotionValue } from 'motion/react';
 import { useEffect, useRef, type ReactNode } from 'react';
 import { drawDome, drawDoor, drawGateway, drawMedallion, layoutDome, layoutDoor, layoutGateway, layoutMedallion, warmDome, warmGateway, warmMedallion, type Dome, type Doors, type Gateway as GatewayGeo, type Medallion } from './journey';
 
 const clamp01 = (v: number) => Math.min(1, Math.max(0, v));
 const seg = (v: number, a: number, b: number) => clamp01((v - a) / (b - a));
 const inOut = (t: number) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);
-const res = () => Math.min(window.devicePixelRatio || 1, 1.75);
+/** Full-screen scenes redraw every frame; past 1.25x the extra pixels cost more than they show. */
+const resBase = () => Math.min(window.devicePixelRatio || 1, 1.25);
 
 /** Lays out a canvas for its box on every resize and redraws it for a progress value, at most once a frame. */
-function useScene<G>(box: React.RefObject<HTMLElement | null>, canvas: React.RefObject<HTMLCanvasElement | null>, p: MotionValue<number>, layout: (W: number, H: number) => G, draw: (ctx: CanvasRenderingContext2D, g: G, r: number, v: number) => void, warm?: (g: G, r: number) => void) {
+function useScene<G>(box: React.RefObject<HTMLElement | null>, canvas: React.RefObject<HTMLCanvasElement | null>, p: MotionValue<number>, layout: (W: number, H: number) => G, draw: (ctx: CanvasRenderingContext2D, g: G, r: number, v: number) => void, warm?: (g: G, r: number) => void, density = 1) {
+  const res = () => resBase() * density;
   const geo = useRef<G | null>(null);
   const raf = useRef(0);
   const paint = (v: number) => {
@@ -91,24 +93,60 @@ export function Gateway({ seed, children, screens = 1.9 }: { seed: number; child
   );
 }
 
-/** The dome over the mission: drawn outward as `progress` goes 0 → 1. */
+/**
+ * The dome over the mission: drawn outward as `progress` goes 0 → 1. It is
+ * painted once into a square as wide as the screen's diagonal, and `turn`
+ * spins that square with CSS, so turning costs no redraw.
+ */
 export function DomeCanvas({ progress, seed, turn }: { progress: MotionValue<number>; seed: number; turn?: MotionValue<number> }) {
+  const frame = useRef<HTMLDivElement>(null);
   const box = useRef<HTMLDivElement>(null);
   const canvas = useRef<HTMLCanvasElement>(null);
+  const seen = useRef({ W: 1, H: 1 });
+  useEffect(() => {
+    const el = frame.current!;
+    const ro = new ResizeObserver(() => {
+      const W = el.clientWidth;
+      const H = el.clientHeight;
+      if (!W || !H) return;
+      seen.current = { W, H };
+      const D = Math.ceil(Math.hypot(W, H));
+      box.current!.style.width = `${D}px`;
+      box.current!.style.height = `${D}px`;
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
   // Nothing to draw before the line starts (the opening scrolls a long way first): clear once and wait.
   const blank = useRef(false);
-  useScene<Dome>(box, canvas, progress, (W, H) => layoutDome(W, H, seed), (ctx, g, r, v) => {
-    if (v <= 0) {
-      if (!blank.current) ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
-      blank.current = true;
-      return;
-    }
-    blank.current = false;
-    drawDome(ctx, g, r, v, turn?.get() ?? 0);
-  }, warmDome);
+  useScene<Dome>(
+    box,
+    canvas,
+    progress,
+    (D) => {
+      const { W, H } = seen.current;
+      return layoutDome(D, D, seed, Math.max(W, H) / D, Math.hypot(W, H) / 2);
+    },
+    (ctx, g, r, v) => {
+      if (v <= 0) {
+        if (!blank.current) ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+        blank.current = true;
+        return;
+      }
+      blank.current = false;
+      drawDome(ctx, g, r, v);
+    },
+    warmDome,
+    // Big soft shapes: three-quarter density keeps the diagonal-wide canvas about as cheap as a screen-sized one.
+    0.75,
+  );
+  const still = useMotionValue(0);
+  const rotate = useTransform(turn ?? still, (t) => (t * 180) / Math.PI);
   return (
-    <div ref={box} className="absolute inset-0" aria-hidden>
-      <canvas ref={canvas} className="absolute left-0 top-0" />
+    <div ref={frame} className="absolute inset-0 overflow-hidden" aria-hidden>
+      <motion.div ref={box} className="absolute left-1/2 top-1/2 will-change-transform" style={{ rotate, x: '-50%', y: '-50%' }}>
+        <canvas ref={canvas} className="absolute left-0 top-0" />
+      </motion.div>
     </div>
   );
 }
@@ -183,8 +221,18 @@ export function DoorGate({ children, screens = 1.9 }: { children: ReactNode; scr
   const leftCv = useRef<HTMLCanvasElement>(null);
   const rightCv = useRef<HTMLCanvasElement>(null);
   const { section, p, front, move, e } = usePassage(screens);
-  useScene<Doors>(leftBox, leftCv, p, (W, H) => layoutDoor(W, H, -1), (ctx, g, r, v) => drawDoor(ctx, g, r, Math.min(front(v), 1.2), -1));
-  useScene<Doors>(rightBox, rightCv, p, (W, H) => layoutDoor(W, H, 1), (ctx, g, r, v) => drawDoor(ctx, g, r, Math.min(front(v), 1.2), 1));
+  // Once carved, the doors only swing (CSS); redraw only while the line is cutting.
+  const drawn = useRef({ l: -1, r: -1 });
+  useScene<Doors>(leftBox, leftCv, p, (W, H) => ((drawn.current.l = -1), layoutDoor(W, H, -1)), (ctx, g, r, v) => {
+    const f = Math.min(front(v), 1.2);
+    if (f !== drawn.current.l) drawDoor(ctx, g, r, f, -1);
+    drawn.current.l = f;
+  });
+  useScene<Doors>(rightBox, rightCv, p, (W, H) => ((drawn.current.r = -1), layoutDoor(W, H, 1)), (ctx, g, r, v) => {
+    const f = Math.min(front(v), 1.2);
+    if (f !== drawn.current.r) drawDoor(ctx, g, r, f, 1);
+    drawn.current.r = f;
+  });
   const leftT = useTransform(p, (v) => `perspective(1400px) rotateY(${-move(v) * 108}deg)`);
   const rightT = useTransform(p, (v) => `perspective(1400px) rotateY(${move(v) * 108}deg)`);
   const doorsScale = useTransform(p, (v) => 1 + move(v) * 0.5);

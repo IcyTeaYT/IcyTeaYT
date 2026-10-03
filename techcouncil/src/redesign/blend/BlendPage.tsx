@@ -95,7 +95,8 @@ const at = (screens: number) => screens / SCROLL;
 
 const inOut = (t: number) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);
 const seg = (v: number, a: number, b: number) => Math.min(1, Math.max(0, (v - a) / (b - a)));
-const res = () => Math.min(window.devicePixelRatio || 1, 1.75);
+/** Full-screen scenes redraw every frame; past 1.25x the extra pixels cost more than they show. */
+const res = () => Math.min(window.devicePixelRatio || 1, 1.25);
 
 /** Per landing: when the camera move runs, and when the mission's words light. */
 const TIMING: Record<Exclude<Hero, 'night' | 'day'>, { move: [number, number]; words: [number, number] }> = {

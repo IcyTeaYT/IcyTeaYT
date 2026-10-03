@@ -306,6 +306,8 @@ export interface Dome {
   rings: { r: number; d: number }[];
   hole: number;
   Rm: number;
+  /** How far from the centre the dome must reach to cover what is seen. */
+  reach: number;
   cache?: { cv: HTMLCanvasElement; res: number };
 }
 
@@ -315,11 +317,11 @@ export function warmDome(g: Dome, res: number) {
   if (!g.cache || g.cache.res !== res) g.cache = { cv: paintDome(g, res), res };
 }
 
-export function layoutDome(W: number, H: number, seed: number, scale = 1): Dome {
+export function layoutDome(W: number, H: number, seed: number, scale = 1, reach = Math.hypot(W, H) / 2): Dome {
   const cx = W / 2;
   const cy = H / 2;
   const step = Math.max(W, H) * 0.049 * scale;
-  const Rm = Math.hypot(W, H) * 0.55;
+  const Rm = reach * 1.1;
   const rand = rng(seed);
   const tiles: Tile[] = [];
   const rings: { r: number; d: number }[] = [];
@@ -337,13 +339,13 @@ export function layoutDome(W: number, H: number, seed: number, scale = 1): Dome 
     }
     if (k > 0) rings.push({ r: r + step / 2, d: r / Rm });
   }
-  return { W, H, cx, cy, tiles, rings, hole: Math.min(W, H) * 0.5, Rm };
+  return { W, H, cx, cy, tiles, rings, hole: Math.min(W, H) * 0.5, Rm, reach };
 }
 
 /** The finished dome (tiles and rings), painted once. */
 function paintDome(g: Dome, res: number) {
-  // A square as wide as the frame's diagonal, so the dome covers the frame at any turn.
-  const D = Math.ceil(Math.hypot(g.W, g.H));
+  // A square as wide as the seen frame's diagonal, so the dome covers it at any turn.
+  const D = Math.ceil(g.reach * 2);
   const cv = document.createElement('canvas');
   cv.width = Math.round(D * res);
   cv.height = Math.round(D * res);
@@ -387,14 +389,14 @@ export function drawDome(ctx: CanvasRenderingContext2D, g: Dome, res: number, fr
     const disk = new Path2D();
     disk.arc(cx, cy, doneR, 0, Math.PI * 2);
     ctx.clip(disk);
-    const D = Math.ceil(Math.hypot(W, H));
+    const D = Math.ceil(g.reach * 2);
     ctx.drawImage(g.cache.cv, cx - D / 2, cy - D / 2, D, D);
     ctx.restore();
   }
   for (const t of g.tiles) {
     const f = clamp01((front - t.d) * 6);
     if (f <= 0 || (f >= 1 && t.d * g.Rm + t.r < doneR)) continue;
-    if (Math.hypot(t.x - cx, t.y - cy) - t.r > Math.hypot(W, H) / 2) continue;
+    if (Math.hypot(t.x - cx, t.y - cy) - t.r > g.reach) continue;
     ctx.globalAlpha = f;
     ctx.fillStyle = t.fill;
     ctx.fill(t.p);
