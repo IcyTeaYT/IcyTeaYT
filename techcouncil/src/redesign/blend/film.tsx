@@ -1,5 +1,5 @@
 import { motion, useScroll, useTransform, type MotionValue } from 'motion/react';
-import { useEffect, useRef, type ReactNode } from 'react';
+import { useEffect, useRef } from 'react';
 import { HERO, MISSION } from '@/data/copy';
 import { EASE_OUT, span } from '@/lib/motion';
 import { useSmoothScroll } from '@/lib/smoothScroll';
@@ -12,7 +12,7 @@ import { DomeCanvas } from './JourneyParts';
  * The film landings: a ten-second shot of the Registan, played by scroll,
  * with big type over it. Two cuts:
  *   night  full-bleed from the first frame; the headline sits low over the lit
- *          square and three short lines take over as the camera pushes in
+ *          square and clears as the camera pushes in
  *   day    the shot opens as a framed card under the headline and grows to
  *          fill the screen, then pushes into the square towards sunset
  * Both fade to black under the star dome, where the mission lights word by word.
@@ -23,27 +23,16 @@ const SCROLL = 3;
 const at = (s: number) => s / SCROLL;
 const seg = (v: number, a: number, b: number) => Math.min(1, Math.max(0, (v - a) / (b - a)));
 
-const BEATS = ['We build it.', 'Tools for teachers and students.', 'A direct line for your ideas.'];
-const TIMES: Record<Cut, { film: [number, number]; title: [number, number]; beats: [number, number][]; fade: [number, number]; words: [number, number] }> = {
+const TIMES: Record<Cut, { film: [number, number]; title: [number, number]; fade: [number, number]; words: [number, number] }> = {
   night: {
     film: [0, at(1.7)],
     title: [at(0.04), at(0.3)],
-    beats: [
-      [at(0.32), at(0.72)],
-      [at(0.74), at(1.14)],
-      [at(1.16), at(1.56)],
-    ],
     fade: [at(1.55), at(1.85)],
     words: [at(1.9), at(2.75)],
   },
   day: {
     film: [at(0.15), at(1.8)],
     title: [at(0.02), at(0.4)],
-    beats: [
-      [at(0.6), at(0.95)],
-      [at(0.97), at(1.32)],
-      [at(1.34), at(1.66)],
-    ],
     fade: [at(1.62), at(1.9)],
     words: [at(1.95), at(2.75)],
   },
@@ -77,25 +66,6 @@ function Cta() {
         See what we’ve built
       </a>
     </div>
-  );
-}
-
-/** A line that drifts in out of a blur, holds, then drifts on. */
-function Beat({ p, range, index, cut, children }: { p: MotionValue<number>; range: [number, number]; index: number; cut: Cut; children: ReactNode }) {
-  const [a, b] = range;
-  const d = (b - a) * 0.28;
-  const opacity = useTransform(p, ...span([a, a + d, b - d, b], [0, 1, 1, 0]));
-  const y = useTransform(p, ...span([a, a + d, b - d, b], [36, 0, 0, -36]));
-  const filter = useTransform(p, ...span([a, a + d, b - d, b], ['blur(10px)', 'blur(0px)', 'blur(0px)', 'blur(10px)']));
-  return (
-    <motion.div aria-hidden className={`pointer-events-none absolute inset-0 flex ${cut === 'night' ? 'items-end' : 'items-center'}`} style={{ opacity }}>
-      <motion.div className={`container-x w-full ${cut === 'night' ? 'pb-[calc(6rem+var(--bar,0px))]' : 'text-center'}`} style={{ y, filter }}>
-        <p className={`font-mono text-[12px] uppercase tracking-[0.2em] text-paper/70 ${cut === 'day' ? 'mx-auto' : ''}`}>
-          0{index + 1} <span className="text-paper/35">/ 0{BEATS.length}</span>
-        </p>
-        <p className={`type-display mt-4 text-[clamp(2.5rem,7.4vw,7.5rem)] leading-[0.95] [text-shadow:0_2px_40px_rgba(0,0,0,0.35)] ${cut === 'day' ? 'mx-auto max-w-[16ch]' : 'max-w-[13ch]'}`}>{children}</p>
-      </motion.div>
-    </motion.div>
   );
 }
 
@@ -195,7 +165,19 @@ export function FilmOpening({ cut }: { cut: Cut }) {
 
         {/* The film. */}
         <motion.div className="absolute inset-0" style={{ opacity: filmO, clipPath: cut === 'day' ? clip : undefined }}>
-          <motion.video ref={video} aria-hidden muted playsInline preload="auto" poster={`/landing/${cut}.jpg`} className="absolute inset-0 h-full w-full object-cover" style={{ scale: filmScale }} />
+          {/* On a portrait phone a full-screen crop would blow the 16:9 shot up four times; it plays as a wide band fading into the black instead. */}
+          <div className="absolute inset-0 portrait:flex portrait:items-center portrait:justify-center portrait:pt-[14svh]">
+            <motion.video
+              ref={video}
+              aria-hidden
+              muted
+              playsInline
+              preload="auto"
+              poster={`/landing/${cut}.jpg`}
+              className="absolute inset-0 h-full w-full object-cover portrait:relative portrait:inset-auto portrait:aspect-video portrait:h-auto portrait:w-[180%] portrait:max-w-none portrait:shrink-0 portrait:[mask-image:linear-gradient(to_bottom,transparent,#000_22%,#000_80%,transparent)]"
+              style={{ scale: filmScale }}
+            />
+          </div>
           {cut === 'night' ? (
             <>
               <div aria-hidden className="absolute inset-0 bg-[radial-gradient(120%_90%_at_50%_45%,rgba(0,0,0,0)_45%,rgba(0,0,0,0.65)_100%)]" />
@@ -209,13 +191,6 @@ export function FilmOpening({ cut }: { cut: Cut }) {
             </>
           )}
         </motion.div>
-
-        {/* Beats over the film. */}
-        {BEATS.map((b, i) => (
-          <Beat key={b} p={p} range={T.beats[i]!} index={i} cut={cut}>
-            {b}
-          </Beat>
-        ))}
 
         {/* The headline. */}
         {cut === 'night' ? (
