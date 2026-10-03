@@ -367,11 +367,16 @@ function paintDome(g: Dome, res: number) {
 }
 
 /** One frame of the dome, drawn outward from the centre to `front`; dark at the centre so words read over it. */
-export function drawDome(ctx: CanvasRenderingContext2D, g: Dome, res: number, front: number) {
+export function drawDome(ctx: CanvasRenderingContext2D, g: Dome, res: number, front: number, rot = 0) {
   const { W, H, cx, cy } = g;
   ctx.setTransform(res, 0, 0, res, 0, 0);
   ctx.fillStyle = '#000';
   ctx.fillRect(0, 0, W, H);
+  // The dome turns slowly about its centre.
+  ctx.save();
+  ctx.translate(cx, cy);
+  ctx.rotate(rot);
+  ctx.translate(-cx, -cy);
   const doneR = (front - 1 / 6) * g.Rm;
   if (doneR > 0) {
     if (!g.cache || g.cache.res !== res) g.cache = { cv: paintDome(g, res), res };
@@ -385,7 +390,7 @@ export function drawDome(ctx: CanvasRenderingContext2D, g: Dome, res: number, fr
   for (const t of g.tiles) {
     const f = clamp01((front - t.d) * 6);
     if (f <= 0 || (f >= 1 && t.d * g.Rm + t.r < doneR)) continue;
-    if (t.x + t.r < 0 || t.x - t.r > W || t.y + t.r < 0 || t.y - t.r > H) continue;
+    if (Math.hypot(t.x - cx, t.y - cy) - t.r > Math.hypot(W, H) / 2) continue;
     ctx.globalAlpha = f;
     ctx.fillStyle = t.fill;
     ctx.fill(t.p);
@@ -405,6 +410,7 @@ export function drawDome(ctx: CanvasRenderingContext2D, g: Dome, res: number, fr
     ctx.stroke();
   }
   ctx.globalAlpha = 1;
+  ctx.restore();
   let gr = ctx.createRadialGradient(cx, cy, 0, cx, cy, g.hole);
   gr.addColorStop(0, 'rgba(0,0,0,0.9)');
   gr.addColorStop(0.45, 'rgba(0,0,0,0.6)');
@@ -647,4 +653,16 @@ export function drawDoor(ctx: CanvasRenderingContext2D, g: Doors, res: number, f
   l.addColorStop(1, 'rgba(0,0,0,0.6)');
   ctx.fillStyle = l;
   ctx.fillRect(0, 0, W, H);
+}
+
+/** Cuts the gateway's opening (at camera scale `s`) out of whatever is drawn in `ctx`. */
+export function cutOpening(ctx: CanvasRenderingContext2D, g: Gateway, res: number, s: number) {
+  ctx.save();
+  ctx.setTransform(res, 0, 0, res, 0, 0);
+  ctx.translate(g.cx, g.cy);
+  ctx.scale(s, s);
+  ctx.translate(-g.cx, -g.cy);
+  ctx.globalCompositeOperation = 'destination-out';
+  ctx.fill(g.inner);
+  ctx.restore();
 }

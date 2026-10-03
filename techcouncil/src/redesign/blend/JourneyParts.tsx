@@ -92,7 +92,7 @@ export function Gateway({ seed, children, screens = 1.9 }: { seed: number; child
 }
 
 /** The dome over the mission: drawn outward as `progress` goes 0 → 1. */
-export function DomeCanvas({ progress, seed }: { progress: MotionValue<number>; seed: number }) {
+export function DomeCanvas({ progress, seed, turn }: { progress: MotionValue<number>; seed: number; turn?: MotionValue<number> }) {
   const box = useRef<HTMLDivElement>(null);
   const canvas = useRef<HTMLCanvasElement>(null);
   // Nothing to draw before the line starts (the opening scrolls a long way first): clear once and wait.
@@ -104,7 +104,7 @@ export function DomeCanvas({ progress, seed }: { progress: MotionValue<number>; 
       return;
     }
     blank.current = false;
-    drawDome(ctx, g, r, v);
+    drawDome(ctx, g, r, v, turn?.get() ?? 0);
   }, warmDome);
   return (
     <div ref={box} className="absolute inset-0" aria-hidden>
