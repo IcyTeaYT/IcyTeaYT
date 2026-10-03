@@ -342,15 +342,18 @@ export function layoutDome(W: number, H: number, seed: number, scale = 1): Dome 
 
 /** The finished dome (tiles and rings), painted once. */
 function paintDome(g: Dome, res: number) {
+  // A square as wide as the frame's diagonal, so the dome covers the frame at any turn.
+  const D = Math.ceil(Math.hypot(g.W, g.H));
   const cv = document.createElement('canvas');
-  cv.width = Math.round(g.W * res);
-  cv.height = Math.round(g.H * res);
+  cv.width = Math.round(D * res);
+  cv.height = Math.round(D * res);
   const c = cv.getContext('2d')!;
   c.setTransform(res, 0, 0, res, 0, 0);
+  c.translate(D / 2 - g.cx, D / 2 - g.cy);
   c.lineWidth = 2.2;
   c.strokeStyle = rgb(C.bone, 0.85);
   for (const t of g.tiles) {
-    if (t.x + t.r < 0 || t.x - t.r > g.W || t.y + t.r < 0 || t.y - t.r > g.H) continue;
+    if (Math.hypot(t.x - g.cx, t.y - g.cy) - t.r > D / 2) continue;
     c.fillStyle = t.fill;
     c.fill(t.p);
     c.stroke(t.p);
@@ -384,7 +387,8 @@ export function drawDome(ctx: CanvasRenderingContext2D, g: Dome, res: number, fr
     const disk = new Path2D();
     disk.arc(cx, cy, doneR, 0, Math.PI * 2);
     ctx.clip(disk);
-    ctx.drawImage(g.cache.cv, 0, 0, W, H);
+    const D = Math.ceil(Math.hypot(W, H));
+    ctx.drawImage(g.cache.cv, cx - D / 2, cy - D / 2, D, D);
     ctx.restore();
   }
   for (const t of g.tiles) {
