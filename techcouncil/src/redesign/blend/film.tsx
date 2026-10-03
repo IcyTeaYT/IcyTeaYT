@@ -50,28 +50,49 @@ const TIMES: Record<Cut, { film: [number, number]; title: [number, number]; beat
   },
 };
 
-/** Loads a frame set coarse to fine, so scrubbing works before every still has arrived. */
-function useFrames(cut: Cut, set: 'd' | 'm' | null, onLoad: () => void) {
-  const imgs = useRef<(HTMLImageElement | null)[]>([]);
+/**
+ * Loads a frame set coarse to fine, so scrubbing works before every still has
+ * arrived; then swaps in the full-quality stills, nearest the camera first.
+ */
+function useFrames(cut: Cut, set: 'd' | 'm' | null, near: () => number, onLoad: () => void) {
+  const imgs = useRef<{ lo: (HTMLImageElement | null)[]; hi: (HTMLImageElement | null)[] }>({ lo: [], hi: [] });
   useEffect(() => {
     if (!set) return;
-    imgs.current = Array(FRAMES).fill(null);
+    const lo: (HTMLImageElement | null)[] = Array(FRAMES).fill(null);
+    const hi: (HTMLImageElement | null)[] = Array(FRAMES).fill(null);
+    imgs.current = { lo, hi };
     const order: number[] = [];
     for (const step of [64, 32, 16, 8, 4, 2, 1]) for (let i = 0; i < FRAMES; i += step) if (!order.includes(i)) order.push(i);
     if (!order.includes(FRAMES - 1)) order.splice(1, 0, FRAMES - 1);
+    const hiDir = set === 'd' ? 'hd' : 'mhd';
+    const asked = new Set<number>();
     let alive = true;
     let next = 0;
     const pull = () => {
-      if (!alive || next >= order.length) return;
-      const i = order[next++]!;
+      if (!alive) return;
+      let i: number;
+      let tier: 'lo' | 'hi';
+      if (next < order.length) {
+        i = order[next++]!;
+        tier = 'lo';
+      } else {
+        // The full-quality still nearest where the camera is now.
+        const at = near();
+        let best = -1;
+        for (let d = 0; d < FRAMES && best < 0; d++) for (const j of [at - d, at + d]) if (j >= 0 && j < FRAMES && !asked.has(j)) { best = j; break; }
+        if (best < 0) return;
+        asked.add(best);
+        i = best;
+        tier = 'hi';
+      }
       const img = new Image();
       img.decoding = 'async';
-      img.src = `/landing/${cut}/${set}/${String(i + 1).padStart(3, '0')}.webp`;
+      img.src = `/landing/${cut}/${tier === 'lo' ? set : hiDir}/${String(i + 1).padStart(3, '0')}.webp`;
       img
         .decode()
         .then(() => {
           if (!alive) return;
-          imgs.current[i] = img;
+          (tier === 'lo' ? lo : hi)[i] = img;
           onLoad();
         })
         .catch(() => {})
@@ -149,28 +170,30 @@ export function FilmOpening({ cut }: { cut: Cut }) {
 
   // Portrait screens get stills cropped around the middle madrasa.
   const set = useRef<'d' | 'm' | null>(null);
-  const shown = useRef(-1);
+  const shown = useRef('');
   const draw = () => {
     const c = canvas.current;
     const el = stage.current;
     if (!c || !el) return;
     const want = Math.round(seg(p.get(), ...T.film) * (FRAMES - 1));
-    // The nearest still that has arrived.
-    let img: HTMLImageElement | null = null;
-    let got = -1;
+    // The full-quality still if it has arrived, else the nearest light one.
+    const { lo, hi } = frames.current;
+    let img: HTMLImageElement | null = hi[want] ?? null;
+    let key = `h${want}`;
     for (let d = 0; d < FRAMES && !img; d++) {
       for (const i of [want - d, want + d]) {
-        const f = frames.current[i];
+        const f = lo[i];
         if (f) {
           img = f;
-          got = i;
+          key = `l${i}`;
           break;
         }
       }
     }
-    if (!img || got === shown.current) return;
-    shown.current = got;
+    if (!img || key === shown.current) return;
+    shown.current = key;
     const ctx = c.getContext('2d')!;
+    ctx.imageSmoothingQuality = 'high';
     const s = Math.max(c.width / img.naturalWidth, c.height / img.naturalHeight);
     const w = img.naturalWidth * s;
     const h = img.naturalHeight * s;
@@ -181,7 +204,7 @@ export function FilmOpening({ cut }: { cut: Cut }) {
     cancelAnimationFrame(raf.current);
     raf.current = requestAnimationFrame(draw);
   };
-  const frames = useFrames(cut, set.current, frame);
+  const frames = useFrames(cut, set.current, () => Math.round(seg(p.get(), ...T.film) * (FRAMES - 1)), frame);
   const [, force] = useForce();
 
   useEffect(() => {
@@ -194,7 +217,7 @@ export function FilmOpening({ cut }: { cut: Cut }) {
       const c = canvas.current!;
       c.width = Math.round(W * r);
       c.height = Math.round(H * r);
-      shown.current = -1;
+      shown.current = '';
       const want = W / H < 0.9 ? 'm' : 'd';
       if (want !== set.current) {
         set.current = want;
@@ -212,7 +235,7 @@ export function FilmOpening({ cut }: { cut: Cut }) {
   const titleY = useTransform(p, ...span(T.title, [0, -60]));
   const titleBlur = useTransform(p, ...span(T.title, ['blur(0px)', 'blur(12px)']));
   const filmO = useTransform(p, ...span(T.fade, [1, 0]));
-  const filmScale = useTransform(p, ...span([0, T.fade[1]], [cut === 'day' ? 1.12 : 1, 1.06]));
+  const filmScale = useTransform(p, ...span([0, T.fade[1]], [cut === 'day' ? 1.05 : 1, 1.03]));
   const domeP = useTransform(p, (v) => seg(v, T.fade[0], T.words[0] + 0.05) * 1.25);
   const turn = useTransform(p, (v) => v * 0.9);
   const missionO = useTransform(p, ...span([T.fade[1] - 0.02, T.words[0]], [0, 1]));
