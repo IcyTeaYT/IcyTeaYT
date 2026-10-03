@@ -10,7 +10,7 @@ const [refPath, target, outDir = 'compare'] = args.filter((a, i) => !a.startsWit
 if (!refPath || !target) { console.error('Usage: node compare.mjs <reference.png> <url|file.html> <outDir> [--width 1440] [--fold]'); process.exit(1); }
 fs.mkdirSync(outDir, { recursive: true });
 
-const browser = await launch();
+const browser = await launch([target]);
 // Read reference size.
 const probe = await browser.newPage();
 const refData = 'data:image/png;base64,' + fs.readFileSync(refPath).toString('base64');

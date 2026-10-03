@@ -15,12 +15,18 @@ export function loadPlaywright() {
   process.exit(1);
 }
 
-export async function launch() {
+const isLocal = (t) => !/^https?:\/\//.test(t) || /^https?:\/\/(localhost|127\.|0\.0\.0\.0|\[::1\])/.test(t);
+
+// Pass the page(s) you will open: local pages skip the proxy entirely.
+export async function launch(targets = []) {
   const { chromium } = loadPlaywright();
-  const opts = {};
+  // Honour HTTPS_PROXY / HTTP_PROXY: Playwright ignores them unless passed explicitly.
+  const proxy = process.env.HTTPS_PROXY || process.env.https_proxy || process.env.HTTP_PROXY || process.env.http_proxy;
+  const bypass = process.env.NO_PROXY || process.env.no_proxy;
+  const opts = proxy && !(targets.length && targets.every(isLocal)) ? { proxy: { server: proxy, ...(bypass ? { bypass } : {}) } } : {};
   const preinstalled = '/opt/pw-browsers/chromium';
   try { return await chromium.launch(opts); } catch (e) {
-    if (fs.existsSync(preinstalled)) return chromium.launch({ executablePath: preinstalled });
+    if (fs.existsSync(preinstalled)) return chromium.launch({ ...opts, executablePath: preinstalled });
     throw e;
   }
 }

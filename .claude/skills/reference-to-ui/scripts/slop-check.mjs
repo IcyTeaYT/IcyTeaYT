@@ -8,7 +8,7 @@ const allowIdx = args.indexOf('--allow');
 const allow = new Set(allowIdx >= 0 ? args[allowIdx + 1].split(',') : []);
 if (!target) { console.error('Usage: node slop-check.mjs <url|file.html> [--allow rule1,rule2]'); process.exit(1); }
 
-const browser = await launch();
+const browser = await launch([target]);
 const all = [];
 for (const vp of [{ name: 'desktop', width: 1440, height: 900 }, { name: 'mobile', width: 390, height: 844 }]) {
   const page = await browser.newPage({ viewport: { width: vp.width, height: vp.height } });

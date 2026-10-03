@@ -1,0 +1,164 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Reelhouse</title>
+<meta name="description" content="Netflix-style landing page preview, rebuilt from measurements of netflix.com with a fictional brand.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<section class="hero">
+  <div class="hero__wall" aria-hidden="true"><div class="hero__grid" id="wall"></div></div>
+  <div class="hero__shade" aria-hidden="true"></div>
+
+  <header class="header">
+    <a class="logo" href="#" aria-label="Reelhouse home">REELHOUSE</a>
+    <div class="header__actions">
+      <label class="lang">
+        <span class="sr-only">Language</span>
+        <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><path fill="currentColor" d="M10.77 5.33 10.5 6 9.34 8.94l-.57 1.4L7.33 14h1.6l.87-2.2h3.24l.87 2.2h1.6L11.9 5.33h-1.14Zm-.4 5.07 1.05-2.62 1.04 2.62h-2.1ZM6.38 7.5c.46-.74.84-1.6 1.13-2.5H9V3.67H5.67V2H4.33v1.67H1V5h5.08c-.25.74-.56 1.4-.96 2-.3-.43-.57-.9-.8-1.42H3.4c.33.82.73 1.57 1.2 2.23A8.6 8.6 0 0 1 1 9.74v1.36a9.7 9.7 0 0 0 4.38-2.27c.37.33.77.62 1.2.88l.5-1.25a6.9 6.9 0 0 1-.7-.96Z"/></svg>
+        <select id="lang" class="lang-select">
+          <option value="en">English</option>
+          <option value="es">Español</option>
+        </select>
+        <svg class="caret" viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><path fill="currentColor" d="M11.6 6.5 8 10.1 4.4 6.5h7.2Z"/></svg>
+      </label>
+      <a class="btn btn--red btn--sm" href="#">Sign In</a>
+    </div>
+  </header>
+
+  <div class="hero__content">
+    <h1 data-i18n="h1">Unlimited films, series, and more</h1>
+    <p class="hero__sub" data-i18n="sub">Starts at $7.99. Cancel anytime.</p>
+    <form class="signup" novalidate>
+      <h3 data-i18n="ready">Ready to watch? Enter your email to create or restart your membership.</h3>
+      <div class="signup__row">
+        <div class="field">
+          <input id="email1" type="email" placeholder=" " autocomplete="email" required>
+          <label for="email1" data-i18n="email">Email address</label>
+          <p class="field__error" role="alert"></p>
+        </div>
+        <button class="btn btn--red btn--lg" type="submit"><span data-i18n="start">Get Started</span>
+          <svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><path fill="currentColor" d="M15.59 12 8.3 4.7l1.4-1.4 8 8c.4.39.4 1.02 0 1.41l-8 8-1.4-1.42L15.58 12Z"/></svg>
+        </button>
+      </div>
+    </form>
+  </div>
+</section>
+
+<div class="curve" aria-hidden="true"><div class="curve__inner"></div></div>
+
+<main class="container">
+  <div class="banner">
+    <div class="banner__icon" aria-hidden="true">
+      <svg viewBox="0 0 64 64" width="88" height="88"><path d="M14 22h36l-5 36H19z" fill="#e50914"/><path d="M22 22l3 36M32 22v36M42 22l-3 36" stroke="#fff" stroke-width="4"/><circle cx="20" cy="17" r="7" fill="#fff4d6"/><circle cx="30" cy="13" r="8" fill="#ffe9b0"/><circle cx="41" cy="15" r="7" fill="#fff4d6"/><circle cx="47" cy="21" r="5" fill="#ffe9b0"/><circle cx="16" cy="22" r="5" fill="#ffe9b0"/></svg>
+    </div>
+    <div class="banner__card">
+      <div>
+        <h3>The Reelhouse you love for just $7.99.</h3>
+        <p>Get our most affordable, ad-supported plan.</p>
+      </div>
+      <a class="btn btn--grey" href="#">Learn More</a>
+    </div>
+  </div>
+
+  <section class="section">
+    <h2>Trending Now</h2>
+    <div class="trending">
+      <button class="trending__nav trending__nav--prev" aria-label="Previous titles" hidden>
+        <svg viewBox="0 0 24 24" width="24" height="24"><path fill="currentColor" d="M8.41 12l7.3 7.3-1.42 1.4-8-8a1 1 0 0 1 0-1.4l8-8 1.42 1.4L8.4 12Z"/></svg>
+      </button>
+      <ol class="trending__list" id="trending"></ol>
+      <button class="trending__nav trending__nav--next" aria-label="More titles">
+        <svg viewBox="0 0 24 24" width="24" height="24"><path fill="currentColor" d="M15.59 12 8.3 4.7l1.4-1.4 8 8c.4.39.4 1.02 0 1.41l-8 8-1.4-1.42L15.58 12Z"/></svg>
+      </button>
+    </div>
+  </section>
+
+  <section class="section">
+    <h2>More Reasons to Join</h2>
+    <div class="reasons">
+      <article class="reason">
+        <h3>Enjoy on your TV</h3>
+        <p>Watch on smart TVs, PlayStation, Xbox, Chromecast, Apple TV, Blu-ray players, and more.</p>
+        <svg class="reason__icon" viewBox="0 0 72 72" aria-hidden="true"><defs><linearGradient id="g1" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#e85cc8"/><stop offset="1" stop-color="#6c1fd1"/></linearGradient></defs><rect x="8" y="14" width="56" height="36" rx="3" fill="url(#g1)"/><rect x="12" y="18" width="48" height="28" rx="1" fill="#1a0b2e"/><path d="M28 56h16" stroke="#e85cc8" stroke-width="4" stroke-linecap="round"/></svg>
+      </article>
+      <article class="reason">
+        <h3>Download your shows to watch offline</h3>
+        <p>Save your favorites easily and always have something to watch.</p>
+        <svg class="reason__icon" viewBox="0 0 72 72" aria-hidden="true"><defs><linearGradient id="g2" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#f58bd9"/><stop offset="1" stop-color="#b230d6"/></linearGradient></defs><circle cx="36" cy="36" r="26" fill="url(#g2)"/><path d="M36 22v24m-10-10 10 10 10-10" stroke="#3b0a45" stroke-width="5" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </article>
+      <article class="reason">
+        <h3>Watch everywhere</h3>
+        <p>Stream unlimited films and series on your phone, tablet, laptop, and TV.</p>
+        <svg class="reason__icon" viewBox="0 0 72 72" aria-hidden="true"><defs><linearGradient id="g3" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ff7ab0"/><stop offset="1" stop-color="#d1124f"/></linearGradient></defs><rect x="14" y="12" width="26" height="46" rx="5" fill="url(#g3)"/><rect x="18" y="18" width="18" height="32" rx="1" fill="#2a0715"/><rect x="34" y="28" width="26" height="32" rx="4" fill="#f5a3c7"/><rect x="38" y="32" width="18" height="22" rx="1" fill="#2a0715"/></svg>
+      </article>
+      <article class="reason">
+        <h3>Create profiles for kids</h3>
+        <p>Send kids on adventures with their favorite characters in a space made just for them — free with your membership.</p>
+        <svg class="reason__icon" viewBox="0 0 72 72" aria-hidden="true"><rect x="10" y="14" width="30" height="30" rx="6" fill="#f7b6d2"/><rect x="30" y="28" width="30" height="30" rx="6" fill="#e5306a"/><circle cx="20" cy="27" r="2.5" fill="#2a0715"/><circle cx="30" cy="27" r="2.5" fill="#2a0715"/><circle cx="40" cy="41" r="2.5" fill="#fff"/><circle cx="50" cy="41" r="2.5" fill="#fff"/><path d="M39 48q6 5 12 0" stroke="#fff" stroke-width="2.5" fill="none" stroke-linecap="round"/></svg>
+      </article>
+    </div>
+  </section>
+
+  <section class="section">
+    <h2>Frequently Asked Questions</h2>
+    <ul class="faq" id="faq"></ul>
+  </section>
+
+  <form class="signup signup--bottom" novalidate>
+    <h3>Ready to watch? Enter your email to create or restart your membership.</h3>
+    <div class="signup__row">
+      <div class="field">
+        <input id="email2" type="email" placeholder=" " autocomplete="email" required>
+        <label for="email2">Email address</label>
+        <p class="field__error" role="alert"></p>
+      </div>
+      <button class="btn btn--red btn--lg" type="submit">Get Started
+        <svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><path fill="currentColor" d="M15.59 12 8.3 4.7l1.4-1.4 8 8c.4.39.4 1.02 0 1.41l-8 8-1.4-1.42L15.58 12Z"/></svg>
+      </button>
+    </div>
+  </form>
+</main>
+
+<footer class="footer container">
+  <p class="footer__q">Questions? Call <a href="tel:0000000000">000-000-0000</a></p>
+  <ul class="footer__links">
+    <li><a href="#">FAQ</a></li><li><a href="#">Help Center</a></li><li><a href="#">Account</a></li><li><a href="#">Media Center</a></li>
+    <li><a href="#">Investor Relations</a></li><li><a href="#">Jobs</a></li><li><a href="#">Redeem Gift Cards</a></li><li><a href="#">Buy Gift Cards</a></li>
+    <li><a href="#">Ways to Watch</a></li><li><a href="#">Terms of Use</a></li><li><a href="#">Privacy</a></li><li><a href="#">Cookie Preferences</a></li>
+    <li><a href="#">Corporate Information</a></li><li><a href="#">Contact Us</a></li><li><a href="#">Speed Test</a></li><li><a href="#">Legal Notices</a></li>
+  </ul>
+  <p class="footer__extra"><a href="#">Ad Choices</a></p>
+  <label class="lang">
+    <span class="sr-only">Language</span>
+    <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><path fill="currentColor" d="M10.77 5.33 10.5 6 9.34 8.94l-.57 1.4L7.33 14h1.6l.87-2.2h3.24l.87 2.2h1.6L11.9 5.33h-1.14Zm-.4 5.07 1.05-2.62 1.04 2.62h-2.1ZM6.38 7.5c.46-.74.84-1.6 1.13-2.5H9V3.67H5.67V2H4.33v1.67H1V5h5.08c-.25.74-.56 1.4-.96 2-.3-.43-.57-.9-.8-1.42H3.4c.33.82.73 1.57 1.2 2.23A8.6 8.6 0 0 1 1 9.74v1.36a9.7 9.7 0 0 0 4.38-2.27c.37.33.77.62 1.2.88l.5-1.25a6.9 6.9 0 0 1-.7-.96Z"/></svg>
+    <select class="lang-select"><option value="en">English</option><option value="es">Español</option></select>
+    <svg class="caret" viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><path fill="currentColor" d="M11.6 6.5 8 10.1 4.4 6.5h7.2Z"/></svg>
+  </label>
+  <p class="footer__brand">Reelhouse is a design preview, not a real service. Photos: picsum.photos.</p>
+</footer>
+
+<dialog class="modal" id="modal">
+  <img class="modal__img" alt="">
+  <div class="modal__body">
+    <h3 class="modal__title"></h3>
+    <p class="modal__meta"></p>
+    <p class="modal__desc"></p>
+    <button class="btn btn--red btn--lg modal__cta" type="button">Get Started
+      <svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><path fill="currentColor" d="M15.59 12 8.3 4.7l1.4-1.4 8 8c.4.39.4 1.02 0 1.41l-8 8-1.4-1.42L15.58 12Z"/></svg>
+    </button>
+  </div>
+  <button class="modal__close" type="button" aria-label="Close">
+    <svg viewBox="0 0 24 24" width="24" height="24"><path fill="currentColor" d="M10.59 12 4.54 5.96l1.42-1.42L12 10.59l6.04-6.05 1.42 1.42L13.41 12l6.05 6.04-1.42 1.42L12 13.41l-6.04 6.05-1.42-1.42L10.59 12Z"/></svg>
+  </button>
+</dialog>
+
+<script src="app.js"></script>
+</body>
+</html>

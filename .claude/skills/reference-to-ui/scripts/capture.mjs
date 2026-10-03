@@ -8,7 +8,7 @@ const [target, outDir = 'ref'] = process.argv.slice(2);
 if (!target) { console.error('Usage: node capture.mjs <url|file.html> <outDir>'); process.exit(1); }
 fs.mkdirSync(outDir, { recursive: true });
 
-const browser = await launch();
+const browser = await launch([target]);
 const report = { source: target, viewports: {} };
 for (const [name, vp] of Object.entries(VIEWPORTS)) {
   const page = await browser.newPage({ viewport: vp, deviceScaleFactor: 1 });
