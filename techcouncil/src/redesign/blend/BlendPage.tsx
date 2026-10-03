@@ -16,7 +16,7 @@ import { IntroContext } from '@/lib/intro';
 import { EASE_OUT, span } from '@/lib/motion';
 import { useSmoothScroll } from '@/lib/smoothScroll';
 import { CATEGORY_GLASS, paintNightStrip, wallUrl } from './night';
-import { cutOpening, drawGateway, drawMedallion, layoutGateway, layoutMedallion, warmGateway, warmMedallion, type Gateway, type Medallion } from './journey';
+import { cutOpening, drawCascade, drawGateway, drawMedallion, layoutGateway, layoutMedallion, warmGateway, warmMedallion, type Gateway, type Medallion } from './journey';
 import { DomeCanvas } from './JourneyParts';
 import { MosaicAbout, MosaicFaq, MosaicFooter, MosaicFounders, MosaicProjects, useTileBorders } from './sections';
 
@@ -74,15 +74,16 @@ function HeroCopy({ align = 'left' }: { align?: 'left' | 'center' }) {
  * Every room after is entered a different way; the page ends pulling back
  * out of a tiled gateway.
  */
-type Hero = 'square' | 'star' | 'dome';
+type Hero = 'cascade' | 'square' | 'star' | 'dome';
 const HEROES: { id: Hero; label: string }[] = [
+  { id: 'cascade', label: 'Falling tiles' },
   { id: 'star', label: 'Golden star' },
   { id: 'square', label: 'Night square' },
   { id: 'dome', label: 'Under the dome' },
 ];
 function readHero(): Hero {
   const q = new URLSearchParams(window.location.search).get('hero');
-  return q === 'square' || q === 'dome' ? q : 'star';
+  return q === 'square' || q === 'dome' || q === 'star' ? q : 'cascade';
 }
 /** The opening's scroll, in screens; `at` turns a point in it into progress. */
 const SCROLL = 2.8;
@@ -96,6 +97,7 @@ const res = () => Math.min(window.devicePixelRatio || 1, 1.75);
 const TIMING: Record<Hero, { move: [number, number]; words: [number, number] }> = {
   square: { move: [at(0.08), at(1.45)], words: [at(1.5), at(2.45)] },
   star: { move: [at(0.25), at(1.25)], words: [at(1.3), at(2.3)] },
+  cascade: { move: [at(0.25), at(1.25)], words: [at(1.3), at(2.3)] },
   dome: { move: [at(0.06), at(0.4)], words: [at(0.55), at(1.8)] },
 };
 
@@ -117,7 +119,7 @@ function Opening({ hero }: { hero: Hero }) {
   // The line draws the opening artwork once on arrival (a few seconds), then scroll takes over.
   const intro = useMotionValue(0);
   useEffect(() => {
-    const c = animate(intro, 1.25, { duration: hero === 'dome' ? 3.4 : 2.6, ease: [0.33, 0, 0.2, 1], delay: 0.25 });
+    const c = animate(intro, 1.25, { duration: hero === 'dome' ? 3.4 : hero === 'cascade' ? 3.2 : 2.6, ease: [0.33, 0, 0.2, 1], delay: 0.25 });
     return () => c.stop();
   }, [hero, intro]);
 
@@ -165,6 +167,12 @@ function Opening({ hero }: { hero: Hero }) {
       front.style.visibility = k >= 0.995 ? 'hidden' : 'visible';
       if (k < 0.995) drawMedallion(front.getContext('2d')!, g.medal, r, fr, k);
     }
+    if (hero === 'cascade' && g.medal) {
+      front.style.visibility = k >= 0.995 ? 'hidden' : 'visible';
+      const built = Math.min(1, intro.get() / 1.25);
+      if (k > 0 || built >= 1) drawMedallion(front.getContext('2d')!, g.medal, r, 1.2, k);
+      else drawCascade(front.getContext('2d')!, g.medal, r, built);
+    }
   };
 
   useEffect(() => {
@@ -210,7 +218,7 @@ function Opening({ hero }: { hero: Hero }) {
         }
         g.sky = sky;
       }
-      if (hero === 'star') {
+      if (hero === 'star' || hero === 'cascade') {
         g.medal = layoutMedallion(W, H, 5);
         warmMedallion(g.medal, r);
       }
@@ -265,11 +273,11 @@ function Opening({ hero }: { hero: Hero }) {
         </div>
         <canvas ref={backCv} aria-hidden className="pointer-events-none absolute inset-0 h-full w-full" />
         <canvas ref={frontCv} aria-hidden className="pointer-events-none absolute inset-0 h-full w-full" />
-        {hero === 'star' && <div aria-hidden className="pointer-events-none absolute inset-0 bg-[linear-gradient(90deg,rgba(0,0,0,0.92)_0%,rgba(0,0,0,0.55)_42%,rgba(0,0,0,0)_68%)]" />}
+        {(hero === 'star' || hero === 'cascade') && <div aria-hidden className="pointer-events-none absolute inset-0 bg-[linear-gradient(90deg,rgba(0,0,0,0.92)_0%,rgba(0,0,0,0.55)_42%,rgba(0,0,0,0)_68%)] max-md:bg-[linear-gradient(0deg,rgba(0,0,0,0.95)_0%,rgba(0,0,0,0.8)_45%,rgba(0,0,0,0)_75%)]" />}
         {hero === 'square' && <div aria-hidden className="pointer-events-none absolute inset-x-0 top-0 h-[68%] bg-gradient-to-b from-black/90 via-black/70 to-transparent" />}
-        <div ref={copyBox} className={`absolute inset-0 flex ${hero === 'star' ? 'items-end' : hero === 'dome' ? 'items-center' : 'items-start'}`}>
-          <div className={`container-x ${hero === 'star' ? 'pb-[calc(5rem+var(--bar,0px))]' : hero === 'dome' ? 'text-center' : 'pt-[calc(110px+var(--bar,0px))] text-center'}`}>
-            <HeroCopy align={hero === 'star' ? 'left' : 'center'} />
+        <div ref={copyBox} className={`absolute inset-0 flex ${hero === 'star' || hero === 'cascade' ? 'items-end' : hero === 'dome' ? 'items-center' : 'items-start'}`}>
+          <div className={`container-x ${hero === 'star' || hero === 'cascade' ? 'pb-[calc(5rem+var(--bar,0px))]' : hero === 'dome' ? 'text-center' : 'pt-[calc(110px+var(--bar,0px))] text-center'}`}>
+            <HeroCopy align={hero === 'star' || hero === 'cascade' ? 'left' : 'center'} />
           </div>
         </div>
       </div>

@@ -670,3 +670,65 @@ export function cutOpening(ctx: CanvasRenderingContext2D, g: Gateway, res: numbe
   ctx.fill(g.inner);
   ctx.restore();
 }
+
+/**
+ * The medallion assembling itself: tiles drop in from above, nearest the
+ * heart first, each settling with a small bounce and a flash of glaze as it
+ * lands. `t` runs 0 → 1 over the assembly; once done the frame is the
+ * finished medallion, ready for drawMedallion to open.
+ */
+export function drawCascade(ctx: CanvasRenderingContext2D, g: Medallion, res: number, t: number) {
+  const { W, H, cx, cy } = g;
+  ctx.setTransform(res, 0, 0, res, 0, 0);
+  ctx.clearRect(0, 0, W, H);
+  warmMedallion(g, res);
+  if (t >= 1) {
+    ctx.drawImage(g.cache!.cv, 0, 0, W, H);
+    return;
+  }
+  ctx.fillStyle = '#050403';
+  ctx.fillRect(0, 0, W, H);
+  // The great star lands first.
+  const sf = clamp01(t * 6);
+  const bigY = (1 - (1 - Math.pow(1 - sf, 3))) * -H * 0.5;
+  const lw = g.cell * 0.07;
+  for (const tl of g.tiles) {
+    const start = 0.12 + tl.d * 0.72;
+    const f = clamp01((t - start) / 0.16);
+    if (f <= 0) continue;
+    // Fall with gravity, a small bounce on landing.
+    const fall = f < 0.8 ? 1 - Math.pow(f / 0.8, 2) : 0;
+    const bounce = f >= 0.8 ? Math.sin(((f - 0.8) / 0.2) * Math.PI) * 0.04 : 0;
+    const dy = -(fall + bounce) * (H * 0.55 + tl.y * 0.2);
+    const spin = fall * (tl.x % 2 ? 0.6 : -0.6);
+    ctx.save();
+    ctx.translate(tl.x, tl.y + dy);
+    ctx.rotate(spin);
+    ctx.translate(-tl.x, -tl.y);
+    ctx.globalAlpha = Math.min(1, f * 2);
+    ctx.fillStyle = tl.fill;
+    ctx.fill(tl.p);
+    ctx.lineWidth = lw;
+    ctx.strokeStyle = rgb(C.bone, 0.9);
+    ctx.stroke(tl.p);
+    if (f > 0.75 && f < 1) head(ctx, tl.p, (1 - f) * 4, 1);
+    ctx.restore();
+  }
+  ctx.globalAlpha = sf;
+  ctx.save();
+  ctx.translate(0, bigY);
+  const big = star(cx, cy, g.R, 8, 0.41);
+  ctx.fillStyle = rgb(C.ink, 1);
+  ctx.fill(big);
+  ctx.strokeStyle = GOLD;
+  ctx.lineWidth = 2;
+  ctx.stroke(big);
+  ctx.restore();
+  ctx.globalAlpha = 1;
+  const lit = ctx.createRadialGradient(cx, cy * 0.4, 10, cx, cy, Math.hypot(W, H) * 0.62);
+  lit.addColorStop(0, 'rgba(0,0,0,0)');
+  lit.addColorStop(0.55, 'rgba(0,0,0,0.4)');
+  lit.addColorStop(1, 'rgba(0,0,0,0.94)');
+  ctx.fillStyle = lit;
+  ctx.fillRect(0, 0, W, H);
+}
