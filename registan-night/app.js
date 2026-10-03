@@ -1,7 +1,7 @@
 // Scroll-scrubbed footage: frame N of the night clip is drawn to a canvas
 // based on how far the user has scrolled through #flight.
 (() => {
-  const FRAMES = 121;
+  const FRAMES = 241;
   const section = document.getElementById('flight');
   const canvas = document.getElementById('canvas');
   const ctx = canvas.getContext('2d');
@@ -41,6 +41,8 @@
     const cw = canvas.width, ch = canvas.height;
     const s = Math.max(cw / img.naturalWidth, ch / img.naturalHeight); // cover
     const w = img.naturalWidth * s, h = img.naturalHeight * s;
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = 'high';
     ctx.drawImage(img, (cw - w) / 2, (ch - h) / 2, w, h);
   }
 
@@ -78,11 +80,12 @@
 
   // Load frame 1 first, then spread the rest so any scroll position fills in early.
   const order = [0];
-  for (let step = 64; step >= 1; step = Math.floor(step / 2)) {
-    for (let i = 0; i < FRAMES; i += step) if (!order.includes(i)) order.push(i);
+  const seen = new Set(order);
+  for (let step = 128; step >= 1; step = Math.floor(step / 2)) {
+    for (let i = 0; i < FRAMES; i += step) if (!seen.has(i)) { seen.add(i); order.push(i); }
   }
   const queue = order.slice();
-  const CONCURRENCY = 6;
+  const CONCURRENCY = 8;
   function next() {
     const i = queue.shift();
     if (i === undefined) return;
