@@ -76,13 +76,13 @@ function HeroCopy({ align = 'left' }: { align?: 'left' | 'center' }) {
  */
 type Hero = 'square' | 'star' | 'dome';
 const HEROES: { id: Hero; label: string }[] = [
-  { id: 'square', label: 'Night square' },
   { id: 'star', label: 'Golden star' },
+  { id: 'square', label: 'Night square' },
   { id: 'dome', label: 'Under the dome' },
 ];
 function readHero(): Hero {
   const q = new URLSearchParams(window.location.search).get('hero');
-  return q === 'star' || q === 'dome' ? q : 'square';
+  return q === 'square' || q === 'dome' ? q : 'star';
 }
 /** The opening's scroll, in screens; `at` turns a point in it into progress. */
 const SCROLL = 2.8;
