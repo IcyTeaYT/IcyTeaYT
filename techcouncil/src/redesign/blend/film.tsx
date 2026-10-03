@@ -1,5 +1,5 @@
-import { motion, useMotionValueEvent, useScroll, useTransform, type MotionValue } from 'motion/react';
-import { useEffect, useReducer, useRef, type ReactNode } from 'react';
+import { motion, useScroll, useTransform, type MotionValue } from 'motion/react';
+import { useEffect, useRef, type ReactNode } from 'react';
 import { HERO, MISSION } from '@/data/copy';
 import { EASE_OUT, span } from '@/lib/motion';
 import { useSmoothScroll } from '@/lib/smoothScroll';
@@ -9,8 +9,8 @@ import { SplitText } from '@/components/ui/SplitText';
 import { DomeCanvas } from './JourneyParts';
 
 /**
- * The film landings: a ten-second shot of the Registan, cut into stills and
- * played by scroll, with big type over it. Two cuts:
+ * The film landings: a ten-second shot of the Registan, played by scroll,
+ * with big type over it. Two cuts:
  *   night  full-bleed from the first frame; the headline sits low over the lit
  *          square and three short lines take over as the camera pushes in
  *   day    the shot opens as a framed card under the headline and grows to
@@ -19,7 +19,6 @@ import { DomeCanvas } from './JourneyParts';
  */
 export type Cut = 'night' | 'day';
 
-const FRAMES = 100;
 const SCROLL = 3;
 const at = (s: number) => s / SCROLL;
 const seg = (v: number, a: number, b: number) => Math.min(1, Math.max(0, (v - a) / (b - a)));
@@ -49,62 +48,6 @@ const TIMES: Record<Cut, { film: [number, number]; title: [number, number]; beat
     words: [at(1.95), at(2.75)],
   },
 };
-
-/**
- * Loads a frame set coarse to fine, so scrubbing works before every still has
- * arrived; then swaps in the full-quality stills, nearest the camera first.
- */
-function useFrames(cut: Cut, set: 'd' | 'm' | null, near: () => number, onLoad: () => void) {
-  const imgs = useRef<{ lo: (HTMLImageElement | null)[]; hi: (HTMLImageElement | null)[] }>({ lo: [], hi: [] });
-  useEffect(() => {
-    if (!set) return;
-    const lo: (HTMLImageElement | null)[] = Array(FRAMES).fill(null);
-    const hi: (HTMLImageElement | null)[] = Array(FRAMES).fill(null);
-    imgs.current = { lo, hi };
-    const order: number[] = [];
-    for (const step of [64, 32, 16, 8, 4, 2, 1]) for (let i = 0; i < FRAMES; i += step) if (!order.includes(i)) order.push(i);
-    if (!order.includes(FRAMES - 1)) order.splice(1, 0, FRAMES - 1);
-    const hiDir = set === 'd' ? 'hd' : 'mhd';
-    const asked = new Set<number>();
-    let alive = true;
-    let next = 0;
-    const pull = () => {
-      if (!alive) return;
-      let i: number;
-      let tier: 'lo' | 'hi';
-      if (next < order.length) {
-        i = order[next++]!;
-        tier = 'lo';
-      } else {
-        // The full-quality still nearest where the camera is now.
-        const at = near();
-        let best = -1;
-        for (let d = 0; d < FRAMES && best < 0; d++) for (const j of [at - d, at + d]) if (j >= 0 && j < FRAMES && !asked.has(j)) { best = j; break; }
-        if (best < 0) return;
-        asked.add(best);
-        i = best;
-        tier = 'hi';
-      }
-      const img = new Image();
-      img.decoding = 'async';
-      img.src = `/landing/${cut}/${tier === 'lo' ? set : hiDir}/${String(i + 1).padStart(3, '0')}.webp`;
-      img
-        .decode()
-        .then(() => {
-          if (!alive) return;
-          (tier === 'lo' ? lo : hi)[i] = img;
-          onLoad();
-        })
-        .catch(() => {})
-        .finally(pull);
-    };
-    for (let k = 0; k < 6; k++) pull();
-    return () => {
-      alive = false;
-    };
-  }, [cut, set]);
-  return imgs;
-}
 
 function Cta() {
   const { scrollTo } = useSmoothScroll();
@@ -164,71 +107,45 @@ function MissionWord({ children, p, range }: { children: string; p: MotionValue<
 export function FilmOpening({ cut }: { cut: Cut }) {
   const section = useRef<HTMLElement>(null);
   const stage = useRef<HTMLDivElement>(null);
-  const canvas = useRef<HTMLCanvasElement>(null);
+  const video = useRef<HTMLVideoElement>(null);
   const { scrollYProgress: p } = useScroll({ target: section, offset: ['start start', 'end end'] });
   const T = TIMES[cut];
 
-  // Portrait screens get stills cropped around the middle madrasa.
-  const set = useRef<'d' | 'm' | null>(null);
-  const shown = useRef('');
-  const draw = () => {
-    const c = canvas.current;
-    const el = stage.current;
-    if (!c || !el) return;
-    const want = Math.round(seg(p.get(), ...T.film) * (FRAMES - 1));
-    // The full-quality still if it has arrived, else the nearest light one.
-    const { lo, hi } = frames.current;
-    let img: HTMLImageElement | null = hi[want] ?? null;
-    let key = `h${want}`;
-    for (let d = 0; d < FRAMES && !img; d++) {
-      for (const i of [want - d, want + d]) {
-        const f = lo[i];
-        if (f) {
-          img = f;
-          key = `l${i}`;
-          break;
-        }
-      }
-    }
-    if (!img || key === shown.current) return;
-    shown.current = key;
-    const ctx = c.getContext('2d')!;
-    ctx.imageSmoothingQuality = 'high';
-    const s = Math.max(c.width / img.naturalWidth, c.height / img.naturalHeight);
-    const w = img.naturalWidth * s;
-    const h = img.naturalHeight * s;
-    ctx.drawImage(img, (c.width - w) / 2, (c.height - h) / 2, w, h);
-  };
-  const raf = useRef(0);
-  const frame = () => {
-    cancelAnimationFrame(raf.current);
-    raf.current = requestAnimationFrame(draw);
-  };
-  const frames = useFrames(cut, set.current, () => Math.round(seg(p.get(), ...T.film) * (FRAMES - 1)), frame);
-  const [, force] = useForce();
-
+  // The shot is downloaded whole, so any moment in it can be shown at once; until
+  // then its first frame stands in. Scroll sets where the camera should be and
+  // the playhead eases towards it.
   useEffect(() => {
-    const el = stage.current!;
-    const ro = new ResizeObserver(() => {
-      const W = el.clientWidth;
-      const H = el.clientHeight;
-      if (!W || !H) return;
-      const r = Math.min(window.devicePixelRatio || 1, 2);
-      const c = canvas.current!;
-      c.width = Math.round(W * r);
-      c.height = Math.round(H * r);
-      shown.current = '';
-      const want = W / H < 0.9 ? 'm' : 'd';
-      if (want !== set.current) {
-        set.current = want;
-        force();
-      }
-      frame();
-    });
-    ro.observe(el);
-    return () => ro.disconnect();
-  }, []);
-  useMotionValueEvent(p, 'change', frame);
+    const v = video.current!;
+    let alive = true;
+    let url = '';
+    fetch(`/landing/${cut}.mp4`)
+      .then((r) => r.blob())
+      .then((b) => {
+        if (!alive) return;
+        url = URL.createObjectURL(b);
+        v.src = url;
+      })
+      .catch(() => {
+        if (alive) v.src = `/landing/${cut}.mp4`;
+      });
+    let cur = 0;
+    let raf = 0;
+    const tick = () => {
+      raf = requestAnimationFrame(tick);
+      const v2 = p.get();
+      if (!v.duration || v.readyState < 1 || v2 > T.fade[1] + 0.02) return;
+      const target = seg(v2, ...T.film) * (v.duration - 0.05);
+      cur += (target - cur) * 0.2;
+      if (Math.abs(target - cur) < 0.004) cur = target;
+      if (!v.seeking && Math.abs(v.currentTime - cur) > 0.008) v.currentTime = cur;
+    };
+    raf = requestAnimationFrame(tick);
+    return () => {
+      alive = false;
+      cancelAnimationFrame(raf);
+      if (url) URL.revokeObjectURL(url);
+    };
+  }, [cut]);
 
   // Copy and grade.
   const titleO = useTransform(p, ...span(T.title, [1, 0]));
@@ -278,7 +195,7 @@ export function FilmOpening({ cut }: { cut: Cut }) {
 
         {/* The film. */}
         <motion.div className="absolute inset-0" style={{ opacity: filmO, clipPath: cut === 'day' ? clip : undefined }}>
-          <motion.canvas ref={canvas} aria-hidden className="absolute inset-0 h-full w-full" style={{ scale: filmScale }} />
+          <motion.video ref={video} aria-hidden muted playsInline preload="auto" poster={`/landing/${cut}.jpg`} className="absolute inset-0 h-full w-full object-cover" style={{ scale: filmScale }} />
           {cut === 'night' ? (
             <>
               <div aria-hidden className="absolute inset-0 bg-[radial-gradient(120%_90%_at_50%_45%,rgba(0,0,0,0)_45%,rgba(0,0,0,0.65)_100%)]" />
@@ -349,6 +266,3 @@ export function FilmOpening({ cut }: { cut: Cut }) {
   );
 }
 
-function useForce() {
-  return useReducer((n: number) => n + 1, 0);
-}
