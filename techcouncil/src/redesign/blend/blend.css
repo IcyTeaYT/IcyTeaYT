@@ -6,8 +6,7 @@ html[data-world='blend'] body {
 
 
 /* Every section sits on the same faint wall of dark glass (see night.ts wallUrl). */
-.bl-wall,
-html[data-world='blend'] #suggestions {
+.bl-wall {
   background-color: #000;
   background-image: var(--bl-wall);
   background-size: 288px 288px;
@@ -16,8 +15,14 @@ html[data-world='blend'] #suggestions {
 /* The idea form is a panel of orange glass, like every panel on the page. */
 html[data-world='blend'] #suggestions form,
 html[data-world='blend'] #suggestions [role='status'] {
-  border: 12px solid transparent;
-  border-image: var(--bl-border-orange) 24 round;
+  border: 1px solid rgba(184, 148, 88, 0.38);
   background: #070707;
   padding: 24px;
+}
+
+/* A room's content rises in under its title as the camera arrives through the gateway. */
+@media (prefers-reduced-motion: no-preference) {
+  .bl-room {
+    margin-top: -30svh;
+  }
 }

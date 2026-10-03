@@ -1,6 +1,6 @@
 import './blend.css';
 import '@fontsource-variable/jetbrains-mono';
-import { motion, useMotionValueEvent, useReducedMotion, useScroll, useTransform } from 'motion/react';
+import { motion, useMotionValueEvent, useReducedMotion, useScroll, useTransform, type MotionValue } from 'motion/react';
 import { useEffect, useRef, useState } from 'react';
 import { Shell } from '../shared/Shell';
 import { AnnouncementBar, BAR_HEIGHT } from '@/components/AnnouncementBar';
@@ -17,8 +17,8 @@ import { EASE_OUT, span } from '@/lib/motion';
 import { useSmoothScroll } from '@/lib/smoothScroll';
 import { drawFacade, layoutFacade, throughScale, type Facade } from '../mosaic/paint';
 import { CATEGORY_GLASS, courses, paintNightMural, paintNightStrip, wallUrl } from './night';
-import { drawLit, layoutTileText, paintWall, type TileText } from './tileText';
-import { Frieze, MosaicAbout, MosaicFaq, MosaicFooter, MosaicFounders, MosaicProjects, useTileBorders } from './sections';
+import { DomeCanvas } from './JourneyParts';
+import { MosaicAbout, MosaicFaq, MosaicFooter, MosaicFounders, MosaicProjects, useTileBorders } from './sections';
 
 /**
  * Option: the original site's black and white, with the Mosaic laid in dark
@@ -89,7 +89,6 @@ interface Geo {
   flower: { x: number; y: number };
   f: Facade;
   smax: number;
-  tt: TileText | null;
 }
 
 /**
@@ -97,8 +96,14 @@ interface Geo {
  *   0.1–1.3   fly through the lattice (its doors part) to the mural
  *   1.3–1.65  a beat on the flower
  *   1.65–2.2  dive into the flower until the glass goes dark
- *   1.95–3.1  inside: a wall of dark tiles, and the mission lights up in it
+ *   1.95–3.1  inside: the camera looks up into a star dome the golden line
+ *             draws, and the mission lights up word by word beneath it
  */
+function MissionWord({ children, p, range }: { children: string; p: MotionValue<number>; range: [number, number] }) {
+  const opacity = useTransform(p, ...span(range, [0.18, 1]));
+  return <motion.span style={{ opacity }}>{children} </motion.span>;
+}
+
 function Opening() {
   const section = useRef<HTMLElement>(null);
   const stage = useRef<HTMLDivElement>(null);
@@ -107,12 +112,12 @@ function Opening() {
   const facadeCv = useRef<HTMLCanvasElement>(null);
   const signBox = useRef<HTMLDivElement>(null);
   const wallBox = useRef<HTMLDivElement>(null);
-  const wallCv = useRef<HTMLCanvasElement>(null);
-  const litCv = useRef<HTMLCanvasElement>(null);
   const [geo, setGeo] = useState<Geo | null>(null);
   const geoRef = useRef<Geo | null>(null);
   geoRef.current = geo;
   const { scrollYProgress: p } = useScroll({ target: section, offset: ['start start', 'end end'] });
+  const domeFront = useTransform(p, (v) => seg(v, at(1.95), at(3.1)) * 1.25);
+  const words = MISSION.line.split(' ');
   const support = useTransform(p, ...span([at(3.0), at(3.25)], [0, 1]));
   const supportY = useTransform(p, ...span([at(3.0), at(3.25)], [20, 0]));
 
@@ -134,7 +139,7 @@ function Opening() {
       const fc = facadeCv.current!;
       fc.width = Math.round(W * dpr);
       fc.height = Math.round(H * dpr);
-      setGeo({ W, H, dpr, flower, f, smax: throughScale(W, H, f), tt: null });
+      setGeo({ W, H, dpr, flower, f, smax: throughScale(W, H, f) });
       const mcv = muralCv.current!;
       mcv.style.opacity = '0';
       const paint = async () => {
@@ -142,14 +147,6 @@ function Opening() {
         mcv.style.width = `${W}px`;
         mcv.style.height = `${H}px`;
         mcv.style.opacity = '1';
-        // The letters are cut from the real type, so wait for it.
-        await document.fonts.load('650 100px "Inter Variable"').catch(() => undefined);
-        const pad = Math.max(0, (W - 1200) / 2) + (W >= 640 ? 32 : 20);
-        const tt = layoutTileText(W, H, MISSION.line, pad);
-        paintWall(wallCv.current!, W, H, tt.ts, dpr);
-        wallCv.current!.style.width = litCv.current!.style.width = `${W}px`;
-        wallCv.current!.style.height = litCv.current!.style.height = `${H}px`;
-        setGeo((g) => (g && g.W === W && g.H === H ? { ...g, tt } : g));
       };
       const w = window as Window & { requestIdleCallback?: (cb: () => void, o?: { timeout: number }) => number };
       if (w.requestIdleCallback) w.requestIdleCallback(() => void paint(), { timeout: 400 });
@@ -201,8 +198,7 @@ function Opening() {
       const land = settle(seg(v, at(1.95), at(2.4)));
       wallBox.current.style.opacity = String(inn);
       wallBox.current.style.visibility = inn <= 0 ? 'hidden' : 'visible';
-      wallBox.current.style.transform = `scale(${1.25 - 0.25 * land})`;
-      if (g.tt && litCv.current && inn > 0) drawLit(litCv.current, W, H, g.dpr, g.tt, seg(v, at(2.3), at(3.1)));
+      wallBox.current.style.transform = `scale(${1.15 - 0.15 * land})`;
     }
   };
   useEffect(() => apply(p.get()), [geo]); // first frame and every re-layout
@@ -227,18 +223,24 @@ function Opening() {
             </div>
           </div>
         </div>
-        {/* Inside the flower: the mission, spelled in tiles. */}
+        {/* Inside the flower: a star dome overhead, the mission lit beneath it. */}
         <div ref={wallBox} className="pointer-events-none absolute inset-0 origin-center" style={{ visibility: 'hidden' }}>
-          <canvas ref={wallCv} aria-hidden className="absolute left-0 top-0" />
-          <canvas ref={litCv} aria-hidden className="absolute left-0 top-0" />
-          <h2 id="mission-title" className="sr-only">
-            {MISSION.line}
-          </h2>
-          {geo?.tt && (
-            <motion.p className="absolute max-w-[46ch] text-body-lg text-fog" style={{ left: geo.tt.left, top: geo.tt.bottom + 24, right: 20, opacity: support, y: supportY }}>
+          <DomeCanvas progress={domeFront} seed={41} />
+          <div className="absolute inset-0 flex flex-col items-center justify-center px-5 text-center">
+            <h2 id="mission-title" className="type-display max-w-[15ch] text-[clamp(2.4rem,5.4vw,4.8rem)]">
+              <span className="sr-only">{MISSION.line}</span>
+              <span aria-hidden>
+                {words.map((w, i) => (
+                  <MissionWord key={i} p={p} range={[MISSION_AT + (i / words.length) * (at(3.0) - MISSION_AT), MISSION_AT + ((i + 1) / words.length) * (at(3.0) - MISSION_AT)]}>
+                    {w}
+                  </MissionWord>
+                ))}
+              </span>
+            </h2>
+            <motion.p className="mt-7 max-w-[46ch] text-body-lg text-fog" style={{ opacity: support, y: supportY }}>
               {MISSION.support}
             </motion.p>
-          )}
+          </div>
         </div>
       </div>
     </section>
@@ -314,13 +316,9 @@ export default function BlendPage() {
             <Opening />
           )}
           <MosaicAbout />
-          <Frieze />
           <MosaicProjects />
-          <Frieze />
           <MosaicFounders />
-          <Frieze />
           <SuggestionBox renderSuccess={(o) => <TileSuccess {...o} />} />
-          <Frieze />
           <MosaicFaq />
         </main>
         <MosaicFooter />

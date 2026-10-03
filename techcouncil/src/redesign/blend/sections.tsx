@@ -10,7 +10,7 @@ import { featuredProject } from '@/data/projects';
 import { EASE_OUT } from '@/lib/motion';
 import { useSmoothScroll } from '@/lib/smoothScroll';
 import { drawArchLaid, paintNightArch, paintNightStrip, PETAL_RGB, T, tileBorderUrl, type ArchMotif } from './night';
-import { drawLit, layoutTileLine, paintWall, type TileText } from './tileText';
+import { FooterDome, Gateway, ROOM_PULL } from './JourneyParts';
 
 /**
  * The sections after the opening, in the opening's own grammar. Everything
@@ -81,16 +81,21 @@ export function Panel({ petal, children, className = '', style }: { petal: Petal
     <motion.div
       ref={ref}
       className={`bg-[#070707] ${className}`}
-      style={{ ...style, clipPath, borderStyle: 'solid', borderWidth: T, borderImage: `var(--bl-border-${petal}) ${T * 2} round` }}
+      data-petal={petal}
+      style={{ ...style, clipPath, border: '1px solid rgba(184,148,88,0.38)' }}
     >
       {children}
     </motion.div>
   );
 }
 
-/** A single glass tile, as a bullet or marker, in a petal colour. */
-function Tile({ petal, className = '' }: { petal: Petal; className?: string }) {
-  return <span aria-hidden className={`inline-block h-[10px] w-[10px] shrink-0 rounded-[1px] shadow-[inset_0_1.5px_0_rgba(255,255,255,0.3)] ${className}`} style={{ background: PETAL_CSS[petal] }} />;
+/** A small eight-point star in gold, the building's mark, as a bullet or marker. */
+function Tile({ petal: _petal, className = '' }: { petal: Petal; className?: string }) {
+  return (
+    <svg aria-hidden viewBox="0 0 20 20" className={`h-[12px] w-[12px] shrink-0 ${className}`}>
+      <path d="M10 0 12.4 4.2 17.1 2.9 15.8 7.6 20 10 15.8 12.4 17.1 17.1 12.4 15.8 10 20 7.6 15.8 2.9 17.1 4.2 12.4 0 10 4.2 7.6 2.9 2.9 7.6 4.2Z" fill="#b89458" />
+    </svg>
+  );
 }
 
 /** One course of dark glass between sections, laid left to right as it scrolls past. */
@@ -175,11 +180,11 @@ function Cell({ w, i }: { w: (typeof WORK)[number]; i: number }) {
 
 export function MosaicAbout() {
   return (
-    <section id="about" data-surface="dark" aria-labelledby="about-title" className="bl-wall relative pb-24 pt-24 text-paper sm:pb-32 sm:pt-32">
-      <div className="container-x">
-        <LaidHeading id="about-title" className="max-w-[18ch]">
-          {ABOUT.title}
-        </LaidHeading>
+    <section id="about" data-surface="dark" aria-labelledby="about-title" className="relative bg-obsidian pb-24 text-paper sm:pb-32">
+      <Gateway seed={11}>
+          <h2 id="about-title" className="type-display mx-auto max-w-[14ch] text-[clamp(2.6rem,6vw,5.5rem)]">{ABOUT.title}</h2>
+        </Gateway>
+      <div className={`container-x relative ${ROOM_PULL}`}>
         <div className="mt-8 grid max-w-[980px] gap-4 md:grid-cols-2 md:gap-10">
           {ABOUT.body.map((t) => (
             <p key={t} className="text-body-lg text-fog">
@@ -222,9 +227,11 @@ export function MosaicProjects() {
   const featureP = useTransform(lp, (v) => (reduce ? 1 : v));
   if (!p) return null;
   return (
-    <section id="projects" data-surface="dark" aria-labelledby="projects-title" className="bl-wall relative py-24 text-paper sm:py-32">
-      <div className="container-x">
-        <LaidHeading id="projects-title">Things we’ve shipped.</LaidHeading>
+    <section id="projects" data-surface="dark" aria-labelledby="projects-title" className="relative bg-obsidian pb-24 text-paper sm:pb-32">
+      <Gateway seed={23}>
+          <h2 id="projects-title" className="type-display text-[clamp(2.6rem,6vw,5.5rem)]">Things we’ve shipped.</h2>
+        </Gateway>
+      <div className={`container-x relative ${ROOM_PULL}`}>
         <p className="mt-5 max-w-[46ch] text-body-lg text-fog">Real platforms, used by real people at TIS.</p>
 
         {/* The plaque: TISMUN's mark set into a panel of teal glass. */}
@@ -303,11 +310,11 @@ function Niche({ f, i }: { f: (typeof founders)[number]; i: number }) {
 
 export function MosaicFounders() {
   return (
-    <section id="founders" data-surface="dark" aria-labelledby="founders-title" className="bl-wall relative py-24 text-paper sm:py-32">
-      <div className="container-x">
-        <LaidHeading id="founders-title" className="max-w-[18ch]">
-          Three students. One campus to upgrade.
-        </LaidHeading>
+    <section id="founders" data-surface="dark" aria-labelledby="founders-title" className="relative bg-obsidian pb-24 text-paper sm:pb-32">
+      <Gateway seed={37}>
+          <h2 id="founders-title" className="type-display mx-auto max-w-[14ch] text-[clamp(2.6rem,6vw,5.5rem)]">Three students. One campus to upgrade.</h2>
+        </Gateway>
+      <div className={`container-x relative ${ROOM_PULL}`}>
         <p className="mt-5 max-w-[48ch] text-body-lg text-fog">The Tech Council was started by three TIS students who wanted to fix things, not just talk about them.</p>
         <div className="mt-14 grid gap-12 sm:grid-cols-2 sm:gap-8 lg:grid-cols-3 lg:gap-12">
           {founders.map((f, i) => (
@@ -349,7 +356,7 @@ function Question({ q, a }: { q: string; a: string }) {
 
 export function MosaicFaq() {
   return (
-    <section id="faq" data-surface="dark" aria-labelledby="faq-title" className="bl-wall relative py-24 text-paper sm:py-32">
+    <section id="faq" data-surface="dark" aria-labelledby="faq-title" className="relative bg-obsidian py-24 text-paper sm:py-32">
       <div className="container-x grid gap-12 md:grid-cols-[1fr_1.4fr] md:gap-16">
         <LaidHeading id="faq-title">Questions</LaidHeading>
         <Panel petal="cyan" className="px-5 sm:px-8">
@@ -375,64 +382,16 @@ const FOOT = [
   ['Questions', '#faq'],
 ] as const;
 
-/** "TIS Tech Council" in tiles, lit left to right as the footer comes up, as the mission was. */
-function SignOff() {
-  const box = useRef<HTMLDivElement>(null);
-  const wall = useRef<HTMLCanvasElement>(null);
-  const lit = useRef<HTMLCanvasElement>(null);
-  const st = useRef<{ W: number; H: number; tt: TileText; res: number } | null>(null);
-  // Lit by the time the page reaches its end, however short the footer's run.
-  const reduce = useReducedMotion();
-  const { scrollYProgress } = useScroll({ target: box, offset: ['start 0.95', 'end end'] });
-  const p = useTransform(scrollYProgress, (v) => (reduce ? 1 : Math.min(1, v * 1.15)));
-  const draw = (k: number) => {
-    const s = st.current;
-    if (s && lit.current) drawLit(lit.current, s.W, s.H, s.res, s.tt, k);
-  };
-  useEffect(() => {
-    const el = box.current!;
-    let last = 0;
-    const paint = async () => {
-      const W = el.clientWidth;
-      if (!W || W === last) return;
-      last = W;
-      await document.fonts.load('650 100px "Inter Variable"').catch(() => undefined);
-      const res = Math.min(window.devicePixelRatio || 1, 1.5);
-      const ts = W < 640 ? 5 : 8;
-      const { tt, H } = layoutTileLine(W, 'TIS Tech Council', ts);
-      paintWall(wall.current!, W, H, ts, res);
-      for (const c of [wall.current!, lit.current!]) {
-        c.style.width = `${W}px`;
-        c.style.height = `${H}px`;
-      }
-      el.style.height = `${H}px`;
-      st.current = { W, H, tt, res };
-      draw(p.get());
-    };
-    void paint();
-    const ro = new ResizeObserver(() => void paint());
-    ro.observe(el);
-    return () => ro.disconnect();
-  }, []);
-  const raf = useRef(0);
-  useMotionValueEvent(p, 'change', (k) => {
-    cancelAnimationFrame(raf.current);
-    raf.current = requestAnimationFrame(() => draw(k));
-  });
-  return (
-    <div ref={box} className="relative mt-20 w-full" aria-hidden>
-      <canvas ref={wall} className="absolute left-0 top-0" />
-      <canvas ref={lit} className="absolute left-0 top-0" />
-    </div>
-  );
-}
-
 export function MosaicFooter() {
   const { scrollTo } = useSmoothScroll();
   return (
-    <footer data-surface="dark" className="bl-wall relative text-paper">
-      <Frieze />
-      <div className="container-x pb-28 pt-20">
+    <footer data-surface="dark" className="relative bg-obsidian text-paper">
+      <FooterDome>
+        <LogoMark className="h-14 w-14" />
+        <p className="type-display mt-8 text-[clamp(2.8rem,7vw,6rem)]">TIS Tech Council</p>
+        <p className="mt-5 text-body-lg text-fog">{MOTTO}</p>
+      </FooterDome>
+      <div className="container-x pb-28 pt-10">
         <div className="flex flex-col gap-12 md:flex-row md:items-start md:justify-between">
           <div className="flex items-center gap-3">
             <LogoMark className="h-10 w-10" />
@@ -460,7 +419,6 @@ export function MosaicFooter() {
             </ul>
           </nav>
         </div>
-        <SignOff />
         <div className="mt-8 flex flex-col gap-2 border-t border-line-dark pt-6 text-body-sm text-fog sm:flex-row sm:items-center sm:justify-between">
           <p>© 2026 TIS Tech Council · Tashkent International School</p>
           <p className="flex items-center gap-3">
