@@ -224,49 +224,8 @@ export const CATEGORY_GLASS: Record<string, string> = {
   other: 'rgb(235,235,235)',
 };
 
-export type ArchMotif = 'code' | 'launch' | 'talk';
-
-/** The motif each arch carries in white glass at its heart, as strokes for tiles to follow. */
-function motifLines(cx: number, cy: number, s: number, motif: ArchMotif): Pt[][] {
-  const P = (x: number, y: number) => ({ x: cx + x * s, y: cy + y * s });
-  const seg = (pts: Pt[], n = 12) => {
-    const out: Pt[] = [];
-    for (let i = 0; i < pts.length - 1; i++)
-      for (let j = 0; j < n; j++) {
-        const t = j / n;
-        out.push({ x: pts[i]!.x + (pts[i + 1]!.x - pts[i]!.x) * t, y: pts[i]!.y + (pts[i + 1]!.y - pts[i]!.y) * t });
-      }
-    out.push(pts[pts.length - 1]!);
-    return out;
-  };
-  if (motif === 'code')
-    return [seg([P(-0.3, -0.32), P(-0.62, 0), P(-0.3, 0.32)]), seg([P(0.3, -0.32), P(0.62, 0), P(0.3, 0.32)]), seg([P(0.12, -0.42), P(-0.12, 0.42)])];
-  if (motif === 'launch') return [seg([P(-0.42, 0.4), P(0.38, -0.4)]), seg([P(-0.02, -0.44), P(0.42, -0.44), P(0.42, 0)]), seg([P(-0.62, 0.6), P(0.2, 0.6)])];
-  // A speech bubble: rounded box with a tail.
-  const w = 0.62;
-  const h = 0.38;
-  const r = 0.16;
-  const pts: Pt[] = [];
-  const corner = (x: number, y: number, a0: number) => {
-    for (let i = 0; i <= 8; i++) {
-      const a = a0 + (i / 8) * (Math.PI / 2);
-      pts.push(P(x + Math.cos(a) * r, y + Math.sin(a) * r));
-    }
-  };
-  corner(w - r, -h + r, -Math.PI / 2);
-  corner(w - r, h - r, 0);
-  pts.push(P(-0.12, h), P(-0.36, h + 0.28), P(-0.3, h));
-  corner(-w + r, h - r, Math.PI / 2);
-  corner(-w + r, -h + r, Math.PI);
-  pts.push(P(w - r, -h));
-  return [seg(pts, 4)];
-}
-
-/**
- * An arched cell of dark glass laid in rings in one petal colour, with its
- * motif in white glass at the heart. Returns what the laying animation needs.
- */
-export function paintNightArch(canvas: HTMLCanvasElement, W: number, H: number, tile: number, res: number, color: Rgb, seed: number, motif: ArchMotif) {
+/** An arched cell of dark glass in one petal colour, laid in rings, for the "what we do" cells. */
+export function paintNightArch(canvas: HTMLCanvasElement, W: number, H: number, tile: number, res: number, color: Rgb, seed: number) {
   canvas.width = Math.round(W * res);
   canvas.height = Math.round(H * res);
   const ctx = canvas.getContext('2d')!;
@@ -275,12 +234,8 @@ export function paintNightArch(canvas: HTMLCanvasElement, W: number, H: number, 
   ctx.fillRect(0, 0, W, H);
   const L = new Layer(ctx, W, H, tile / 2, rng(seed));
   const r = W / 2;
-  // The figure first, as a mosaicist lays it; the rings then fill around it.
-  for (const line of motifLines(W / 2, r * 1.0, W * 0.34, motif)) L.row(line, false, tile * 0.95, () => [236, 236, 232], false, 0.06);
   const dim: Rgb = [color[0] * 0.35, color[1] * 0.35, color[2] * 0.35];
-  let rings = 0;
   for (let k = 0; k * tile < r; k++) {
-    rings = k + 1;
     const rr = r - (k + 0.5) * tile;
     const pts: Pt[] = [{ x: W / 2 - rr, y: H + tile }];
     for (let i = 0; i <= 40; i++) {
@@ -288,74 +243,8 @@ export function paintNightArch(canvas: HTMLCanvasElement, W: number, H: number, 
       pts.push({ x: W / 2 + Math.cos(a) * rr, y: r + Math.sin(a) * rr });
     }
     pts.push({ x: W / 2 + rr, y: H + tile });
-    const base: Rgb = k % 4 === 0 ? color : k % 4 === 2 ? [26, 26, 28] : dim;
-    L.row(pts, false, tile, () => (k > 3 ? (k % 2 ? [22, 22, 24] : dim) : base));
+    L.row(pts, false, tile, () => (k % 4 === 0 ? color : k % 4 === 2 ? [26, 26, 28] : dim));
   }
-  return { r, tile, rings };
-}
-
-/**
- * Shows the arch laid up to `t` (0–1): whole rings from the outside in, and
- * the next ring going down tile by tile, up the left leg, over, down the right.
- */
-export function drawArchLaid(ctx: CanvasRenderingContext2D, full: HTMLCanvasElement, W: number, H: number, res: number, a: { r: number; tile: number; rings: number }, t: number) {
-  ctx.setTransform(1, 0, 0, 1, 0, 0);
-  ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
-  if (t <= 0) return;
-  if (t >= 1) {
-    ctx.drawImage(full, 0, 0);
-    return;
-  }
-  ctx.setTransform(res, 0, 0, res, 0, 0);
-  const cx = W / 2;
-  const { r, tile } = a;
-  const f = t * a.rings;
-  const done = Math.floor(f);
-  const rho = Math.max(0, r - done * tile);
-  // Whole rings: outside radius rho (arch above the centre line, legs below it).
-  const whole = new Path2D();
-  whole.rect(0, 0, W, r);
-  whole.moveTo(cx - rho, r);
-  whole.arc(cx, r, rho, Math.PI, Math.PI * 2);
-  whole.closePath();
-  const legs = new Path2D();
-  legs.rect(0, r, cx - rho, H - r);
-  legs.rect(cx + rho, r, W - (cx + rho), H - r);
-  ctx.save();
-  ctx.clip(whole, 'evenodd');
-  ctx.drawImage(full, 0, 0, W, H);
-  ctx.restore();
-  ctx.save();
-  ctx.clip(legs);
-  ctx.drawImage(full, 0, 0, W, H);
-  ctx.restore();
-  // The ring being laid.
-  const rin = Math.max(0, rho - tile);
-  const leg = H - r;
-  const arcLen = Math.PI * (rho + rin) / 2;
-  const sAt = (f - done) * (leg * 2 + arcLen);
-  const part = new Path2D();
-  part.rect(cx - rho, H - Math.min(sAt, leg), rho - rin, Math.min(sAt, leg));
-  if (sAt > leg) {
-    const th = Math.min(Math.PI, ((sAt - leg) / arcLen) * Math.PI);
-    part.moveTo(cx, r);
-    part.arc(cx, r, rho + 1, Math.PI, Math.PI + th);
-    part.closePath();
-  }
-  if (sAt > leg + arcLen) part.rect(cx + rin, r, rho - rin, Math.min(leg, sAt - leg - arcLen));
-  ctx.save();
-  ctx.clip(part);
-  // Keep the wedge to this ring only.
-  const ring = new Path2D();
-  ring.rect(0, 0, W, H);
-  ring.moveTo(cx - rin, r);
-  ring.arc(cx, r, rin, Math.PI, Math.PI * 2);
-  ring.lineTo(cx + rin, H);
-  ring.lineTo(cx - rin, H);
-  ring.closePath();
-  ctx.clip(ring, 'evenodd');
-  ctx.drawImage(full, 0, 0, W, H);
-  ctx.restore();
 }
 
 export const PETAL_RGB = PETAL;
@@ -384,40 +273,4 @@ export function wallUrl() {
       ctx.fillRect(x * tile + 1 + j, y * tile + 1 - j, tile - 2, tile - 2);
     }
   return c.toDataURL('image/png');
-}
-
-/* ------------------------------------------------------------------ */
-/* The page's one grammar: tiles on a 12px course, laid in colour       */
-/* ------------------------------------------------------------------ */
-
-export const T = 12;
-
-/**
- * A border of glass tiles in one petal colour, for panels set into the wall
- * (used as a CSS border-image: slice T, repeat round). Each edge carries ten
- * tiles of slightly different tone so the repeat never looks stamped.
- */
-export function tileBorderUrl(c: Rgb, seed: number) {
-  const n = 12;
-  const cv = document.createElement('canvas');
-  cv.width = cv.height = n * T * 2;
-  const ctx = cv.getContext('2d')!;
-  ctx.scale(2, 2);
-  const rand = rng(seed);
-  for (let y = 0; y < n; y++)
-    for (let x = 0; x < n; x++) {
-      if (x > 0 && x < n - 1 && y > 0 && y < n - 1) continue;
-      const corner = (x === 0 || x === n - 1) && (y === 0 || y === n - 1);
-      const k = corner ? 0.55 : 0.7 + rand() * 0.38;
-      const dark = !corner && rand() < 0.18;
-      const v: Rgb = dark ? [22, 22, 24] : [c[0] * k, c[1] * k, c[2] * k];
-      ctx.fillStyle = `rgb(${v[0] | 0},${v[1] | 0},${v[2] | 0})`;
-      const j = (rand() - 0.5) * 0.8;
-      ctx.fillRect(x * T + 1 + j, y * T + 1 - j, T - 2, T - 2);
-      if (!dark && rand() < 0.3) {
-        ctx.fillStyle = 'rgba(255,255,255,0.22)';
-        ctx.fillRect(x * T + 1.5, y * T + 1.5, T - 3, 1.2);
-      }
-    }
-  return cv.toDataURL('image/png');
 }
