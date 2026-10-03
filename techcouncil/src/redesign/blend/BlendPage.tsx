@@ -16,7 +16,6 @@ import { IntroContext } from '@/lib/intro';
 import { EASE_OUT, span } from '@/lib/motion';
 import { useSmoothScroll } from '@/lib/smoothScroll';
 import { CATEGORY_GLASS, paintNightStrip, wallUrl } from './night';
-import type { Landing3D } from './landings3d';
 import { cutOpening, drawGateway, drawMedallion, layoutGateway, layoutMedallion, warmGateway, warmMedallion, type Gateway, type Medallion } from './journey';
 import { DomeCanvas } from './JourneyParts';
 import { MosaicAbout, MosaicFaq, MosaicFooter, MosaicFounders, MosaicProjects, useTileBorders } from './sections';
@@ -75,20 +74,15 @@ function HeroCopy({ align = 'left' }: { align?: 'left' | 'center' }) {
  * Every room after is entered a different way; the page ends pulling back
  * out of a tiled gateway.
  */
-type Hero = 'square' | 'star' | 'dome' | Landing3D;
+type Hero = 'square' | 'star' | 'dome';
 const HEROES: { id: Hero; label: string }[] = [
-  { id: 'silk', label: 'Ikat silk' },
-  { id: 'bluedome', label: 'Blue dome' },
-  { id: 'rishtan', label: 'Rishtan plate' },
-  { id: 'silkroad', label: 'Silk Road' },
   { id: 'square', label: 'Night square' },
   { id: 'star', label: 'Golden star' },
   { id: 'dome', label: 'Under the dome' },
 ];
-const IS_3D = (h: Hero): h is Landing3D => h === 'silk' || h === 'bluedome' || h === 'rishtan' || h === 'silkroad';
 function readHero(): Hero {
-  const q = new URLSearchParams(window.location.search).get('hero') as Hero | null;
-  return q && HEROES.some((h) => h.id === q) ? q : 'silk';
+  const q = new URLSearchParams(window.location.search).get('hero');
+  return q === 'star' || q === 'dome' ? q : 'square';
 }
 /** The opening's scroll, in screens; `at` turns a point in it into progress. */
 const SCROLL = 2.8;
@@ -99,12 +93,7 @@ const seg = (v: number, a: number, b: number) => Math.min(1, Math.max(0, (v - a)
 const res = () => Math.min(window.devicePixelRatio || 1, 1.75);
 
 /** Per landing: when the camera move runs, and when the mission's words light. */
-const CINE = { move: [at(0.05), at(1.45)] as [number, number], words: [at(1.5), at(2.45)] as [number, number] };
 const TIMING: Record<Hero, { move: [number, number]; words: [number, number] }> = {
-  silk: CINE,
-  bluedome: CINE,
-  rishtan: CINE,
-  silkroad: CINE,
   square: { move: [at(0.08), at(1.45)], words: [at(1.5), at(2.45)] },
   star: { move: [at(0.25), at(1.25)], words: [at(1.3), at(2.3)] },
   dome: { move: [at(0.06), at(0.4)], words: [at(0.55), at(1.8)] },
@@ -120,7 +109,6 @@ function Opening({ hero }: { hero: Hero }) {
   const stage = useRef<HTMLDivElement>(null);
   const backCv = useRef<HTMLCanvasElement>(null);
   const frontCv = useRef<HTMLCanvasElement>(null);
-  const glCv = useRef<HTMLCanvasElement>(null);
   const copyBox = useRef<HTMLDivElement>(null);
   const { scrollYProgress: p } = useScroll({ target: section, offset: ['start start', 'end end'] });
   const T = TIMING[hero];
@@ -139,7 +127,6 @@ function Opening({ hero }: { hero: Hero }) {
   const words = MISSION.line.split(' ');
   const support = useTransform(p, ...span([T.words[1] - 0.02, T.words[1] + 0.06], [0, 1]));
   const supportY = useTransform(p, ...span([T.words[1] - 0.02, T.words[1] + 0.06], [20, 0]));
-  const copyFade = useTransform(p, (v) => 1 - seg(v, at(0.03), at(0.3)));
   const missionOpacity = useTransform(p, (v) => (hero === 'dome' ? seg(v, T.move[1] - 0.04, T.move[1] + 0.06) : seg(v, T.move[0] + (T.move[1] - T.move[0]) * 0.7, T.move[1])));
 
   const geo = useRef<{ W: number; H: number; gate?: Gateway; side?: HTMLCanvasElement; sky?: HTMLCanvasElement; medal?: Medallion } | null>(null);
@@ -179,42 +166,6 @@ function Opening({ hero }: { hero: Hero }) {
       if (k < 0.995) drawMedallion(front.getContext('2d')!, g.medal, r, fr, k);
     }
   };
-
-  // The cinematic landings: a lit 3D scene, loaded after first paint, alive while it is on screen.
-  useEffect(() => {
-    if (!IS_3D(hero)) return;
-    let alive = true;
-    let raf = 0;
-    let ro: ResizeObserver | null = null;
-    let sc: import('./landings3d').LandingScene | null = null;
-    const el = stage.current!;
-    const t0 = performance.now();
-    void import('./landings3d').then(({ createLanding }) => {
-      if (!alive || !glCv.current) return;
-      sc = createLanding(hero, glCv.current, { narrow: el.clientWidth < 700 });
-      if (!sc) return;
-      ro = new ResizeObserver(() => sc!.resize(el.clientWidth, el.clientHeight));
-      ro.observe(el);
-      sc.resize(el.clientWidth, el.clientHeight);
-      const tick = () => {
-        if (!alive) return;
-        const v = p.get();
-        const end = T.move[1];
-        if (v <= end + 0.01 && !document.hidden) {
-          sc!.render(seg(v, 0, end), (performance.now() - t0) / 1000);
-          glCv.current!.style.visibility = 'visible';
-        } else glCv.current!.style.visibility = 'hidden';
-        raf = requestAnimationFrame(tick);
-      };
-      raf = requestAnimationFrame(tick);
-    });
-    return () => {
-      alive = false;
-      cancelAnimationFrame(raf);
-      ro?.disconnect();
-      sc?.dispose();
-    };
-  }, [hero]);
 
   useEffect(() => {
     const el = stage.current!;
@@ -313,13 +264,12 @@ function Opening({ hero }: { hero: Hero }) {
           </motion.div>
         </div>
         <canvas ref={backCv} aria-hidden className="pointer-events-none absolute inset-0 h-full w-full" />
-        {IS_3D(hero) && <canvas ref={glCv} aria-hidden className="pointer-events-none absolute inset-0 h-full w-full" />}
         <canvas ref={frontCv} aria-hidden className="pointer-events-none absolute inset-0 h-full w-full" />
-        {(hero === 'star' || IS_3D(hero)) && <motion.div aria-hidden className="pointer-events-none absolute inset-0 bg-[linear-gradient(90deg,rgba(0,0,0,0.85)_0%,rgba(0,0,0,0.45)_40%,rgba(0,0,0,0)_65%)] max-md:bg-[linear-gradient(0deg,rgba(0,0,0,0.9)_0%,rgba(0,0,0,0.5)_45%,rgba(0,0,0,0)_70%)]" style={{ opacity: copyFade }} />}
+        {hero === 'star' && <div aria-hidden className="pointer-events-none absolute inset-0 bg-[linear-gradient(90deg,rgba(0,0,0,0.92)_0%,rgba(0,0,0,0.55)_42%,rgba(0,0,0,0)_68%)]" />}
         {hero === 'square' && <div aria-hidden className="pointer-events-none absolute inset-x-0 top-0 h-[68%] bg-gradient-to-b from-black/90 via-black/70 to-transparent" />}
-        <div ref={copyBox} className={`absolute inset-0 flex ${hero === 'star' || IS_3D(hero) ? 'items-end' : hero === 'dome' ? 'items-center' : 'items-start'}`}>
-          <div className={`container-x ${hero === 'star' || IS_3D(hero) ? 'pb-[calc(5rem+var(--bar,0px))]' : hero === 'dome' ? 'text-center' : 'pt-[calc(110px+var(--bar,0px))] text-center'}`}>
-            <HeroCopy align={hero === 'star' || IS_3D(hero) ? 'left' : 'center'} />
+        <div ref={copyBox} className={`absolute inset-0 flex ${hero === 'star' ? 'items-end' : hero === 'dome' ? 'items-center' : 'items-start'}`}>
+          <div className={`container-x ${hero === 'star' ? 'pb-[calc(5rem+var(--bar,0px))]' : hero === 'dome' ? 'text-center' : 'pt-[calc(110px+var(--bar,0px))] text-center'}`}>
+            <HeroCopy align={hero === 'star' ? 'left' : 'center'} />
           </div>
         </div>
       </div>
@@ -330,7 +280,7 @@ function Opening({ hero }: { hero: Hero }) {
 /** Preview-only: compare the three landings. */
 function HeroPicker({ current }: { current: Hero }) {
   return (
-    <nav aria-label="Compare landings" className="fixed bottom-[68px] left-1/2 z-40 flex max-w-[calc(100vw-24px)] -translate-x-1/2 items-center gap-1 overflow-x-auto whitespace-nowrap rounded-pill border border-line-dark bg-obsidian/90 p-1 text-[12px] text-fog md:text-[13px]">
+    <nav aria-label="Compare landings" className="fixed bottom-[68px] left-1/2 z-40 flex -translate-x-1/2 items-center gap-1 whitespace-nowrap rounded-pill border border-line-dark bg-obsidian/90 p-1 text-[12px] text-fog md:text-[13px]">
       {HEROES.map((h) => (
         <a key={h.id} href={`?hero=${h.id}`} aria-current={h.id === current ? 'page' : undefined} className={`rounded-pill px-3 py-1.5 transition-colors ${h.id === current ? 'bg-paper text-obsidian' : 'hover:text-paper'}`}>
           {h.label}
