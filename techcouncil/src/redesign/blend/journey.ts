@@ -417,3 +417,234 @@ export function drawDome(ctx: CanvasRenderingContext2D, g: Dome, res: number, fr
   ctx.fillStyle = gr;
   ctx.fillRect(0, 0, W, H);
 }
+
+/* ------------------------------------------------------------------ */
+/* Star medallion: a wall of girih with one great star that opens       */
+/* ------------------------------------------------------------------ */
+
+export interface Medallion {
+  W: number;
+  H: number;
+  cx: number;
+  cy: number;
+  R: number;
+  md: number;
+  cell: number;
+  tiles: Tile[];
+  /** Iris scale at which the star's opening covers the frame. */
+  open: number;
+  cache?: { cv: HTMLCanvasElement; res: number };
+}
+
+export function layoutMedallion(W: number, H: number, seed: number): Medallion {
+  const cx = W / 2;
+  const cy = H / 2;
+  const R = Math.min(W, H) * 0.36;
+  const cell = Math.min(W, H) / (W < 700 ? 7.5 : 9);
+  const rand = rng(seed);
+  const tiles: Tile[] = [];
+  const md = Math.hypot(W, H) / 2;
+  const ox = cx - Math.ceil(cx / cell) * cell;
+  const oy = cy - Math.ceil(cy / cell) * cell;
+  for (let y = oy; y <= H + cell; y += cell)
+    for (let x = ox; x <= W + cell; x += cell)
+      for (const [px, py, isStar] of [
+        [x, y, true],
+        [x + cell / 2, y + cell / 2, false],
+      ] as const) {
+        const acc = isStar && rand() < 0.035;
+        const c = acc ? (rand() < 0.5 ? C.orange : C.maroon) : isStar ? C.cobalt : C.turq;
+        tiles.push({ p: isStar ? star(px, py, cell * 0.47) : cross(px, py, cell * 0.66), x: px, y: py, d: Math.hypot(px - cx, py - cy) / md, fill: rgb(c, 0.82 + rand() * 0.3), r: cell * 0.5 });
+      }
+  return { W, H, cx, cy, R, md, cell, tiles, open: (Math.hypot(W, H) / 2 / (R * 0.41)) * 1.15 };
+}
+
+function paintMedallion(g: Medallion, res: number) {
+  const cv = document.createElement('canvas');
+  cv.width = Math.round(g.W * res);
+  cv.height = Math.round(g.H * res);
+  const c = cv.getContext('2d')!;
+  c.setTransform(res, 0, 0, res, 0, 0);
+  c.fillStyle = '#0a0907';
+  c.fillRect(0, 0, g.W, g.H);
+  c.lineWidth = g.cell * 0.07;
+  c.strokeStyle = rgb(C.bone, 0.9);
+  for (const t of g.tiles) {
+    c.fillStyle = t.fill;
+    c.fill(t.p);
+    c.stroke(t.p);
+  }
+  // The great star sits proud of the wall: deep cobalt, ringed in gold.
+  const big = star(g.cx, g.cy, g.R, 8, 0.41);
+  c.fillStyle = rgb(C.ink, 1);
+  c.fill(big);
+  c.strokeStyle = GOLD;
+  c.lineWidth = 2;
+  c.stroke(big);
+  c.stroke(star(g.cx, g.cy, g.R * 0.86, 8, 0.41));
+  const lit = c.createRadialGradient(g.cx, g.cy * 0.4, 10, g.cx, g.cy, Math.hypot(g.W, g.H) * 0.62);
+  lit.addColorStop(0, 'rgba(0,0,0,0)');
+  lit.addColorStop(0.55, 'rgba(0,0,0,0.4)');
+  lit.addColorStop(1, 'rgba(0,0,0,0.94)');
+  c.fillStyle = lit;
+  c.fillRect(0, 0, g.W, g.H);
+  return cv;
+}
+
+export function warmMedallion(g: Medallion, res: number) {
+  if (!g.cache || g.cache.res !== res) g.cache = { cv: paintMedallion(g, res), res };
+}
+
+/**
+ * The wall is drawn outward from the medallion to `front`; then the great
+ * star opens like an iris (`iris` 0–1), turning an eighth as it goes, and
+ * the room shows through.
+ */
+export function drawMedallion(ctx: CanvasRenderingContext2D, g: Medallion, res: number, front: number, iris: number) {
+  const { W, H, cx, cy } = g;
+  ctx.setTransform(res, 0, 0, res, 0, 0);
+  ctx.clearRect(0, 0, W, H);
+  warmMedallion(g, res);
+  ctx.save();
+  const turn = iris * (Math.PI / 8);
+  ctx.translate(cx, cy);
+  ctx.rotate(turn);
+  ctx.scale(1 + iris * 0.35, 1 + iris * 0.35);
+  ctx.translate(-cx, -cy);
+  if (iris > 0) {
+    const k = Math.pow(g.open, iris) - 1 + 0.001;
+    const hole = new Path2D();
+    hole.rect(-W, -H, W * 3, H * 3);
+    hole.addPath(star(cx, cy, g.R * 0.86 * k, 8, 0.41));
+    ctx.clip(hole, 'evenodd');
+  }
+  const doneR = (front - 1 / 7) * g.md;
+  if (doneR >= g.md) ctx.drawImage(g.cache!.cv, 0, 0, W, H);
+  else {
+    ctx.fillStyle = '#0a0907';
+    ctx.fillRect(-W, -H, W * 3, H * 3);
+    if (doneR > 0) {
+      ctx.save();
+      const disk = new Path2D();
+      disk.arc(cx, cy, doneR, 0, Math.PI * 2);
+      ctx.clip(disk);
+      ctx.drawImage(g.cache!.cv, 0, 0, W, H);
+      ctx.restore();
+    }
+    const lw = g.cell * 0.07;
+    for (const t of g.tiles) {
+      const f = clamp01((front - t.d) * 7);
+      if (f <= 0 || (f >= 1 && t.d * g.md < doneR - g.cell * 0.4)) continue;
+      ctx.globalAlpha = f;
+      ctx.fillStyle = t.fill;
+      ctx.fill(t.p);
+      ctx.lineWidth = lw;
+      ctx.strokeStyle = rgb(C.bone, 0.9);
+      ctx.stroke(t.p);
+      if (f < 1) head(ctx, t.p, 1 - f, 1);
+    }
+    ctx.globalAlpha = 1;
+    // The great star is the line's first figure.
+    const sf = clamp01(front * 4);
+    const big = star(cx, cy, g.R, 8, 0.41);
+    ctx.globalAlpha = sf;
+    ctx.fillStyle = rgb(C.ink, 1);
+    ctx.fill(big);
+    ctx.strokeStyle = GOLD;
+    ctx.lineWidth = 2;
+    ctx.stroke(big);
+    ctx.globalAlpha = 1;
+  }
+  // The rim of the opening, in gold.
+  if (iris > 0) {
+    const k = Math.pow(g.open, iris) - 1 + 0.001;
+    ctx.strokeStyle = HEAD;
+    ctx.lineWidth = 2.2;
+    ctx.globalAlpha = clamp01(1.5 - iris * 1.4);
+    ctx.stroke(star(cx, cy, g.R * 0.86 * k, 8, 0.41));
+    ctx.globalAlpha = 1;
+  }
+  ctx.restore();
+}
+
+/* ------------------------------------------------------------------ */
+/* Carved doors, as in Khiva: walnut panels with star carving            */
+/* ------------------------------------------------------------------ */
+
+export interface Doors {
+  W: number;
+  H: number;
+  shapes: { p: Path2D; d: number }[];
+  frame: Path2D;
+}
+
+/** One leaf of a carved door (`side` -1 left, 1 right), drawn in its own canvas of W×H. */
+export function layoutDoor(W: number, H: number, side: -1 | 1): Doors {
+  const cell = Math.min(W * 0.42, H / 7.2);
+  const pad = cell * 0.55;
+  const shapes: { p: Path2D; d: number }[] = [];
+  const seamX = side < 0 ? W : 0;
+  const md = Math.hypot(W, H / 2);
+  const cols = Math.max(1, Math.floor((W - pad * 2) / cell));
+  const rows = Math.max(1, Math.floor((H - pad * 2) / cell));
+  const ox = (W - cols * cell) / 2 + cell / 2;
+  const oy = (H - rows * cell) / 2 + cell / 2;
+  for (let j = 0; j < rows; j++)
+    for (let i = 0; i < cols; i++) {
+      const x = ox + i * cell;
+      const y = oy + j * cell;
+      const d = Math.hypot(x - seamX, y - H / 2) / md;
+      shapes.push({ p: star(x, y, cell * 0.44), d });
+      shapes.push({ p: star(x, y, cell * 0.22, 8, 0.5, 0), d: d + 0.02 });
+    }
+  const frame = new Path2D();
+  frame.rect(pad * 0.45, pad * 0.45, W - pad * 0.9, H - pad * 0.9);
+  frame.rect(pad * 0.75, pad * 0.75, W - pad * 1.5, H - pad * 1.5);
+  return { W, H, shapes, frame };
+}
+
+export function drawDoor(ctx: CanvasRenderingContext2D, g: Doors, res: number, front: number, side: -1 | 1) {
+  const { W, H } = g;
+  ctx.setTransform(res, 0, 0, res, 0, 0);
+  const wood = ctx.createLinearGradient(0, 0, W, H);
+  wood.addColorStop(0, '#2b1b10');
+  wood.addColorStop(0.5, '#3a2516');
+  wood.addColorStop(1, '#21150c');
+  ctx.fillStyle = wood;
+  ctx.fillRect(0, 0, W, H);
+  // Grain: fine vertical streaks.
+  ctx.globalAlpha = 0.18;
+  ctx.strokeStyle = '#140c06';
+  for (let x = 3; x < W; x += 7) {
+    ctx.lineWidth = (x * 13) % 3 === 0 ? 1.4 : 0.6;
+    ctx.beginPath();
+    ctx.moveTo(x, 0);
+    ctx.lineTo(x + Math.sin(x) * 6, H);
+    ctx.stroke();
+  }
+  ctx.globalAlpha = 1;
+  // Carving: a recess shadow under a gilded edge, cut as the line passes.
+  for (const s of g.shapes) {
+    const f = clamp01((front - s.d) * 6);
+    if (f <= 0) continue;
+    ctx.globalAlpha = f;
+    ctx.lineWidth = 3.2;
+    ctx.strokeStyle = 'rgba(0,0,0,0.55)';
+    ctx.stroke(s.p);
+    ctx.lineWidth = 1.1;
+    ctx.strokeStyle = GOLD;
+    ctx.stroke(s.p);
+    if (f < 1) head(ctx, s.p, 1 - f, 1);
+  }
+  ctx.globalAlpha = clamp01(front * 2);
+  ctx.strokeStyle = 'rgba(184,148,88,0.6)';
+  ctx.lineWidth = 1;
+  ctx.stroke(g.frame);
+  ctx.globalAlpha = 1;
+  // Light falls from the seam, where the doors will open.
+  const l = ctx.createLinearGradient(side < 0 ? W : 0, 0, side < 0 ? 0 : W, 0);
+  l.addColorStop(0, 'rgba(0,0,0,0)');
+  l.addColorStop(1, 'rgba(0,0,0,0.6)');
+  ctx.fillStyle = l;
+  ctx.fillRect(0, 0, W, H);
+}

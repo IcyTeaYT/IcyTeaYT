@@ -10,7 +10,7 @@ import { featuredProject } from '@/data/projects';
 import { EASE_OUT } from '@/lib/motion';
 import { useSmoothScroll } from '@/lib/smoothScroll';
 import { drawArchLaid, paintNightArch, paintNightStrip, PETAL_RGB, T, tileBorderUrl, type ArchMotif } from './night';
-import { FooterDome, Gateway, ROOM_PULL } from './JourneyParts';
+import { DoorGate, FooterGate, Gateway, ROOM_PULL, StarGate } from './JourneyParts';
 
 /**
  * The sections after the opening, in the opening's own grammar. Everything
@@ -228,9 +228,9 @@ export function MosaicProjects() {
   if (!p) return null;
   return (
     <section id="projects" data-surface="dark" aria-labelledby="projects-title" className="relative bg-obsidian pb-24 text-paper sm:pb-32">
-      <Gateway seed={23}>
+      <StarGate seed={23}>
           <h2 id="projects-title" className="type-display text-[clamp(2.6rem,6vw,5.5rem)]">Things we’ve shipped.</h2>
-        </Gateway>
+        </StarGate>
       <div className={`container-x relative ${ROOM_PULL}`}>
         <p className="mx-auto max-w-[46ch] text-center text-body-lg text-fog">Real platforms, used by real people at TIS.</p>
 
@@ -311,9 +311,9 @@ function Niche({ f, i }: { f: (typeof founders)[number]; i: number }) {
 export function MosaicFounders() {
   return (
     <section id="founders" data-surface="dark" aria-labelledby="founders-title" className="relative bg-obsidian pb-24 text-paper sm:pb-32">
-      <Gateway seed={37}>
+      <DoorGate>
           <h2 id="founders-title" className="type-display mx-auto max-w-[14ch] text-[clamp(2.6rem,6vw,5.5rem)]">Three students. One campus to upgrade.</h2>
-        </Gateway>
+        </DoorGate>
       <div className={`container-x relative ${ROOM_PULL}`}>
         <p className="mx-auto max-w-[48ch] text-center text-body-lg text-fog">The Tech Council was started by three TIS students who wanted to fix things, not just talk about them.</p>
         <div className="mt-14 grid gap-12 sm:grid-cols-2 sm:gap-8 lg:grid-cols-3 lg:gap-12">
@@ -386,11 +386,11 @@ export function MosaicFooter() {
   const { scrollTo } = useSmoothScroll();
   return (
     <footer data-surface="dark" className="relative bg-obsidian text-paper">
-      <FooterDome>
+      <FooterGate>
         <LogoMark className="h-14 w-14" />
         <p className="type-display mt-8 text-[clamp(2.8rem,7vw,6rem)]">TIS Tech Council</p>
         <p className="mt-5 text-body-lg text-fog">{MOTTO}</p>
-      </FooterDome>
+      </FooterGate>
       <div className="container-x pb-28 pt-10">
         <div className="flex flex-col gap-12 md:flex-row md:items-start md:justify-between">
           <div className="flex items-center gap-3">
