@@ -40,7 +40,8 @@ for (const vp of [{ name: 'desktop', width: 1440, height: 900 }, { name: 'mobile
       const c = s.color.match(/\d+/g); if (c && txt) { const [r, g, b] = c.map(Number); const max = Math.max(r, g, b), min = Math.min(r, g, b); if (max - min > 60) accent.add(`${r},${g},${b}`); }
       if (/^(A|BUTTON)$/.test(el.tagName) && vpName === 'mobile') { const r = el.getBoundingClientRect(); if (r.height < 40 && r.width < 40 && el.textContent.trim().length < 3) add('small-tap-target', 'MED', el, `${Math.round(r.width)}x${Math.round(r.height)}px`); }
     }
-    if (document.querySelector('canvas') && [...document.querySelectorAll('canvas')].some(c => c.getBoundingClientRect().width > innerWidth * 0.5)) add('particle-canvas', 'MED', null, 'Large background canvas (particles/effects?)');
+    // Canvases marked data-media (footage/image sequences) are content, not effects.
+    if ([...document.querySelectorAll('canvas:not([data-media])')].some(c => c.getBoundingClientRect().width > innerWidth * 0.5)) add('particle-canvas', 'MED', null, 'Large background canvas (particles/effects?). Mark real footage canvases with data-media.');
     if (radial >= 3) add('glow-blobs', 'HIGH', null, `${radial} radial-gradient layers`);
     if (glows >= 3) add('glows', 'MED', null, `${glows} large glow shadows/blurs`);
     if (blur >= 4) add('glassmorphism', 'MED', null, `${blur} backdrop-filter elements`);
