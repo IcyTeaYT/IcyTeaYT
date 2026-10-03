@@ -13,5 +13,5 @@ TIS students (secondary), teachers and staff, parents. They know the campus firs
 
 ## Brand commitments
 - TIS identity: the Tech Council logo (four petals: orange #F29839, maroon #951E34, teal #07686E, cyan #0897B6, around a navy circuit-brain), the owl mascot, the motto "Challenge | Explore | Connect".
-- Monochrome black and white (Neuralink-style), Inter light display type, pill buttons; the petal gradient is the only colour besides the logo. Motion-rich (wave hero, flowing menu, pinned statement, sticky footer).
+- Monochrome black and white (Neuralink-style), Inter light display type, pill buttons; the petal gradient is the only colour besides the logo. Motion-rich: scroll-driven camera moves (hero shot, pinned mission push-in, whip pans, founders from depth), flowing menu, sticky footer.
 - No invented data, stats, or statuses. Placeholder content is labelled as such.

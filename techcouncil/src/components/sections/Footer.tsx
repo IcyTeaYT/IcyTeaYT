@@ -5,6 +5,7 @@ import { useSmoothScroll } from '@/lib/smoothScroll';
 import { EASE_OUT } from '@/lib/motion';
 
 const LINKS = [
+  ['Mission', '#mission'],
   ['About', '#about'],
   ['Projects', '#projects'],
   ['Founders', '#founders'],

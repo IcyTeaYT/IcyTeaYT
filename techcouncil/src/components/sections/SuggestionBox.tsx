@@ -1,10 +1,9 @@
 import { AnimatePresence, motion, useAnimationControls, useReducedMotion, useSpring, useTransform } from 'motion/react';
-import { useEffect, useId, useState, type FormEvent } from 'react';
-import { CATEGORIES, GRADE_MAX, NAME_MAX, SUGGESTION_MAX, SUGGESTION_MIN, type CategoryId } from '@/data/categories';
+import { useEffect, useId, type ReactNode } from 'react';
+import { CATEGORIES, GRADE_MAX, NAME_MAX, SUGGESTION_MAX, SUGGESTION_MIN } from '@/data/categories';
+import { useSuggestionForm } from '@/lib/suggestion';
 import { Arrow } from '../ui/Arrow';
 import { EASE_OUT, SPRING_SNAPPY } from '@/lib/motion';
-
-type Status = 'idle' | 'sending' | 'sent' | 'error';
 
 const field =
   'block w-full rounded-nav border border-line-dark bg-transparent px-4 text-body text-paper placeholder:text-fog/70 transition-colors duration-300 focus:border-paper focus:outline-none';
@@ -78,75 +77,22 @@ function SuccessPanel({ onReset }: { onReset: () => void }) {
 
 /* ---------- Form ---------- */
 
-export function SuggestionBox() {
+/** `renderSuccess` swaps the thank-you panel (used by a redesign option); the form is the same. */
+export function SuggestionBox({ renderSuccess }: { renderSuccess?: (o: { category: string | null; reset: () => void }) => ReactNode } = {}) {
   const reduce = useReducedMotion();
   const uid = useId();
-  const [text, setText] = useState('');
-  const [category, setCategory] = useState<CategoryId | null>(null);
-  const [anonymous, setAnonymous] = useState(true);
-  const [name, setName] = useState('');
-  const [grade, setGrade] = useState('');
-  const [website, setWebsite] = useState(''); // honeypot
-  const [status, setStatus] = useState<Status>('idle');
-  const [error, setError] = useState<string | null>(null);
-  const [touched, setTouched] = useState(false);
   const shake = useAnimationControls();
-
-  const trimmed = text.trim();
-  const textError =
-    trimmed.length < SUGGESTION_MIN
-      ? `Please write at least ${SUGGESTION_MIN} characters.`
-      : trimmed.length > SUGGESTION_MAX
-        ? `Please keep it under ${SUGGESTION_MAX} characters.`
-        : null;
-  const categoryError = category ? null : 'Pick the category that fits best.';
-
-  const fail = (msg: string) => {
-    setError(msg);
-    setStatus('error');
+  const wobble = () => {
     if (!reduce) void shake.start({ x: [0, -10, 9, -6, 4, 0], transition: { duration: 0.45 } });
   };
-
-  const submit = async (e: FormEvent) => {
-    e.preventDefault();
-    setTouched(true);
-    if (textError || categoryError) {
-      // Field problems show next to the field; the banner is for server errors.
-      setError(null);
-      setStatus('idle');
-      if (!reduce) void shake.start({ x: [0, -10, 9, -6, 4, 0], transition: { duration: 0.45 } });
-      document.getElementById(textError ? `${uid}-text` : `${uid}-cat-${CATEGORIES[0].id}`)?.focus();
-      return;
-    }
-    setStatus('sending');
-    setError(null);
-    try {
-      const res = await fetch('/api/suggestions', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text: trimmed, category, name: anonymous ? '' : name.trim(), grade: anonymous ? '' : grade.trim(), website }),
-      });
-      const data = (await res.json().catch(() => ({}))) as { ok?: boolean; error?: string };
-      if (!res.ok || !data.ok) {
-        fail(data.error ?? 'Something went wrong on our side. Please try again in a minute.');
-        return;
-      }
-      setStatus('sent');
-    } catch {
-      fail('Couldn’t reach the server. Check your connection and try again.');
-    }
-  };
-
-  const reset = () => {
-    setText('');
-    setCategory(null);
-    setName('');
-    setGrade('');
-    setTouched(false);
-    setError(null);
-    setStatus('idle');
-  };
-
+  const f = useSuggestionForm({
+    onInvalid: (which) => {
+      wobble();
+      document.getElementById(which === 'text' ? `${uid}-text` : `${uid}-cat-${CATEGORIES[0].id}`)?.focus();
+    },
+    onError: wobble,
+  });
+  const { text, category, anonymous, setAnonymous, name, setName, grade, setGrade, website, setWebsite, status, error, touched, textError, categoryError, submit, reset } = f;
   const sending = status === 'sending';
 
   return (
@@ -174,7 +120,13 @@ export function SuggestionBox() {
         <motion.div animate={shake} className="grid min-h-[600px]" style={{ perspective: 1200 }}>
           <AnimatePresence initial={false}>
             {status === 'sent' ? (
-              <SuccessPanel key="success" onReset={reset} />
+              renderSuccess ? (
+                <motion.div key="success" className="[grid-area:1/1]" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+                  {renderSuccess({ category, reset })}
+                </motion.div>
+              ) : (
+                <SuccessPanel key="success" onReset={reset} />
+              )
             ) : (
               <motion.form
                 key="form"
@@ -218,10 +170,7 @@ export function SuggestionBox() {
                   maxLength={SUGGESTION_MAX + 200}
                   rows={6}
                   value={text}
-                  onChange={(e) => {
-                    setText(e.target.value);
-                    if (status === 'error') setStatus('idle');
-                  }}
+                  onChange={(e) => f.setText(e.target.value)}
                   aria-invalid={touched && !!textError}
                   aria-describedby={`${uid}-text-hint`}
                   placeholder="e.g. A live board outside the gym showing which courts are free"
@@ -244,10 +193,7 @@ export function SuggestionBox() {
                             name="category"
                             value={c.id}
                             checked={selected}
-                            onChange={() => {
-                              setCategory(c.id);
-                              if (status === 'error') setStatus('idle');
-                            }}
+                            onChange={() => f.setCategory(c.id)}
                             className="peer sr-only"
                           />
                           <span

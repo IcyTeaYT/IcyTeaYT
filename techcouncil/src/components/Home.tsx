@@ -3,7 +3,7 @@ import { MotionConfig } from 'motion/react';
 import { Intro } from './Intro';
 import { Navbar } from './Navbar';
 import { Hero } from './sections/Hero';
-import { Statement } from './sections/Statement';
+import { Mission } from './sections/Mission';
 import { Faq } from './sections/Faq';
 import { AnnouncementBar, BAR_HEIGHT } from './AnnouncementBar';
 import { Marquee } from './sections/Marquee';
@@ -85,7 +85,7 @@ export function Home() {
           <main id="main" className="relative z-10" style={{ ['--bar' as string]: `${barHeight}px` }}>
             <Hero />
             <Marquee />
-            <Statement />
+            <Mission />
             <About />
             <Projects />
             <Founders />
