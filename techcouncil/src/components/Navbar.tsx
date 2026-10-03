@@ -2,7 +2,7 @@ import { AnimatePresence, motion, useMotionValueEvent, useScroll, useTransform }
 import { useEffect, useState } from 'react';
 import { LogoMark } from './brand/LogoMark';
 import { useSmoothScroll } from '@/lib/smoothScroll';
-import { useSurfaceAt } from '@/lib/surface';
+import { useChromeAt } from '@/lib/surface';
 import { EASE_OUT, SPRING_SNAPPY } from '@/lib/motion';
 import { useIntroDone } from '@/lib/intro';
 
@@ -38,7 +38,8 @@ function useActiveSection() {
 
 /**
  * Logo left, links right. Transparent over the hero; once scrolled it takes
- * the colour of the section underneath (black or white), with a hairline.
+ * the colour of the section underneath (black or white), with a hairline,
+ * unless that section asks to stay see-through (a full-screen film).
  */
 export function Navbar({ offset }: { offset: number }) {
   const { scrollTo, lock, unlock } = useSmoothScroll();
@@ -47,7 +48,7 @@ export function Navbar({ offset }: { offset: number }) {
   const [scrolled, setScrolled] = useState(false);
   const [open, setOpen] = useState(false);
   const active = useActiveSection();
-  const surface = useSurfaceAt(offset + NAV_H / 2);
+  const { surface, clear } = useChromeAt(offset + NAV_H / 2);
   const dark = open || surface === 'dark';
   // Sits under the announcement bar at the top, slides up to 0 as the bar scrolls away.
   const top = useTransform(scrollY, (y) => Math.max(0, offset - y));
@@ -79,7 +80,7 @@ export function Navbar({ offset }: { offset: number }) {
         data-chrome
         className={`fixed inset-x-0 z-50 border-b transition-colors duration-300 ${
           dark ? 'text-paper' : 'text-obsidian'
-        } ${scrolled && !open ? (dark ? 'border-line-dark bg-obsidian' : 'border-line-light bg-paper') : 'border-transparent bg-transparent'}`}
+        } ${scrolled && !open && !clear ? (dark ? 'border-line-dark bg-obsidian' : 'border-line-light bg-paper') : 'border-transparent bg-transparent'}`}
         style={{ top }}
         initial={{ opacity: 0 }}
         animate={introDone ? { opacity: 1 } : undefined}

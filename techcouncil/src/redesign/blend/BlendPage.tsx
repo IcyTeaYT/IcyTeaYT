@@ -64,9 +64,10 @@ function HeroCopy({ align = 'left' }: { align?: 'left' | 'center' }) {
 
 /**
  * Option: the original site, taken on a journey through a Samarkand-style
- * building. Landings to compare (`?hero=`): the two films (film.tsx, the
- * default is `night`), and four drawn ones, each a single camera move
- * that ends under a star dome with the mission:
+ * building. Landings to compare (`?hero=`): the two Registan films, with the
+ * name set in the sky behind the madrasahs (film.tsx; `night` is the
+ * default, `day` the bright one), and four drawn ones, each a single camera
+ * move that ends under a star dome with the mission:
  *   square  a night square of three tiled gateways; the camera glides across
  *           it and through the middle arch
  *   star    a great girih star drawn across the dark by a golden line; it
