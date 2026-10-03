@@ -18,6 +18,7 @@ import { useSmoothScroll } from '@/lib/smoothScroll';
 import { CATEGORY_GLASS, paintNightStrip, wallUrl } from './night';
 import { cutOpening, drawCascade, drawGateway, drawMedallion, layoutGateway, layoutMedallion, warmGateway, warmMedallion, type Gateway, type Medallion } from './journey';
 import { DomeCanvas } from './JourneyParts';
+import { FilmOpening } from './film';
 import { MosaicAbout, MosaicFaq, MosaicFooter, MosaicFounders, MosaicProjects, useTileBorders } from './sections';
 
 function HeroCopy({ align = 'left' }: { align?: 'left' | 'center' }) {
@@ -63,7 +64,8 @@ function HeroCopy({ align = 'left' }: { align?: 'left' | 'center' }) {
 
 /**
  * Option: the original site, taken on a journey through a Samarkand-style
- * building. Three landings to compare (`?hero=`), each a single camera move
+ * building. Landings to compare (`?hero=`): the two films (film.tsx, the
+ * default is `night`), and four drawn ones, each a single camera move
  * that ends under a star dome with the mission:
  *   square  a night square of three tiled gateways; the camera glides across
  *           it and through the middle arch
@@ -74,8 +76,10 @@ function HeroCopy({ align = 'left' }: { align?: 'left' | 'center' }) {
  * Every room after is entered a different way; the page ends pulling back
  * out of a tiled gateway.
  */
-type Hero = 'cascade' | 'square' | 'star' | 'dome';
+type Hero = 'night' | 'day' | 'cascade' | 'square' | 'star' | 'dome';
 const HEROES: { id: Hero; label: string }[] = [
+  { id: 'night', label: 'Night film' },
+  { id: 'day', label: 'Day film' },
   { id: 'cascade', label: 'Falling tiles' },
   { id: 'star', label: 'Golden star' },
   { id: 'square', label: 'Night square' },
@@ -83,7 +87,7 @@ const HEROES: { id: Hero; label: string }[] = [
 ];
 function readHero(): Hero {
   const q = new URLSearchParams(window.location.search).get('hero');
-  return q === 'square' || q === 'dome' || q === 'star' ? q : 'cascade';
+  return q === 'square' || q === 'dome' || q === 'star' || q === 'cascade' || q === 'day' ? q : 'night';
 }
 /** The opening's scroll, in screens; `at` turns a point in it into progress. */
 const SCROLL = 2.8;
@@ -94,7 +98,7 @@ const seg = (v: number, a: number, b: number) => Math.min(1, Math.max(0, (v - a)
 const res = () => Math.min(window.devicePixelRatio || 1, 1.75);
 
 /** Per landing: when the camera move runs, and when the mission's words light. */
-const TIMING: Record<Hero, { move: [number, number]; words: [number, number] }> = {
+const TIMING: Record<Exclude<Hero, 'night' | 'day'>, { move: [number, number]; words: [number, number] }> = {
   square: { move: [at(0.08), at(1.45)], words: [at(1.5), at(2.45)] },
   star: { move: [at(0.25), at(1.25)], words: [at(1.3), at(2.3)] },
   cascade: { move: [at(0.25), at(1.25)], words: [at(1.3), at(2.3)] },
@@ -106,7 +110,7 @@ function MissionWord({ children, p, range }: { children: string; p: MotionValue<
   return <motion.span style={{ opacity }}>{children} </motion.span>;
 }
 
-function Opening({ hero }: { hero: Hero }) {
+function Opening({ hero }: { hero: Exclude<Hero, 'night' | 'day'> }) {
   const section = useRef<HTMLElement>(null);
   const stage = useRef<HTMLDivElement>(null);
   const backCv = useRef<HTMLCanvasElement>(null);
@@ -285,10 +289,10 @@ function Opening({ hero }: { hero: Hero }) {
   );
 }
 
-/** Preview-only: compare the three landings. */
+/** Preview-only: compare the landings. */
 function HeroPicker({ current }: { current: Hero }) {
   return (
-    <nav aria-label="Compare landings" className="fixed bottom-[68px] left-1/2 z-40 flex -translate-x-1/2 items-center gap-1 whitespace-nowrap rounded-pill border border-line-dark bg-obsidian/90 p-1 text-[12px] text-fog md:text-[13px]">
+    <nav aria-label="Compare landings" className="fixed bottom-[68px] left-1/2 z-40 flex max-w-[calc(100vw-24px)] -translate-x-1/2 items-center overflow-x-auto gap-1 whitespace-nowrap rounded-pill border border-line-dark bg-obsidian/90 p-1 text-[12px] text-fog md:text-[13px]">
       {HEROES.map((h) => (
         <a key={h.id} href={`?hero=${h.id}`} aria-current={h.id === current ? 'page' : undefined} className={`rounded-pill px-3 py-1.5 transition-colors ${h.id === current ? 'bg-paper text-obsidian' : 'hover:text-paper'}`}>
           {h.label}
@@ -364,6 +368,8 @@ export default function BlendPage() {
               <Hero />
               <Mission />
             </>
+          ) : hero === 'night' || hero === 'day' ? (
+            <FilmOpening cut={hero} />
           ) : (
             <Opening hero={hero} />
           )}
