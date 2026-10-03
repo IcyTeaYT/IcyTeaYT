@@ -185,7 +185,7 @@ export function MosaicAbout() {
           <h2 id="about-title" className="type-display mx-auto max-w-[14ch] text-[clamp(2.6rem,6vw,5.5rem)]">{ABOUT.title}</h2>
         </Gateway>
       <div className={`container-x relative ${ROOM_PULL}`}>
-        <div className="mt-8 grid max-w-[980px] gap-4 md:grid-cols-2 md:gap-10">
+        <div className="mx-auto grid max-w-[880px] gap-4 text-center md:grid-cols-2 md:gap-10 md:text-left">
           {ABOUT.body.map((t) => (
             <p key={t} className="text-body-lg text-fog">
               {t}
@@ -232,7 +232,7 @@ export function MosaicProjects() {
           <h2 id="projects-title" className="type-display text-[clamp(2.6rem,6vw,5.5rem)]">Things we’ve shipped.</h2>
         </Gateway>
       <div className={`container-x relative ${ROOM_PULL}`}>
-        <p className="mt-5 max-w-[46ch] text-body-lg text-fog">Real platforms, used by real people at TIS.</p>
+        <p className="mx-auto max-w-[46ch] text-center text-body-lg text-fog">Real platforms, used by real people at TIS.</p>
 
         {/* The plaque: TISMUN's mark set into a panel of teal glass. */}
         <Panel petal="teal" className="mt-14 grid gap-8 p-5 sm:p-8 lg:grid-cols-[5fr_7fr] lg:items-center lg:gap-14">
@@ -315,7 +315,7 @@ export function MosaicFounders() {
           <h2 id="founders-title" className="type-display mx-auto max-w-[14ch] text-[clamp(2.6rem,6vw,5.5rem)]">Three students. One campus to upgrade.</h2>
         </Gateway>
       <div className={`container-x relative ${ROOM_PULL}`}>
-        <p className="mt-5 max-w-[48ch] text-body-lg text-fog">The Tech Council was started by three TIS students who wanted to fix things, not just talk about them.</p>
+        <p className="mx-auto max-w-[48ch] text-center text-body-lg text-fog">The Tech Council was started by three TIS students who wanted to fix things, not just talk about them.</p>
         <div className="mt-14 grid gap-12 sm:grid-cols-2 sm:gap-8 lg:grid-cols-3 lg:gap-12">
           {founders.map((f, i) => (
             <Niche key={f.id} f={f} i={i % 3} />

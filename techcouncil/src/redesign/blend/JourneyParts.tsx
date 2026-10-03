@@ -53,7 +53,7 @@ function useScene<G>(box: React.RefObject<HTMLElement | null>, canvas: React.Ref
  * rises in under the title as the camera arrives instead of after a gap.
  */
 export const ROOM_PULL = 'bl-room';
-export function Gateway({ seed, children, screens = 2.4 }: { seed: number; children: ReactNode; screens?: number }) {
+export function Gateway({ seed, children, screens = 1.9 }: { seed: number; children: ReactNode; screens?: number }) {
   const reduce = useReducedMotion();
   const section = useRef<HTMLDivElement>(null);
   const stage = useRef<HTMLDivElement>(null);
@@ -74,13 +74,15 @@ export function Gateway({ seed, children, screens = 2.4 }: { seed: number; child
     if (k < 0.995 && key !== last.current) drawGateway(ctx, g, r, fr, s);
     last.current = key;
   }, warmGateway);
-  const roomScale = useTransform(scrollYProgress, (v) => 0.62 + 0.38 * fly(v));
+  const roomScale = useTransform(scrollYProgress, (v) => 0.4 + 0.6 * fly(v));
+  // Seen from outside, the title sits in the middle of the arch's opening (low in the frame); it rises to centre as the camera arrives.
+  const roomY = useTransform(scrollYProgress, (v) => `${(1 - fly(v)) * 24}svh`);
   const roomOpacity = useTransform(scrollYProgress, (v) => 0.25 + 0.75 * seg(v, e * 0.6, e + (1 - e) * 0.3));
   if (reduce) return <div className="container-x pb-6 pt-28">{children}</div>;
   return (
     <div ref={section} className="relative" style={{ height: `${screens * 100}svh` }}>
       <div ref={stage} className="sticky top-0 h-[100svh] overflow-hidden">
-        <motion.div className="absolute inset-0 flex items-center justify-center px-5 pb-[16svh] text-center" style={{ scale: roomScale, opacity: roomOpacity }}>
+        <motion.div className="absolute inset-0 flex items-center justify-center px-5 pb-[16svh] text-center" style={{ scale: roomScale, y: roomY, opacity: roomOpacity }}>
           <div className="w-full max-w-[1000px]">{children}</div>
         </motion.div>
         <canvas ref={canvas} aria-hidden className="pointer-events-none absolute left-0 top-0" />

@@ -26,7 +26,7 @@ export function AnnouncementBar({ onClose }: { onClose: () => void }) {
           e.preventDefault();
           scrollTo('#projects');
         }}
-        className="truncate underline-offset-4 hover:underline"
+        className="flex min-h-[44px] items-center truncate underline-offset-4 hover:underline"
       >
         {text}
       </a>
