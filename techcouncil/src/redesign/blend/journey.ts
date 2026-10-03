@@ -23,6 +23,13 @@ const rgb = (c: Rgb, k = 1) => `rgb(${(c[0] * k) | 0},${(c[1] * k) | 0},${(c[2] 
 const clamp01 = (v: number) => Math.min(1, Math.max(0, v));
 
 /** The golden line's head: a soft wide stroke under a thin bright one. */
+/**
+ * How quickly a tile fades in once the line reaches it (it takes 1/FADE of
+ * the drawing). Every tile still fading is drawn individually each frame, so a
+ * short fade keeps that band, and the frame's cost, small.
+ */
+const FADE = 14;
+
 function head(ctx: CanvasRenderingContext2D, p: Path2D, a: number, k: number) {
   ctx.globalAlpha = a * 0.35;
   ctx.lineWidth = 6 * k;
@@ -216,7 +223,7 @@ export function drawGateway(ctx: CanvasRenderingContext2D, g: Gateway, res: numb
   ctx.save();
   ctx.clip(g.face, 'evenodd');
   warmGateway(g, res);
-  const doneR = (front - 1 / 7) * g.md;
+  const doneR = (front - 1 / FADE) * g.md;
   if (doneR >= g.md) {
     // Finished: the baked face, however close the camera is.
     ctx.drawImage(g.cache!.cv, 0, 0, W, H);
@@ -235,7 +242,7 @@ export function drawGateway(ctx: CanvasRenderingContext2D, g: Gateway, res: numb
     const lw = g.cell * 0.07;
     for (const t of g.tiles) {
       if (t.x + t.r < vx0 || t.x - t.r > vx1 || t.y + t.r < vy0 || t.y - t.r > vy1) continue;
-      const f = clamp01((front - t.d) * 7);
+      const f = clamp01((front - t.d) * FADE);
       if (f <= 0 || (f >= 1 && t.d * g.md < doneR - g.cell * 0.4)) continue;
       ctx.globalAlpha = f;
       ctx.fillStyle = t.fill;
@@ -382,7 +389,7 @@ export function drawDome(ctx: CanvasRenderingContext2D, g: Dome, res: number, fr
   ctx.translate(cx, cy);
   ctx.rotate(rot);
   ctx.translate(-cx, -cy);
-  const doneR = (front - 1 / 6) * g.Rm;
+  const doneR = (front - 1 / FADE) * g.Rm;
   if (doneR > 0) {
     if (!g.cache || g.cache.res !== res) g.cache = { cv: paintDome(g, res), res };
     ctx.save();
@@ -394,7 +401,7 @@ export function drawDome(ctx: CanvasRenderingContext2D, g: Dome, res: number, fr
     ctx.restore();
   }
   for (const t of g.tiles) {
-    const f = clamp01((front - t.d) * 6);
+    const f = clamp01((front - t.d) * FADE);
     if (f <= 0 || (f >= 1 && t.d * g.Rm + t.r < doneR)) continue;
     if (Math.hypot(t.x - cx, t.y - cy) - t.r > g.reach) continue;
     ctx.globalAlpha = f;
@@ -408,7 +415,7 @@ export function drawDome(ctx: CanvasRenderingContext2D, g: Dome, res: number, fr
   ctx.strokeStyle = GOLD;
   ctx.lineWidth = 1;
   for (const ring of g.rings) {
-    const f = clamp01((front - ring.d) * 6);
+    const f = clamp01((front - ring.d) * FADE);
     if (f <= 0 || ring.r < doneR) continue;
     ctx.globalAlpha = f * 0.8;
     ctx.beginPath();
@@ -530,7 +537,7 @@ export function drawMedallion(ctx: CanvasRenderingContext2D, g: Medallion, res: 
     hole.addPath(star(cx, cy, g.R * 0.86 * k, 8, 0.41));
     ctx.clip(hole, 'evenodd');
   }
-  const doneR = (front - 1 / 7) * g.md;
+  const doneR = (front - 1 / FADE) * g.md;
   if (doneR >= g.md) ctx.drawImage(g.cache!.cv, 0, 0, W, H);
   else {
     ctx.fillStyle = '#0a0907';
@@ -545,7 +552,7 @@ export function drawMedallion(ctx: CanvasRenderingContext2D, g: Medallion, res: 
     }
     const lw = g.cell * 0.07;
     for (const t of g.tiles) {
-      const f = clamp01((front - t.d) * 7);
+      const f = clamp01((front - t.d) * FADE);
       if (f <= 0 || (f >= 1 && t.d * g.md < doneR - g.cell * 0.4)) continue;
       ctx.globalAlpha = f;
       ctx.fillStyle = t.fill;
