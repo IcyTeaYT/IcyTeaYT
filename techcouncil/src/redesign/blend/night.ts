@@ -274,3 +274,31 @@ export function wallUrl() {
     }
   return c.toDataURL('image/png');
 }
+
+/**
+ * Light glass tiles for filling type: mostly cream and white, now and then a
+ * petal colour, with thin dark joints. Clipped to letters it reads as mosaic
+ * while the letter shapes stay crisp.
+ */
+export function glassTextUrl() {
+  const tile = 7;
+  const n = 24;
+  const c = document.createElement('canvas');
+  c.width = c.height = tile * n;
+  const ctx = c.getContext('2d')!;
+  const rand = rng(31);
+  const creams = ['#fbf8f2', '#f2ece1', '#e9e1d2', '#ffffff', '#ded5c4'];
+  for (let y = 0; y < n; y++)
+    for (let x = 0; x < n; x++) {
+      const r = rand();
+      let col = creams[Math.floor(rand() * creams.length)]!;
+      if (r > 0.9) {
+        const pc = [PETAL.orange, PETAL.cyan, PETAL.orange, PETAL.teal][Math.floor(rand() * 4)]!;
+        col = `rgb(${pc[0]},${pc[1]},${pc[2]})`;
+      }
+      ctx.fillStyle = col;
+      const j = (rand() - 0.5) * 0.8;
+      ctx.fillRect(x * tile + 0.5 + j, y * tile + 0.5 - j, tile - 1, tile - 1);
+    }
+  return c.toDataURL('image/png');
+}

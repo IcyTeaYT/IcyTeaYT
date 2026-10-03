@@ -6,7 +6,6 @@ import { Shell } from '../shared/Shell';
 import { AnnouncementBar, BAR_HEIGHT } from '@/components/AnnouncementBar';
 import { Navbar } from '@/components/Navbar';
 import { Hero } from '@/components/sections/Hero';
-import { Statement } from '@/components/sections/Statement';
 import { SuggestionBox } from '@/components/sections/SuggestionBox';
 import { SplitText } from '@/components/ui/SplitText';
 import { Magnetic } from '@/components/ui/Magnetic';
@@ -17,7 +16,7 @@ import { EASE_OUT } from '@/lib/motion';
 import { useSmoothScroll } from '@/lib/smoothScroll';
 import { drawFacade, layoutFacade, throughScale, type Facade } from '../mosaic/paint';
 import { CATEGORY_GLASS, courses, paintNightMural, paintNightStrip, wallUrl } from './night';
-import { Frieze, MosaicAbout, MosaicFaq, MosaicFooter, MosaicFounders, MosaicProjects } from './sections';
+import { Frieze, MosaicAbout, MosaicFaq, MosaicFooter, MosaicFounders, MosaicProjects, MosaicStatement } from './sections';
 
 /**
  * Option: the original site's black and white, with the Mosaic laid in dark
@@ -30,7 +29,7 @@ import { Frieze, MosaicAbout, MosaicFaq, MosaicFooter, MosaicFounders, MosaicPro
 const NAV_H = 72;
 const NIGHT_WALL = { wall: '#0b0b0b', shade: '#050505', joint: '#1c1c1c' };
 /** The opening's scroll, in screens; `at` turns a point in it into progress. */
-const SCROLL = 2.4;
+const SCROLL = 2.25;
 const at = (screens: number) => screens / SCROLL;
 
 const inOut = (t: number) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);
@@ -89,10 +88,10 @@ interface Geo {
 }
 
 /**
- * The opening, pinned for 2.4 screens of scroll:
+ * The opening, pinned for 2.25 screens of scroll:
  *   0.1–1.3   fly through the lattice (its doors part) to the mural
  *   1.3–1.65  a beat on the flower
- *   1.65–2.2  dive into the flower until the glass goes dark, into the statement
+ *   1.65–2.2  dive into the flower until it gives way to the tile wall the statement sits on
  */
 function Opening() {
   const section = useRef<HTMLElement>(null);
@@ -186,7 +185,8 @@ function Opening() {
 
   return (
     <section id="top" ref={section} data-surface="dark" aria-labelledby="hero-title" className="relative bg-obsidian text-paper" style={{ height: `calc(${(SCROLL + 1) * 100}svh - var(--bar, 0px))` }}>
-      <div ref={stage} className="sticky top-0 h-[100svh] min-h-[600px] overflow-hidden">
+      {/* The stage is the same dark tile wall as the statement after it, so the dive lands straight on it. */}
+      <div ref={stage} className="bl-wall sticky top-0 h-[100svh] min-h-[600px] overflow-hidden">
         <div ref={muralBox} className="absolute inset-0">
           <canvas ref={muralCv} aria-hidden className="absolute left-0 top-0 transition-opacity duration-700" />
         </div>
@@ -263,7 +263,7 @@ export default function BlendPage() {
         <Navbar offset={barHeight} />
         <main id="main" className="relative z-10 bg-obsidian" style={{ ['--bar' as string]: `${barHeight}px` }}>
           {reduce ? <Hero /> : <Opening />}
-          <Statement id="mission" />
+          <MosaicStatement />
           <MosaicAbout />
           <Frieze />
           <MosaicProjects />

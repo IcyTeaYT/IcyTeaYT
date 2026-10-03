@@ -1,15 +1,15 @@
-import { AnimatePresence, motion, useReducedMotion, useScroll, useTransform } from 'motion/react';
+import { AnimatePresence, motion, useReducedMotion, useScroll, useTransform, type MotionValue } from 'motion/react';
 import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
 import { LogoMark } from '@/components/brand/LogoMark';
 import { Owl } from '@/components/brand/Owl';
 import { TismunLogo } from '@/components/brand/TismunLogo';
 import { Arrow } from '@/components/ui/Arrow';
-import { ABOUT, FAQ, MOTTO, WORK } from '@/data/copy';
+import { ABOUT, FAQ, MOTTO, STATEMENT, WORK } from '@/data/copy';
 import { founders, isPlaceholder } from '@/data/founders';
 import { featuredProject } from '@/data/projects';
 import { EASE_OUT, span } from '@/lib/motion';
 import { useSmoothScroll } from '@/lib/smoothScroll';
-import { paintNightArch, paintNightStrip, PETAL_RGB } from './night';
+import { PETAL_RGB, glassTextUrl, paintNightArch, paintNightStrip } from './night';
 
 /**
  * The Mosaic option's sections, laid in dark glass: the "what we do" cells as
@@ -336,5 +336,58 @@ export function MosaicFooter() {
         </div>
       </div>
     </footer>
+  );
+}
+
+/* ---------- The mission: the original statement, set in glass tiles ---------- */
+
+function GlassWord({ children, progress, range, fill }: { children: string; progress: MotionValue<number>; range: [number, number]; fill: string }) {
+  const opacity = useTransform(progress, ...span(range, [0.16, 1]));
+  return (
+    <motion.span
+      className="bg-clip-text text-transparent [-webkit-background-clip:text]"
+      style={{ opacity, backgroundImage: fill, backgroundSize: '168px 168px' }}
+    >
+      {children}{' '}
+    </motion.span>
+  );
+}
+
+/**
+ * The live site's statement, pinned and lit word by word as on the original,
+ * but each letter is filled with glass tiles on the dark tile wall. The
+ * letters keep their own shapes, so it reads as plainly as the original.
+ */
+export function MosaicStatement() {
+  const ref = useRef<HTMLElement>(null);
+  const reduce = useReducedMotion();
+  const [fill, setFill] = useState('none');
+  useEffect(() => setFill(`url(${glassTextUrl()})`), []);
+  // Starts lighting while it is still coming up into view, so there is no dark pause after the dive.
+  const { scrollYProgress } = useScroll({ target: ref, offset: ['start 0.7', 'end end'] });
+  const words = STATEMENT.split(' ');
+  const type = 'container-x text-[clamp(2.2rem,4.8vw,4.1rem)] font-medium leading-[1.06] tracking-[-0.045em]';
+  if (reduce) {
+    return (
+      <section id="mission" data-surface="dark" aria-label="Our mission" className="bl-wall py-28 text-paper">
+        <p className={type}>{STATEMENT}</p>
+      </section>
+    );
+  }
+  return (
+    <section id="mission" ref={ref} data-surface="dark" aria-label="Our mission" className="bl-wall relative h-[200vh] text-paper">
+      <div className="sticky top-0 flex h-[100svh] items-center">
+        <p className={type}>
+          <span className="sr-only">{STATEMENT}</span>
+          <span aria-hidden>
+            {words.map((w, i) => (
+              <GlassWord key={i} progress={scrollYProgress} fill={fill} range={[0.02 + (i / words.length) * 0.7, 0.02 + ((i + 1) / words.length) * 0.7]}>
+                {w}
+              </GlassWord>
+            ))}
+          </span>
+        </p>
+      </div>
+    </section>
   );
 }
