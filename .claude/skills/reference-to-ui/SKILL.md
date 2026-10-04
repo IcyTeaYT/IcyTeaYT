@@ -38,7 +38,8 @@ Node 18+ and Playwright (project install, else global) for `.mjs`; `ffmpeg` and 
 | `node slop-check.mjs <url\|file> [--allow rule,...]` | Flags AI-template patterns; exits 1 on any HIGH. Mark real footage canvases with `data-media` |
 | `node higgsfield-prompts.mjs --subject ... --camera dolly-in --use scroll --text left --out PROMPTS.md` | Writes a Higgsfield prompt sheet: start-frame image prompts (16:9 + 9:16), image-to-video prompts for Kling, Higgsfield presets, Veo, Seedance/Hailuo/Wan, negative prompt, settings, variations. `--help` for all fields |
 | `node image-prompts.mjs --subject ... --shots 3 --journey "..." --text left --palette "#..,#.." [--layers true] [--sections "a,b"] --out IMAGE-PROMPTS.md` | Writes ChatGPT / Nano Banana prompts: hero (16:9 + 9:16), consistent journey frames as edits of the previous image, optional layers and section stills, all composed for depth moves |
-| `node depth.mjs <image> [out.png] [--quality high]` | Depth map (white = near) with the free Depth Anything V2 model in headless Chromium; no Python, no key; about 20 s |
+| `node prepare-film.mjs <out> shot1.png [shot2.png] [--phone a.png,-] [--focus "x,y;x,y"]` | **Use for every cinematic build.** Full-resolution desktop + 9:16 phone WebPs, high-quality depth maps for both, a resolution report, and the `shots` config |
+| `node depth.mjs <image> [out.png] [--quality high\|fast]` | Depth map (white = near) with the free Depth Anything V2 model in headless Chromium; no Python, no key; about 20 s |
 | `bash doctor.sh [--install]` | Checks Node, Playwright, Chromium, ffmpeg, python3; prints or runs the install commands |
 
 Keep captures, recordings and frames you are not shipping in a scratch folder, never committed unless asked.
@@ -87,8 +88,9 @@ Write `SPEC.md` in the scratch folder. Short and concrete:
 - **Cinematic sites** (a scroll film like Vela, a journey through a place, a hero that feels like a movie): follow `references/cinematic.md`. In short:
   1. Plan the page and the beat map first (`PLAN.md`), with copy in the customers' own words and one call to action.
   2. Visuals in this order: the user's own footage or photos → AI stills (`image-prompts.mjs` → user generates in ChatGPT or Nano Banana → `depth.mjs`) → a shader scene (`clouds`, `ocean`, `aurora`, `liquid`, `silk`) as backup or placeholder.
-  3. Build with `assets/cinematic/` (copy `cinema.js`, `cinema.css`, and `cinema-shaders.js` if a shader scene is used; config documented in `cinema.js`, working page in `example.html`). Keep camera moves inside the ranges in the laws.
-  4. While waiting for images, build everything else with a shader scene in the film slot, then swap in the stills.
+  3. Assets: `prepare-film.mjs` (never hand-resize). Hold the **quality floor** in `references/cinematic.md`: 3840 px desktop sources, 9:16 phone versions, native-density rendering, subtle effects, and 1:1 crops checked at deviceScaleFactor 3.
+  4. Build with `assets/cinematic/` (copy `cinema.js`, `cinema.css`, and `cinema-shaders.js` if a shader scene is used; config documented in `cinema.js`, working page in `example.html`). Keep camera moves inside the ranges in the laws.
+  5. While waiting for images, build everything else with a shader scene in the film slot, then swap in the stills.
   - Never prompt for real brands, logos, celebrities or named products; logos go on the page, not in images.
 - **Footage build:** `frames.sh` at native resolution and fps (never below 18fps or 1600px for desktop, or it looks blurry and stepped); separate portrait crop for phones; `assets/scroll-sequence/player.js` (progressive loading, first frame immediately, reduced-motion fallback). For `loop`/`play` clips use `<video autoplay muted loop playsinline poster>` with a compressed MP4.
 - Never gate visibility on an observer without a fallback.

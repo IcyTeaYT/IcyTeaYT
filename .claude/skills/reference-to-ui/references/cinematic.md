@@ -14,10 +14,19 @@ A cinematic site is one where the visitor scrolls and a camera seems to travel t
 1. **Plan the page first, then the film.** Decide the sections, the story beats and where every headline lands (see "Plan" below). The images exist to carry those beats.
 2. **Prompts:** `node <skill-dir>/scripts/image-prompts.mjs --subject ... --setting ... --light ... --shots N --journey "..." --text left --palette "#..,#.." [--layers true] [--sections "a,b"] --out IMAGE-PROMPTS.md`. Give the user the file and a short version in chat: which tool, which prompt first, what to send back.
 3. **Check every image** before using it: melted or doubled details, stray text or logos (AI loves tiny signs), the text side calm, journey frames consistent. Ask for a regeneration of a bad frame; it costs the user nothing.
-4. **Depth maps:** `node <skill-dir>/scripts/depth.mjs image.webp` for each (about 20 s; first run downloads a 25 MB model). Look at the map: near = white, far = black. If the subject is not clearly separated, regenerate the image with stronger foreground/background separation rather than fighting it.
-5. **Prepare files:** convert to WebP around 2400 px wide, quality 82 (`ffmpeg -i in.png -vf scale=2400:-2 -quality 82 out.webp`). Keep the depth map PNG at the same aspect (it can be half size).
+4. **Prepare the film assets in one step:** `node <skill-dir>/scripts/prepare-film.mjs <site>/film shot1.png shot2.png --phone shot1-9x16.png,- --focus "0.55,0.6;0.5,0.5"`. It writes full-resolution desktop and phone WebPs, high-quality depth maps for both (first run downloads a 100 MB model), a quality report and `film.json`. Look at each depth map: near = white, far = black. If the subject is not clearly separated, regenerate the image with stronger foreground/background separation rather than fighting it.
+5. **Read the quality report** and fix every warning (see Quality floor).
 6. **Build:** copy `assets/cinematic/cinema.js` and `cinema.css` into the site and write the `data-cine` config (documented at the top of `cinema.js`): one shot per image with its scroll range, focus point, start and end camera, plus atmosphere.
 7. **Prove it:** the normal loop (compare, record + `video-ref.sh`, slop-check) plus the self-test below.
+
+## Quality floor (every cinematic build, no exceptions)
+
+- **Source resolution:** desktop images at least 2560 px wide, ideally 3840 (Nano Banana Pro can output 4K; pick the highest setting). Phone images 9:16 at least 1440x2560. ChatGPT tops out near 1536 px: upscale those first with a real AI upscaler (the free **Upscayl** desktop app, x2 or x4, model "Ultrasharp" or "Remacri"), never by plain resizing.
+- **Always run `scripts/prepare-film.mjs`:** it keeps native resolution (WebP quality 92), makes the 9:16 phone version (supplied or cropped around the focus), creates high-quality depth maps, and prints a report. Fix every "!" line in the report before building.
+- **Phone versions are mandatory** (`imageMobile` / `depthMobile` on every shot). A landscape image cropped to a phone shows only about a third of its pixels.
+- **Render at native density:** the engine renders at the screen's devicePixelRatio (up to 3x) with mipmapped, anisotropically filtered photos and steps down only below about 30 fps. Do not lower it.
+- **Effects never cost sharpness:** `sky` is 0 on shots without open sky (drift on detailed areas smears them); light rays and fog stay subtle (rays 0.2 to 0.4, fog 0.1 to 0.2); grain 0.015 or less.
+- **Verify at real phone density:** screenshot the film with a 390x844 viewport at deviceScaleFactor 3 and look at 1:1 crops of each shot (subject edges, water, foliage, text). Soft or jagged crops fail; find the cause (source resolution, an effect, a camera move beyond the ranges) and fix it before showing anyone.
 
 ## The laws (for image scenes and shader scenes)
 
@@ -58,7 +67,8 @@ The film is the opening, not the site. Under it goes a real website: navigation,
 - No WebGL or an image fails to load: the first still shows, nothing is blank.
 - Console clean; every button and the form work; `slop-check.mjs` has no HIGH (the film canvas is marked `data-media`).
 - Copy search above returns nothing.
-- Weight: images and depth maps for the film under about 3 MB in total for a fast first load.
+- Weight: phones load only the phone versions (about 1 to 2 MB for a two-shot film); desktops load the full-resolution set. Quality wins over size, but lazy-load anything below the film.
+- The quality floor checks above pass, including the 1:1 crops at deviceScaleFactor 3.
 
 ## Publishing (any static host, all free to start)
 

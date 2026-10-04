@@ -1,10 +1,10 @@
 // Make a depth map for a still image (white = near, black = far), for the 3D-photo camera moves
 // in assets/cinematic/. Runs the free Depth Anything V2 model inside headless Chromium via
-// transformers.js: no Python, no API key. First run downloads the model (about 25 MB, cached after).
+// transformers.js: no Python, no API key. First run downloads the model (about 100 MB, cached after).
 //
 //   node depth.mjs <image> [out.png] [--quality fast|high] [--dilate 3] [--blur 1.5]
 //
-//   --quality  fast = 8-bit model (default, about 25 MB), high = full model (about 100 MB, sharper edges)
+//   --quality  high = full model (default, about 100 MB once, sharpest edges), fast = 8-bit model (about 25 MB)
 //   --dilate   grow near objects by N px so camera moves stretch the background, not the subject (default 3)
 //   --blur     soften the map in px to avoid jagged parallax (default 1.5)
 import fs from 'fs';
@@ -18,7 +18,7 @@ const pos = args.filter((a, i) => !a.startsWith('--') && !(args[i - 1] || '').st
 const [input, outArg] = pos;
 if (!input || !fs.existsSync(input)) { console.error('Usage: node depth.mjs <image> [out.png] [--quality fast|high] [--dilate 3] [--blur 1.5]'); process.exit(1); }
 const out = outArg || input.replace(/\.[a-z0-9]+$/i, '') + '.depth.png';
-const quality = flag('--quality', 'fast');
+const quality = flag('--quality', 'high');
 const dilate = Number(flag('--dilate', 3));
 const blur = Number(flag('--blur', 1.5));
 

@@ -19,7 +19,7 @@
     let target = 0, current = 0, drawn = -1;
 
     const resize = () => {
-      const dpr = Math.min(devicePixelRatio || 1, 2);
+      const dpr = Math.min(devicePixelRatio || 1, 3);   // native density: sharp on phones and retina
       canvas.width = Math.round(canvas.clientWidth * dpr);
       canvas.height = Math.round(canvas.clientHeight * dpr);
       drawn = -1;

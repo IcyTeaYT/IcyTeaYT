@@ -48,9 +48,9 @@ void main(){
   float t0 = (1.0 - ro.y) / rd.y, t1 = (0.0 - ro.y) / rd.y;
   if (rd.y < 0.0){
     float t = max(t0, 0.0), tEnd = min(t1, 40.0);
-    float dt = (tEnd - t) / 52.0;
+    float dt = (tEnd - t) / 64.0;
     vec4 acc = vec4(0.0);
-    for (int i = 0; i < 52; i++){
+    for (int i = 0; i < 64; i++){
       if (acc.a > 0.98) break;
       vec3 p = ro + rd * (t + dt * (float(i) + hash(uv * 400.0)));
       float d = dens(p);
@@ -218,7 +218,10 @@ void main(){
     const uRes = U('uRes'), uTime = U('uTime'), uP = U('uP');
 
     // Raymarched scenes are heavy: start at a modest resolution and adapt.
-    let scale = Math.min(devicePixelRatio || 1, name === 'silk' ? 2 : 1) * (name === 'clouds' ? 0.6 : name === 'silk' ? 1 : 0.85);
+    // Start sharp (native density up to 2x; clouds at 1.5x because they are raymarched) and adapt to the device.
+    const dpr = devicePixelRatio || 1;
+    const cap = Math.min(dpr, 2), floor = name === 'clouds' ? 0.5 : 0.75;
+    let scale = Math.min(cap, name === 'clouds' ? 1.5 : 2);
     const resize = () => { canvas.width = Math.max(2, Math.round(canvas.clientWidth * scale)); canvas.height = Math.max(2, Math.round(canvas.clientHeight * scale)); gl.viewport(0, 0, canvas.width, canvas.height); };
     let target = 0, shown = 0, visible = true, last = performance.now(), slow = 0, fast = 0;
     const t0 = performance.now(), speed = cfg.speed ?? 1;
@@ -226,8 +229,8 @@ void main(){
       requestAnimationFrame(tick);
       if (!visible) return;
       const dt = now - last; last = now;
-      if (dt > 26) { if (++slow > 15 && scale > 0.35) { scale = Math.max(0.35, scale - 0.1); slow = 0; resize(); } }
-      else if (dt < 14) { const cap = name === 'silk' ? Math.min(devicePixelRatio || 1, 2) : 1; if (++fast > 120 && scale < cap) { scale = Math.min(cap, scale + 0.1); fast = 0; resize(); } }
+      if (dt > 34) { fast = 0; if (++slow > 20 && scale > floor) { scale = Math.max(floor, scale - 0.2); slow = 0; resize(); } }
+      else if (dt < 14) { slow = 0; if (++fast > 120 && scale < cap) { scale = Math.min(cap, scale + 0.1); fast = 0; resize(); } }
       shown += (target - shown) * (reduced ? 1 : 0.12);
       gl.uniform2f(uRes, canvas.width, canvas.height);
       gl.uniform1f(uTime, reduced ? 0 : ((now - t0) / 1000) * speed);

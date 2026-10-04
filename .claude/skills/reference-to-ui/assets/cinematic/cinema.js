@@ -1,4 +1,4 @@
-/* cinema.js: scroll-driven cinematic scenes from still images. No dependencies, WebGL 1.
+/* cinema.js: scroll-driven cinematic scenes from still images. No dependencies; WebGL2 with WebGL1 fallback.
  *
  * Turns one or more stills (from ChatGPT, Nano Banana, a photographer, anything) plus their depth
  * maps (scripts/depth.mjs) into a 3D camera journey that plays as the visitor scrolls, with living
@@ -20,8 +20,10 @@
  *       "focus": [0.5, 0.55],                      // point the camera pushes toward (0..1, image space)
  *       "start": { "dolly": 0,    "x": 0,    "y": 0,    "zoom": 1,    "rot": 0 },
  *       "end":   { "dolly": 0.45, "x": 0.04, "y": -0.02, "zoom": 1.06, "rot": 0.01 },
- *       "sky": 0.18,                               // depth below this counts as sky (drifts)
- *       "flow": { "dir": [0, 1], "amount": 0.8, "threshold": 0.62 } }  // optional: bright water/light streams along dir (y down)
+ *       "sky": 0.18,                               // depth below this counts as sky and drifts; 0 for shots with no open sky
+ *       "flow": { "dir": [0, 1], "amount": 0.8, "threshold": 0.62 },   // optional: bright water/light streams along dir (y down)
+ *       "imageMobile": "hero-9x16.webp", "depthMobile": "hero-9x16.depth.png",   // optional: sharp version for tall screens
+ *       "focusMobile": [0.5, 0.55] }                // optional: focus inside the phone image (default: centred)
  *   ],
  *   "transition": 0.08,                           // scroll share used to blend from one shot to the next
  *   "atmosphere": {
@@ -68,12 +70,16 @@ float hash(vec2 p){ p = fract(p * vec2(123.34, 456.21)); p += dot(p, p + 45.32);
 float noise(vec2 p){ vec2 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f);
   return mix(mix(hash(i), hash(i + vec2(1,0)), f.x), mix(hash(i + vec2(0,1)), hash(i + vec2(1,1)), f.x), f.y); }
 float fbm(vec2 p){ float v = 0.0, a = 0.5; for (int i = 0; i < 5; i++){ v += a * noise(p); p = p * 2.03 + 11.7; a *= 0.5; } return v; }
+// Smooth 2-octave noise with quintic fade (continuous derivatives): for warping image coordinates.
+float qnoise(vec2 p){ vec2 i = floor(p), f = fract(p); f = f * f * f * (f * (f * 6.0 - 15.0) + 10.0);
+  return mix(mix(hash(i), hash(i + vec2(1,0)), f.x), mix(hash(i + vec2(0,1)), hash(i + vec2(1,1)), f.x), f.y); }
+float snoise(vec2 p){ return qnoise(p) * 0.65 + qnoise(p * 2.1 + 5.3) * 0.35; }
 
 // Screen uv -> image uv, cover-fit with a little overscan so camera moves never reveal an edge.
 vec2 cover(vec2 uv, vec2 asp, vec2 c){
   float screen = uRes.x / uRes.y;
   vec2 s = screen > asp.x ? vec2(1.0, asp.x / screen) : vec2(screen / asp.x, 1.0);
-  s /= 1.06;
+  s /= 1.04;
   vec2 m = (1.0 - s) * 0.5;                                   // spare image on each side
   vec2 o = clamp(c - 0.5, -m, m);                             // crop toward the focus on narrow screens
   return (uv - 0.5) * s + 0.5 + o;
@@ -93,7 +99,7 @@ vec2 project(vec2 uv, float z, vec4 cam, vec4 cam2){
 
 // Depth-aware lookup (parallax occlusion search from near to far, then refine).
 vec2 locate(sampler2D dep, vec2 uv, vec4 cam, vec4 cam2, vec2 asp, vec2 cc, out float depth){
-  const int N = 28;
+  const int N = 64;
   float zPrev = 1.0; vec2 pPrev = project(uv, 1.0, cam, cam2);
   vec2 hit = project(uv, 0.0, cam, cam2); float zHit = 0.0;
   for (int i = 1; i < N; i++){
@@ -102,7 +108,7 @@ vec2 locate(sampler2D dep, vec2 uv, vec4 cam, vec4 cam2, vec2 asp, vec2 cc, out 
     float d = texture2D(dep, cover(p, asp, cc)).r;
     if (d >= z){
       float a = zPrev, b = z;                               // refine between the two layers
-      for (int k = 0; k < 5; k++){
+      for (int k = 0; k < 8; k++){
         float m = 0.5 * (a + b); vec2 pm = project(uv, m, cam, cam2);
         if (texture2D(dep, cover(pm, asp, cc)).r >= m) b = m; else a = m;
       }
@@ -117,24 +123,26 @@ vec2 locate(sampler2D dep, vec2 uv, vec4 cam, vec4 cam2, vec2 asp, vec2 cc, out 
 vec3 shot(sampler2D img, sampler2D dep, vec2 uv, vec4 cam, vec4 cam2, vec2 asp, vec2 cc, out float depth){
   vec2 p = locate(dep, uv, cam, cam2, asp, cc, depth);
   // Living sky: far pixels drift with a slow flow field.
-  float sky = 1.0 - smoothstep(cam2.w * 0.6, cam2.w, depth);
-  vec2 flow = vec2(fbm(p * 3.0 + vec2(uTime * 0.03, 0.0)), fbm(p * 3.0 + vec2(0.0, uTime * 0.02) + 7.0)) - 0.5;
-  p += flow * 0.02 * uSkyDrift * sky;
-  p.x += uTime * 0.0025 * uSkyDrift * sky;
+  float sky = cam2.w > 0.0 ? 1.0 - smoothstep(cam2.w * 0.5, cam2.w, depth) : 0.0;   // sky: 0 turns drift off for this shot
+  // Low-frequency, smoothly interpolated field: fine noise here turns streaky detail (water, rain,
+  // hair) into jagged steps, so the drift only ever bends the image in broad, soft curves.
+  vec2 flow = vec2(snoise(p * 1.6 + vec2(uTime * 0.03, 0.0)), snoise(p * 1.6 + vec2(0.0, uTime * 0.02) + 7.0)) - 0.5;
+  p += flow * 0.012 * uSkyDrift * sky;
+  p.x += uTime * 0.0015 * uSkyDrift * sky;
   vec3 c = texture2D(img, cover(p, asp, cc)).rgb;
-  // Flowing water / streaming light: bright pixels slide along a direction with streaky noise.
+  // Flowing water / streaming light: soft streaks of light travel along the flow direction over the
+  // bright pixels. It only modulates brightness (no extra photo lookups), so it stays clean under
+  // camera moves and at any resolution.
   if (uFlow.z > 0.0){
     float l = dot(c, vec3(0.333));
-    float w = smoothstep(uFlow.w, uFlow.w + 0.15, l);
-    if (w > 0.0){
-      vec2 d = normalize(uFlow.xy);
-      vec2 nrm = vec2(-d.y, d.x);
-      float streak = noise(vec2(dot(p, nrm) * 220.0, dot(p, d) * 9.0 - uTime * 2.2));
-      vec2 q = p + d * (streak - 0.5) * 0.012 * uFlow.z;
-      vec3 c2 = texture2D(img, cover(q, asp, cc)).rgb;
-      c = mix(c, max(c, c2), w);
-      c += w * (streak - 0.5) * 0.08 * uFlow.z;
-    }
+    float w = smoothstep(uFlow.w, uFlow.w + 0.12, l);
+    vec2 d = normalize(uFlow.xy), nrm = vec2(-d.y, d.x);
+    float across = dot(p, nrm), along = dot(p, d);
+    float s1 = noise(vec2(across * 90.0, along * 7.0 - uTime * 1.6));
+    float s2 = noise(vec2(across * 170.0 + 3.0, along * 12.0 - uTime * 2.4));
+    float streak = s1 * 0.65 + s2 * 0.35;
+    c *= 1.0 + (streak - 0.5) * 0.22 * uFlow.z * w;
+    c += vec3(0.9, 0.95, 1.0) * pow(streak, 6.0) * 0.12 * uFlow.z * w;
   }
   return c;
 }
@@ -160,10 +168,12 @@ void main(){
 
   // Light rays: march toward the light, collecting bright far pixels.
   if (uRays.a > 0.0){
-    vec2 dir = (uRayPos - uv) / 18.0; vec2 q = uv; float acc = 0.0, w = 1.0;
-    for (int i = 0; i < 18; i++){ q += dir; vec3 s = texture2D(uImgA, cover(q, uAspA, uCenterA)).rgb; float l = max(0.0, dot(s, vec3(0.333)) - 0.55); acc += l * w; w *= 0.93; }
+    // 32 dithered samples toward the light; only genuinely bright pixels (sun, sky glare) feed the shafts.
+    vec2 dir = (uRayPos - uv) / 32.0; vec2 q = uv + dir * hash(uv * uRes); float acc = 0.0, w = 1.0;
+    for (int i = 0; i < 32; i++){ q += dir; vec3 s = texture2D(uImgA, cover(q, uAspA, uCenterA)).rgb; float l = max(0.0, dot(s, vec3(0.333)) - 0.78); acc += l * w; w *= 0.955; }
+    acc *= 18.0 / 32.0 * 1.6;
     float shimmer = 0.75 + 0.25 * noise(vec2(atan(uv.y - uRayPos.y, uv.x - uRayPos.x) * 6.0, uTime * 0.2));
-    col += uRays.rgb * acc * 0.12 * uRays.a * shimmer;
+    col += uRays.rgb * acc * 0.1 * uRays.a * shimmer * (1.0 - smoothstep(0.75, 1.0, dot(col, vec3(0.333))));   // never push highlights to white
   }
 
   // Particles: three drifting layers, nearer layers larger and faster.
@@ -233,12 +243,20 @@ void main(){
     try { cfg = JSON.parse(section.dataset.cine || '{}'); } catch (e) { console.warn('cinema.js: bad data-cine JSON', e); return; }
     const beats = setupBeats(section);
     const canvas = section.querySelector('canvas');
-    const shots = cfg.shots || [];
+    // Tall screens use each shot's phone version (a 9:16 image made for it) when there is one.
+    const portrait = matchMedia('(max-aspect-ratio: 1/1)').matches;
+    const shots = (cfg.shots || []).map((s) => portrait && s.imageMobile
+      ? { ...s, image: s.imageMobile, depth: s.depthMobile || s.depth, focus: s.focusMobile || [0.5, (s.focus || [0.5, 0.5])[1]] }
+      : s);
 
     if (!shots.length && cfg.shader && window.CinemaShaders) return window.CinemaShaders.mount(section, canvas, cfg, { beats, progressOf, reduced });
     if (!shots.length) return fallback(section, cfg);
 
-    const gl = canvas.getContext('webgl', { antialias: false, premultipliedAlpha: false, powerPreference: 'high-performance' });
+    // WebGL2 when available: mipmaps on non-power-of-two photos (clean downscaling, no shimmer).
+    const ctxOpts = { antialias: false, premultipliedAlpha: false, powerPreference: 'high-performance' };
+    const gl = canvas.getContext('webgl2', ctxOpts) || canvas.getContext('webgl', ctxOpts);
+    const isGL2 = typeof WebGL2RenderingContext !== 'undefined' && gl instanceof WebGL2RenderingContext;
+    const aniso = gl && (gl.getExtension('EXT_texture_filter_anisotropic') || gl.getExtension('WEBKIT_EXT_texture_filter_anisotropic'));
     if (!gl) return fallback(section, cfg);
 
     const sh = (type, src) => { const s = gl.createShader(type); gl.shaderSource(s, src); gl.compileShader(s); if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(s)); return s; };
@@ -256,19 +274,29 @@ void main(){
 
     // Textures
     const blank = (() => { const t = gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D, t); gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array([0, 0, 0, 255])); return t; })();
-    const tex = (img) => {
+    // Photos get mipmaps + anisotropic filtering (WebGL2); depth maps stay plain linear because the
+    // occlusion search samples them in a loop, where mip selection would be unreliable.
+    const tex = (img, isPhoto) => {
       const t = gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D, t);
-      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
       gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
-      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, img); return t;
+      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, img);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+      if (isPhoto && isGL2) {
+        gl.generateMipmap(gl.TEXTURE_2D);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR);
+        if (aniso) gl.texParameterf(gl.TEXTURE_2D, aniso.TEXTURE_MAX_ANISOTROPY_EXT, Math.min(8, gl.getParameter(aniso.MAX_TEXTURE_MAX_ANISOTROPY_EXT)));
+      } else {
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+      }
+      return t;
     };
     const load = (src) => new Promise((res, rej) => { const i = new Image(); i.crossOrigin = 'anonymous'; i.decoding = 'async'; i.onload = () => res(i); i.onerror = () => rej(new Error('cannot load ' + src)); i.src = src; });
     const data = shots.map(() => ({ img: blank, dep: blank, asp: 16 / 9, ready: false }));
     let anyReady = false;
     shots.forEach((s, i) => {
       Promise.all([load(s.image), s.depth ? load(s.depth) : Promise.resolve(null)]).then(([im, dp]) => {
-        data[i] = { img: tex(im), dep: dp ? tex(dp) : blank, asp: im.naturalWidth / im.naturalHeight, ready: true };
+        data[i] = { img: tex(im, true), dep: dp ? tex(dp, false) : blank, asp: im.naturalWidth / im.naturalHeight, ready: true };
         if (i === 0) { anyReady = true; section.classList.add('is-ready'); }
         dirty = true;
       }).catch((e) => { console.warn('cinema.js:', e.message); if (i === 0) fallback(section, cfg); });
@@ -291,7 +319,10 @@ void main(){
     };
     statics();
 
-    let scale = Math.min(devicePixelRatio || 1, matchMedia('(max-width: 700px)').matches ? 1.25 : 1.5);
+    // Render at the screen's native density (up to 3x): pixel-sharp on phones and retina screens.
+    // Steps down only if the device cannot hold about 30 fps, and never below 1x.
+    const maxScale = Math.min(devicePixelRatio || 1, 3);
+    let scale = maxScale;
     const resize = () => {
       canvas.width = Math.max(2, Math.round(canvas.clientWidth * scale));
       canvas.height = Math.max(2, Math.round(canvas.clientHeight * scale));
@@ -336,8 +367,8 @@ void main(){
       if (!visible || !anyReady) return;
       const dt = now - last; last = now;
       // Dynamic resolution: keep the frame under ~20 ms.
-      if (dt > 24) { slow++; fast = 0; if (slow > 20 && scale > 0.5) { scale = Math.max(0.5, scale - 0.15); slow = 0; resize(); } }
-      else if (dt < 12) { fast++; slow = 0; if (fast > 120 && scale < Math.min(devicePixelRatio || 1, 1.5)) { scale = Math.min(1.5, scale + 0.1); fast = 0; resize(); } }
+      if (dt > 34) { slow++; fast = 0; if (slow > 30 && scale > 1) { scale = Math.max(1, scale - 0.25); slow = 0; resize(); } }
+      else if (dt < 12) { fast++; slow = 0; if (fast > 120 && scale < maxScale) { scale = Math.min(maxScale, scale + 0.1); fast = 0; resize(); } }
       shown += (target - shown) * (reduced ? 1 : 0.14);
       if (Math.abs(target - shown) < 1e-4) shown = target;
       draw(now);   // atmosphere is alive, so always draw while visible
