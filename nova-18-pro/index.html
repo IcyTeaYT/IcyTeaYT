@@ -1,0 +1,321 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Nova 18 Pro</title>
+<meta name="description" content="Nova 18 Pro and Pro Max. A concept phone page in the style of a flagship product launch.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400..700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+<script type="importmap">
+{ "imports": {
+  "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",
+  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"
+} }
+</script>
+</head>
+<body>
+
+<nav class="gnav" aria-label="Global">
+  <div class="gnav__in">
+    <a class="gnav__logo" href="#" aria-label="Nova home">
+      <svg viewBox="0 0 20 20" width="16" height="16" aria-hidden="true"><circle cx="10" cy="10" r="8.2" fill="none" stroke="currentColor" stroke-width="1.6"/><circle cx="10" cy="10" r="3.2" fill="currentColor"/></svg>
+    </a>
+    <ul class="gnav__links">
+      <li><a href="#">Store</a></li><li><a href="#" aria-current="page">Phone</a></li><li><a href="#">Tablet</a></li><li><a href="#">Watch</a></li><li><a href="#">Audio</a></li><li><a href="#">Support</a></li>
+    </ul>
+    <div class="gnav__icons">
+      <button type="button" aria-label="Search"><svg viewBox="0 0 16 16" width="15" height="15"><circle cx="6.8" cy="6.8" r="5.3" fill="none" stroke="currentColor" stroke-width="1.3"/><path d="m10.7 10.7 4 4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg></button>
+      <button type="button" aria-label="Bag"><svg viewBox="0 0 16 16" width="15" height="15"><path d="M3 5.5h10l-.8 9H3.8z" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/><path d="M5.6 5.5V4.2a2.4 2.4 0 0 1 4.8 0v1.3" fill="none" stroke="currentColor" stroke-width="1.2"/></svg></button>
+      <button class="gnav__menu" type="button" aria-label="Menu" aria-expanded="false" aria-controls="mmenu"><span></span><span></span></button>
+    </div>
+  </div>
+  <div class="mmenu" id="mmenu" hidden>
+    <a href="#">Store</a><a href="#">Phone</a><a href="#">Tablet</a><a href="#">Watch</a><a href="#">Audio</a><a href="#">Support</a>
+  </div>
+</nav>
+
+<nav class="lnav" aria-label="Nova 18 Pro">
+  <div class="lnav__in">
+    <a class="lnav__title" href="#top">Nova 18 Pro</a>
+    <div class="lnav__right">
+      <a class="lnav__link is-current" href="#top">Overview</a>
+      <a class="lnav__link" href="#compare">Tech Specs</a>
+      <a class="btn btn--blue btn--xs" href="#buy">Buy</a>
+    </div>
+  </div>
+</nav>
+
+<main id="top">
+
+  <!-- Hero: light beam, phone turns as you scroll -->
+  <section class="hero" id="hero" aria-label="Nova 18 Pro">
+    <div class="hero__stage">
+      <div class="hero__beam" aria-hidden="true"></div>
+      <canvas class="hero__canvas" id="heroCanvas" data-media aria-hidden="true"></canvas>
+      <div class="hero__bar wrap">
+        <div>
+          <p class="hero__name">Nova 18 Pro</p>
+          <h1 class="hero__title">Built for the long shot.</h1>
+        </div>
+        <div class="hero__buy" id="buy">
+          <p>From $1099 or $45.79/mo. for 24 mo.<br>Trade in your phone for credit.</p>
+          <a class="btn btn--blue btn--sm" href="#compare">Buy</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Highlights carousel -->
+  <section class="section highlights" aria-labelledby="hl-h">
+    <div class="wrap section__head">
+      <h2 id="hl-h" class="t-48">Get the highlights.</h2>
+      <a class="link" href="#camera">Watch the film <span aria-hidden="true">›</span></a>
+    </div>
+    <div class="hl" id="hl" aria-roledescription="carousel" aria-label="Highlights">
+      <div class="hl__track" id="hlTrack">
+        <figure class="hl__card" aria-roledescription="slide" aria-label="1 of 5">
+          <img src="assets/photos/valley.webp" alt="Golden light over a mountain valley" loading="eager">
+          <figcaption>Fusion 48MP camera with a variable aperture.<br>More light when you want it, more depth when you don't.</figcaption>
+        </figure>
+        <figure class="hl__card" aria-roledescription="slide" aria-label="2 of 5">
+          <img src="assets/photos/rain.webp" alt="Rain on a window with city lights behind" loading="lazy">
+          <figcaption>Low light, handled.<br>Night mode now works in Video.</figcaption>
+        </figure>
+        <figure class="hl__card hl__card--phone" aria-roledescription="slide" aria-label="3 of 5">
+          <div class="hl__stat"><span class="t-96">33</span><span>hours of video playback on Pro Max.</span></div>
+          <figcaption>The biggest battery we've put in a Nova.<br>Up to 50% charge in 18 minutes.</figcaption>
+        </figure>
+        <figure class="hl__card" aria-roledescription="slide" aria-label="4 of 5">
+          <img src="assets/photos/wave.webp" alt="A wave breaking over dark rocks" loading="lazy">
+          <figcaption>A tougher aluminium unibody<br>and a new scratch-resistant back.</figcaption>
+        </figure>
+        <figure class="hl__card" aria-roledescription="slide" aria-label="5 of 5">
+          <img src="assets/photos/bamboo.webp" alt="Looking up through a bamboo forest" loading="lazy">
+          <figcaption>Ultra Wide that sees 120 degrees.<br>Step back without stepping back.</figcaption>
+        </figure>
+      </div>
+      <div class="hl__controls">
+        <div class="hl__dots" role="tablist" aria-label="Choose a highlight">
+          <button role="tab" aria-selected="true" aria-label="Highlight 1"></button>
+          <button role="tab" aria-selected="false" aria-label="Highlight 2"></button>
+          <button role="tab" aria-selected="false" aria-label="Highlight 3"></button>
+          <button role="tab" aria-selected="false" aria-label="Highlight 4"></button>
+          <button role="tab" aria-selected="false" aria-label="Highlight 5"></button>
+        </div>
+        <button class="hl__play" id="hlPlay" type="button" aria-label="Pause highlights">
+          <svg class="i-pause" viewBox="0 0 16 16" width="16" height="16"><rect x="4" y="3" width="2.6" height="10" rx="1" fill="currentColor"/><rect x="9.4" y="3" width="2.6" height="10" rx="1" fill="currentColor"/></svg>
+          <svg class="i-play" viewBox="0 0 16 16" width="16" height="16"><path d="M5 3.2v9.6c0 .5.5.8.9.5l7.2-4.8a.6.6 0 0 0 0-1L5.9 2.7c-.4-.3-.9 0-.9.5Z" fill="currentColor"/></svg>
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <!-- Most wanted + compare -->
+  <section class="section intro" aria-labelledby="mw-h">
+    <div class="wrap wrap--text center">
+      <p class="eyebrow">The ultimate upgrade</p>
+      <h2 id="mw-h" class="t-96">Most wanted.</h2>
+      <p class="lead">Nova 18 Pro is built around three things people asked for: a camera that lets you control light, a battery that outlasts the day, and a body that shrugs off drops. Here's how it compares.</p>
+      <label class="select">
+        <span>Compare with</span>
+        <select id="cmpSelect">
+          <option value="15">Nova 15 Pro</option>
+          <option value="16" selected>Nova 16 Pro</option>
+          <option value="17">Nova 17 Pro</option>
+        </select>
+      </label>
+      <div class="stats" id="cmpStats">
+        <div><span class="stats__n" data-k="hours">9 more hours</span><span class="stats__l">video playback on Pro Max</span></div>
+        <div><span class="stats__n" data-k="cpu">40% faster</span><span class="stats__l">CPU performance</span></div>
+        <div><span class="stats__n" data-k="light">2x more</span><span class="stats__l">light in low-light photos</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Product viewer -->
+  <section class="section viewer" aria-labelledby="pv-h">
+    <div class="wrap">
+      <p class="eyebrow">Design</p>
+      <h2 id="pv-h" class="t-80">Our toughest<br>unibody yet.</h2>
+    </div>
+    <div class="wrap viewer__grid">
+      <div class="viewer__pills" role="tablist" aria-label="Take a closer look">
+        <button class="pill is-on" role="tab" aria-selected="true" data-view="colors"><span class="pill__plus" aria-hidden="true"></span>Colours</button>
+        <button class="pill" role="tab" aria-selected="false" data-view="sizes"><span class="pill__plus" aria-hidden="true"></span>Two sizes</button>
+        <button class="pill" role="tab" aria-selected="false" data-view="camera"><span class="pill__plus" aria-hidden="true"></span>Camera plateau</button>
+        <button class="pill" role="tab" aria-selected="false" data-view="button"><span class="pill__plus" aria-hidden="true"></span>Camera Control</button>
+        <p class="viewer__note" id="viewNote" aria-live="polite">Three finishes in anodised aluminium. Ember shown.</p>
+        <div class="swatches" id="swatches" role="radiogroup" aria-label="Finish">
+          <button role="radio" aria-checked="true" data-color="ember" style="--c:#5b1e26" aria-label="Ember"></button>
+          <button role="radio" aria-checked="false" data-color="glacier" style="--c:#c9ccd1" aria-label="Glacier"></button>
+          <button role="radio" aria-checked="false" data-color="abyss" style="--c:#1f2a3d" aria-label="Abyss"></button>
+        </div>
+      </div>
+      <div class="viewer__stage">
+        <canvas id="viewCanvas" data-media aria-label="Nova 18 Pro, rotating 3D view"></canvas>
+      </div>
+    </div>
+  </section>
+
+  <!-- Camera -->
+  <section class="section camera" id="camera" aria-labelledby="cam-h">
+    <div class="lens" aria-hidden="true"><div class="lens__ring"></div><div class="lens__glass"></div></div>
+    <div class="wrap center camera__head">
+      <p class="eyebrow">Pro camera system</p>
+      <h2 id="cam-h" class="t-80">Light, on your terms.</h2>
+    </div>
+    <div class="wrap wrap--text">
+      <p class="lead">The new Fusion camera has a physical aperture that opens and closes like a pro lens. Open it to f/1.4 for night streets. Close it to f/8 for a landscape that's sharp from the rocks to the ridge.</p>
+      <div class="specs">
+        <div class="specs__big"><p><span class="t-48">48MP</span><span class="specs__cap">Fusion Main</span></p><p><span class="t-48">8x</span><span class="specs__cap">optical-quality zoom</span></p></div>
+        <dl class="specs__list">
+          <div><dt>48MP Fusion Main camera with variable aperture</dt><dd>24 mm, ƒ/1.4 to ƒ/8, sensor-shift stabilisation</dd></div>
+          <div><dt>48MP Fusion Ultra Wide</dt><dd>13 mm, ƒ/2.2, 120° field of view, macro from 2 cm</dd></div>
+          <div><dt>48MP Fusion Telephoto</dt><dd>100 mm, ƒ/2.8, 4x optical, 8x optical-quality</dd></div>
+        </dl>
+      </div>
+    </div>
+
+    <div class="wrap center aperture">
+      <h3 class="t-64">Variable aperture.<br>Every shot, your call.</h3>
+      <p class="lead">Drag the ƒ-stop and watch the depth change.</p>
+      <div class="aperture__frame" id="aperture" style="--blur:9px;--clear:34%;--exp:1.1">
+        <img class="aperture__bg" src="assets/photos/dog.webp" alt="" aria-hidden="true">
+        <img class="aperture__fg" src="assets/photos/dog.webp" alt="A bulldog on cobblestones, photographed with a wide aperture">
+      </div>
+      <div class="fstops" role="radiogroup" aria-label="Aperture">
+        <button role="radio" aria-checked="true" data-f="1.4">ƒ/1.4</button>
+        <button role="radio" aria-checked="false" data-f="2.8">ƒ/2.8</button>
+        <button role="radio" aria-checked="false" data-f="5.6">ƒ/5.6</button>
+        <button role="radio" aria-checked="false" data-f="8">ƒ/8</button>
+      </div>
+      <p class="aperture__cap" id="fcap"><strong>ƒ/1.4 Maximum light.</strong> The background melts away and your subject stands out.</p>
+    </div>
+
+    <div class="wrap">
+      <h3 class="t-28 gallery__h">Every lens, all in.</h3>
+    </div>
+    <div class="gallery" id="gallery">
+      <div class="gallery__track" id="galTrack">
+        <figure><img src="assets/photos/waterfall.webp" alt="A waterfall pouring into a mossy gorge" loading="lazy"><figcaption><strong>Main.</strong> 48MP detail in every drop, with natural colour straight out of the camera.</figcaption></figure>
+        <figure><img src="assets/photos/bamboo.webp" alt="Bamboo stalks rising to the sky" loading="lazy"><figcaption><strong>Ultra Wide.</strong> 120 degrees, so the whole forest fits.</figcaption></figure>
+        <figure><img src="assets/photos/car.webp" alt="A vintage pickup truck on a city street" loading="lazy"><figcaption><strong>Telephoto.</strong> 4x optical brings the street to you without the walk.</figcaption></figure>
+        <figure><img src="assets/photos/grass.webp" alt="Blades of grass in close focus against a soft forest background" loading="lazy"><figcaption><strong>Macro.</strong> Focus from 2 cm, close enough to pick out a single blade of grass.</figcaption></figure>
+        <figure><img src="assets/photos/rain.webp" alt="Rain drops on glass at night" loading="lazy"><figcaption><strong>Night mode.</strong> Longer exposures, steadied by sensor-shift.</figcaption></figure>
+      </div>
+      <div class="wrap gallery__nav">
+        <button type="button" id="galPrev" aria-label="Previous photo" disabled><svg viewBox="0 0 16 16" width="14" height="14"><path d="M10 3 5 8l5 5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+        <button type="button" id="galNext" aria-label="Next photo"><svg viewBox="0 0 16 16" width="14" height="14"><path d="m6 3 5 5-5 5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+      </div>
+    </div>
+  </section>
+
+  <!-- Battery -->
+  <section class="section battery" aria-labelledby="bat-h">
+    <div class="wrap center">
+      <p class="eyebrow">Battery life</p>
+      <h2 id="bat-h" class="t-56">The longest-lasting Nova.<br>By a lot.</h2>
+    </div>
+    <div class="wrap battery__grid">
+      <p class="battery__stat"><span class="t-40">33 hours</span><span>video playback on Pro Max</span></p>
+      <p class="battery__copy">A larger cell, a more efficient display and the N8 Pro chip add up to six more hours than Nova 17 Pro Max. Streaming, gaming, navigating: it keeps going into tomorrow.</p>
+    </div>
+    <div class="wrap">
+      <div class="charge">
+        <svg class="charge__bolt" viewBox="0 0 24 36" width="24" height="36" aria-hidden="true"><path d="M14 1 2 20h8l-2 15 13-20h-8l1-14Z" fill="#30d158"/></svg>
+        <h3 class="t-40">Charge fast. Leave faster.</h3>
+        <div class="charge__grid">
+          <p>With a 45W wired adapter, a 10-minute top-up gives you up to 7 hours of video playback. Enough for a flight, a commute, a night out.</p>
+          <p><span class="t-28">50% in 18 minutes</span><span class="muted">with a 45W adapter</span></p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Chip -->
+  <section class="section chip" aria-labelledby="chip-h">
+    <div class="chip__art" aria-hidden="true"><div class="chip__die"><span class="chip__logo"></span><span>N8 PRO</span></div></div>
+    <div class="wrap center">
+      <p class="eyebrow">Performance</p>
+      <h2 id="chip-h" class="t-56">N8 Pro.<br>Cool under pressure.</h2>
+      <p class="lead wrap--text">Our fastest phone chip runs inside a vapour chamber three times larger than before, so it holds peak speed through long games, 4K exports and on-device AI without throttling.</p>
+    </div>
+    <div class="wrap chip__cols">
+      <div><svg viewBox="0 0 28 28" width="28" height="28" aria-hidden="true"><path d="M14 3v4M14 21v4M3 14h4M21 14h4M6.2 6.2l2.8 2.8M19 19l2.8 2.8M6.2 21.8 9 19M19 9l2.8-2.8" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><circle cx="14" cy="14" r="4" fill="none" stroke="currentColor" stroke-width="1.6"/></svg><h3>6-core CPU, 6-core GPU</h3><p>Up to 40% faster CPU and 50% faster graphics than Nova 16 Pro.</p></div>
+      <div><svg viewBox="0 0 28 28" width="28" height="28" aria-hidden="true"><rect x="5" y="5" width="18" height="18" rx="4" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M10 14h8M14 10v8" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg><h3>Vapour chamber cooling</h3><p>Heat spreads across the aluminium unibody instead of building up behind the screen.</p></div>
+    </div>
+  </section>
+
+  <!-- Upgrade tiles -->
+  <section class="section upgrade" aria-labelledby="up-h">
+    <div class="wrap">
+      <div class="upgrade__head">
+        <h2 id="up-h" class="t-48">Worth the upgrade?<br>Here's what you get.</h2>
+      </div>
+      <div class="tiles">
+        <div class="tile"><span class="t-40">48MP</span><p>Fusion Main, Ultra Wide and Telephoto. Three 48MP cameras.</p></div>
+        <div class="tile"><span class="t-40">ƒ/1.4–ƒ/8</span><p>Variable aperture, a first on Nova.</p></div>
+        <div class="tile"><span class="t-40">+6 hrs</span><p>More video playback than Nova 17 Pro Max.</p></div>
+        <div class="tile"><span class="t-40">2x</span><p>Tougher back glass in drop tests against Nova 17 Pro.</p></div>
+        <div class="tile tile--wide"><span class="t-28">Trade in. Trade up.</span><p>Get credit toward Nova 18 Pro when you trade in an eligible phone. <a class="link" href="#">See your trade-in value <span aria-hidden="true">›</span></a></p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Compare -->
+  <section class="section compare" id="compare" aria-labelledby="cmp-h">
+    <div class="wrap">
+      <h2 id="cmp-h" class="t-48 dark">Which Nova 18 Pro is right for you?</h2>
+      <div class="models">
+        <article class="model">
+          <div class="model__img"><img src="assets/model-pro.webp" alt="Nova 18 Pro in Ember, back view" loading="lazy" width="600" height="800"></div>
+          <h3>Nova 18 Pro</h3>
+          <p class="model__tag">Everything Pro, in a size you can use with one hand.</p>
+          <p class="model__price">From $1099</p>
+          <div class="model__cta"><a class="btn btn--blue btn--sm" href="#">Buy</a><a class="link link--dark" href="#">Learn more <span aria-hidden="true">›</span></a></div>
+          <dl class="model__specs">
+            <div><dt>Display</dt><dd>6.3" ProMotion, up to 120Hz</dd></div>
+            <div><dt>Battery</dt><dd>Up to 29 hours video playback</dd></div>
+            <div><dt>Camera</dt><dd>48MP Main, Ultra Wide and 4x Telephoto</dd></div>
+            <div><dt>Chip</dt><dd>N8 Pro</dd></div>
+          </dl>
+        </article>
+        <article class="model">
+          <div class="model__img"><img src="assets/model-pro-max.webp" alt="Nova 18 Pro Max in Ember, back view" loading="lazy" width="600" height="800"></div>
+          <h3>Nova 18 Pro Max</h3>
+          <p class="model__tag">The biggest screen and the longest battery life on a Nova.</p>
+          <p class="model__price">From $1199</p>
+          <div class="model__cta"><a class="btn btn--blue btn--sm" href="#">Buy</a><a class="link link--dark" href="#">Learn more <span aria-hidden="true">›</span></a></div>
+          <dl class="model__specs">
+            <div><dt>Display</dt><dd>6.9" ProMotion, up to 120Hz</dd></div>
+            <div><dt>Battery</dt><dd>Up to 33 hours video playback</dd></div>
+            <div><dt>Camera</dt><dd>48MP Main, Ultra Wide and 4x Telephoto</dd></div>
+            <div><dt>Chip</dt><dd>N8 Pro</dd></div>
+          </dl>
+        </article>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer class="footer">
+  <div class="wrap">
+    <p class="footer__note">Nova 18 Pro is a design concept built to show a product-launch page. It is not a real device, and all prices, figures and comparisons on this page are illustrative. Photos: Unsplash via picsum.photos. The phone is a real-time 3D model rendered in your browser.</p>
+    <div class="footer__cols">
+      <div><h4>Shop</h4><a href="#">Phone</a><a href="#">Tablet</a><a href="#">Watch</a><a href="#">Audio</a></div>
+      <div><h4>Account</h4><a href="#">Manage your ID</a><a href="#">Orders</a><a href="#">Trade in</a></div>
+      <div><h4>Help</h4><a href="#">Support</a><a href="#">Repairs</a><a href="#">Contact</a></div>
+      <div><h4>About</h4><a href="#">Newsroom</a><a href="#">Careers</a><a href="#">Environment</a></div>
+    </div>
+    <p class="footer__legal">Nova concept page. Design preview only.</p>
+  </div>
+</footer>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.13.0/gsap.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.13.0/ScrollTrigger.min.js"></script>
+<script type="module" src="app.js"></script>
+</body>
+</html>

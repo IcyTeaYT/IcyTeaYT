@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Registan at Night</title>
+<meta name="description" content="Registan Square, Samarkand, after dark. A scroll-driven night flight across the square.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500&display=swap" rel="stylesheet">
+<link rel="preload" as="image" href="frames/lg/001.webp" media="(min-width: 701px)">
+<link rel="preload" as="image" href="frames/sm/001.webp" media="(max-width: 700px)">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<header class="nav">
+  <a class="nav__brand" href="#">Registan</a>
+  <nav class="nav__links" aria-label="Main">
+    <a href="#madrasas">Madrasas</a>
+    <a href="#visit">Visit</a>
+    <a href="#visit">Evenings</a>
+  </nav>
+  <a class="nav__dot" href="#visit" aria-label="Plan a visit"><span></span></a>
+</header>
+
+<section class="flight" id="flight" aria-label="Registan Square at night">
+  <div class="flight__stage">
+    <canvas class="flight__canvas" id="canvas" data-media aria-hidden="true"></canvas>
+    <img class="flight__fallback" id="fallback" src="frames/lg/001.webp" alt="Registan Square in Samarkand at night, the three madrasas lit in gold under a blue sky." >
+    <div class="flight__shade" aria-hidden="true"></div>
+
+    <div class="flight__copy" id="copy">
+      <h1 class="flight__title">Registan</h1>
+      <p class="flight__tag">After<br>dark.</p>
+    </div>
+
+    <div class="flight__foot" id="foot">
+      <p>Samarkand, Uzbekistan. Three madrasas, one square, lit every night.</p>
+      <a class="pill" href="#visit">Plan a visit</a>
+    </div>
+
+    <ol class="flight__captions" id="captions" aria-hidden="true">
+      <li data-at="0.30">Left: Ulugh Beg Madrasa, 1417–1420</li>
+      <li data-at="0.55">Right: Sher-Dor Madrasa, 1619–1636</li>
+      <li data-at="0.80">Ahead: Tilya-Kori Madrasa, 1646–1660</li>
+    </ol>
+
+    <div class="flight__load" id="load" aria-hidden="true"><span></span></div>
+  </div>
+</section>
+
+<main class="after">
+  <section class="madrasas" id="madrasas">
+    <h2>Three madrasas, built across two and a half centuries.</h2>
+    <div class="madrasas__grid">
+      <article>
+        <p class="madrasas__date">1417–1420</p>
+        <h3>Ulugh Beg</h3>
+        <p>The oldest of the three, on the west side of the square. Built by Ulugh Beg, the astronomer and ruler of Samarkand.</p>
+      </article>
+      <article>
+        <p class="madrasas__date">1619–1636</p>
+        <h3>Sher-Dor</h3>
+        <p>Facing Ulugh Beg across the square. Its portal shows two tigers chasing deer beneath a rising sun.</p>
+      </article>
+      <article>
+        <p class="madrasas__date">1646–1660</p>
+        <h3>Tilya-Kori</h3>
+        <p>Closing the north side. It doubled as the city's main mosque, its interior finished in gold.</p>
+      </article>
+    </div>
+  </section>
+
+  <section class="visit" id="visit">
+    <h2>Come after sunset.</h2>
+    <p>Registan is part of Samarkand – Crossroad of Cultures, a UNESCO World Heritage Site since 2001. The square is floodlit each evening; check local listings for the light and sound show.</p>
+  </section>
+</main>
+
+<footer class="footer">
+  <p>Footage: Registan Square at night. Design preview.</p>
+</footer>
+
+<script src="app.js"></script>
+</body>
+</html>
