@@ -7,6 +7,7 @@ import { EASE_OUT, SPRING_SNAPPY } from '@/lib/motion';
 import { useIntroDone } from '@/lib/intro';
 
 const LINKS = [
+  { id: 'mission', label: 'Mission' },
   { id: 'about', label: 'About' },
   { id: 'projects', label: 'Projects' },
   { id: 'founders', label: 'Founders' },
