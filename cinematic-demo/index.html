@@ -1,0 +1,149 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Glen & Ridge</title>
+<meta name="description" content="Guided three-day walks in the highlands. A cinematic scroll demo built from still images with reference-to-ui.">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600&family=Manrope:wght@400;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="cinema.css">
+<style>
+  /* Palette pulled from the film's own frames: moss, peat, gold light, mist. */
+  :root { color-scheme: dark; --moss: #1c2619; --peat: #2a2219; --gold: #e3b66b; --mist: #efe9dc; --muted: rgba(239,233,220,.72); --line: rgba(239,233,220,.16);
+    --display: "Fraunces", Georgia, serif; --body: "Manrope", "Helvetica Neue", Arial, sans-serif; --pad: clamp(16px, 5vw, 80px); }
+  * { box-sizing: border-box; }
+  html { scroll-padding-top: 72px; }
+  body { margin: 0; background: var(--moss); color: var(--mist); font: 17px/1.6 var(--body); }
+  a { color: inherit; }
+  :focus-visible { outline: 2px solid var(--gold); outline-offset: 3px; }
+
+  .nav { position: fixed; inset: 0 0 auto; z-index: 10; display: flex; align-items: center; justify-content: space-between; padding: calc(18px + env(safe-area-inset-top, 0px)) var(--pad) 28px; background: linear-gradient(rgba(12,16,10,.55), rgba(12,16,10,0)); text-shadow: 0 1px 12px rgba(0,0,0,.4); }
+  .nav__brand { font: 600 19px/1 var(--display); letter-spacing: .01em; text-decoration: none; }
+  .nav__cta { font-size: 14px; font-weight: 600; text-decoration: none; padding: 11px 18px; border-radius: 999px; background: rgba(28,38,25,.55); border: 1px solid var(--line); backdrop-filter: blur(10px); }
+
+  .film { --scrim: rgba(12, 16, 10, .55); }
+  .b1 { left: var(--pad); top: 24vh; max-width: 9ch; font: 400 clamp(52px, 9vw, 132px)/.92 var(--display); letter-spacing: -.02em; margin: 0; }
+  .b2 { right: var(--pad); top: 32vh; max-width: 15ch; font: 400 clamp(26px, 3vw, 42px)/1.15 var(--display); text-align: right; margin: 0; }
+  .b3 { left: var(--pad); bottom: 15vh; max-width: 14ch; font: 400 clamp(30px, 3.6vw, 52px)/1.1 var(--display); margin: 0; }
+  .b3 a { display: inline-block; margin-top: 18px; font: 600 15px/1 var(--body); text-decoration: none; padding: 14px 22px; border-radius: 999px; background: var(--gold); color: #1c1608; text-shadow: none; }
+
+  .section { padding: 120px var(--pad); }
+  .wrap { max-width: 1120px; margin: 0 auto; }
+  h2 { font: 400 clamp(34px, 4.4vw, 60px)/1.05 var(--display); letter-spacing: -.01em; margin: 0; max-width: 18ch; text-wrap: balance; }
+  .lead { max-width: 58ch; color: var(--muted); font-size: 19px; margin: 22px 0 0; }
+
+  .walks { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; margin-top: 56px; }
+  .walk img { width: 100%; aspect-ratio: 4 / 5; object-fit: cover; border-radius: 6px; display: block; }
+  .walk h3 { font: 400 26px/1.15 var(--display); margin: 18px 0 6px; }
+  .walk p { margin: 0; color: var(--muted); font-size: 15px; }
+  .walk .meta { margin-top: 10px; font-size: 13px; color: var(--gold); }
+
+  .steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 40px; margin-top: 56px; border-top: 1px solid var(--line); padding-top: 36px; }
+  .steps h3 { font: 400 24px/1.2 var(--display); margin: 0 0 8px; }
+  .steps p { margin: 0; color: var(--muted); font-size: 15px; }
+
+  .faq { margin-top: 48px; border-top: 1px solid var(--line); }
+  .faq details { border-bottom: 1px solid var(--line); }
+  .faq summary { cursor: pointer; list-style: none; padding: 22px 0; font: 400 22px/1.3 var(--display); display: flex; justify-content: space-between; gap: 16px; }
+  .faq summary::after { content: "+"; color: var(--gold); }
+  .faq details[open] summary::after { content: "–"; }
+  .faq p { margin: 0 0 22px; color: var(--muted); max-width: 62ch; }
+
+  .cta { background: var(--peat); }
+  .form { display: grid; grid-template-columns: 1fr 1fr auto; gap: 12px; margin-top: 36px; max-width: 760px; }
+  .form input { height: 52px; padding: 0 16px; border-radius: 6px; border: 1px solid var(--line); background: rgba(0,0,0,.2); color: var(--mist); font: 16px var(--body); min-width: 0; }
+  .form button { height: 52px; padding: 0 24px; border: 0; border-radius: 999px; background: var(--gold); color: #1c1608; font: 600 15px var(--body); cursor: pointer; }
+  .form__done { margin-top: 18px; color: var(--gold); }
+  footer { padding: 40px var(--pad); color: var(--muted); font-size: 13px; border-top: 1px solid var(--line); }
+
+  @media (max-width: 760px) {
+    .walks, .steps { grid-template-columns: 1fr; }
+    .form { grid-template-columns: 1fr; }
+    .b2 { top: auto; bottom: 30vh; left: var(--pad); text-align: left; }
+  }
+</style>
+</head>
+<body>
+<header class="nav"><a class="nav__brand" href="#">Glen &amp; Ridge</a><a class="nav__cta" href="#book">Book a walk</a></header>
+
+<section class="cine film" style="height: 520vh" aria-label="A walk through the highlands" data-cine='{
+  "shots": [
+    { "image": "film/valley.webp", "depth": "film/valley.depth.webp", "from": 0, "to": 0.56, "focus": [0.55, 0.58], "sky": 0.12,
+      "start": { "dolly": 0, "x": 0, "y": 0, "zoom": 1 }, "end": { "dolly": 0.6, "x": 0.035, "y": -0.015, "zoom": 1.1, "rot": 0.008 } },
+    { "image": "film/waterfall.webp", "depth": "film/waterfall.depth.webp", "from": 0.56, "to": 1, "focus": [0.47, 0.45], "sky": 0.1,
+      "flow": { "dir": [0, 1], "amount": 0.8, "threshold": 0.6 },
+      "start": { "dolly": 0, "x": -0.02, "zoom": 1.02 }, "end": { "dolly": 0.45, "x": 0.02, "y": 0.01, "zoom": 1.12 } } ],
+  "transition": 0.1,
+  "atmosphere": { "skyDrift": 0.8, "fog": { "color": "#d8cfbe", "amount": 0.2, "height": 0.45 },
+    "rays": { "pos": [0.7, 0.18], "color": "#ffd9a8", "amount": 0.45 },
+    "particles": { "color": "#fff1d6", "amount": 0.3, "size": 1, "rise": 0.15 }, "grain": 0.035, "vignette": 0.4, "warmth": 0.25 } }'>
+  <div class="cine__stage">
+    <canvas class="cine__canvas" data-media aria-hidden="true"></canvas>
+    <h1 class="cine__beat b1" data-in="0" data-out="0.22">Walk the quiet glens.</h1>
+    <p class="cine__beat b2" data-in="0.27" data-out="0.52">Three days on foot. No signal, no rush, no crowds.</p>
+    <p class="cine__beat b3" data-in="0.64" data-out="1">Every trail ends somewhere worth the walk.<br><a href="#book">Book a walk</a></p>
+  </div>
+</section>
+
+<main>
+  <section class="section" id="walks">
+    <div class="wrap">
+      <h2>Three walks, small groups, a guide who knows every turn.</h2>
+      <p class="lead">You carry a day pack. We move your bags between stops, book the beds and know where the dry path is when it rains.</p>
+      <div class="walks">
+        <article class="walk"><img src="img/grass.webp" alt="Tall grass in a highland meadow" loading="lazy"><h3>The Long Glen</h3><p>Open valleys and easy climbs. Good for a first walk.</p><p class="meta">3 days · 34 km · Easy</p></article>
+        <article class="walk"><img src="img/bamboo.webp" alt="Looking up through a stand of tall trees" loading="lazy"><h3>Old Wood Trail</h3><p>Shaded paths through old woodland and two river crossings.</p><p class="meta">3 days · 41 km · Moderate</p></article>
+        <article class="walk"><img src="img/wave.webp" alt="A wave breaking on dark rocks" loading="lazy"><h3>Coast to Ridge</h3><p>Sea cliffs on day one, the high ridge on day three.</p><p class="meta">3 days · 48 km · Hard</p></article>
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="wrap">
+      <h2>Show up with boots. We handle the rest.</h2>
+      <div class="steps">
+        <div><h3>Pick a walk</h3><p>Choose a route and a date. Groups are capped at eight.</p></div>
+        <div><h3>We plan the days</h3><p>Beds, meals and bag transfers are booked before you arrive.</p></div>
+        <div><h3>Just walk</h3><p>Your guide sets the pace, and you get a lift back to the start on the last day.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="wrap">
+      <h2>What people ask before booking.</h2>
+      <div class="faq">
+        <details><summary>Am I fit enough?</summary><p>If you can walk five hours with breaks, The Long Glen is fine. Each walk lists its distance and climb so you can judge.</p></details>
+        <details><summary>What if it rains?</summary><p>It will, a little. Your guide reroutes on bad days, and every stop has a drying room.</p></details>
+        <details><summary>Can I come alone?</summary><p>Most of our walkers do. You get your own room for a small supplement.</p></details>
+      </div>
+    </div>
+  </section>
+
+  <section class="section cta" id="book">
+    <div class="wrap">
+      <h2>Tell us when you want to walk.</h2>
+      <p class="lead">Leave your email and preferred month. We reply within a day with open dates.</p>
+      <form class="form" id="form">
+        <input id="email" type="email" placeholder="Email" required aria-label="Email">
+        <input id="month" type="text" placeholder="Preferred month" aria-label="Preferred month">
+        <button type="submit">Ask for dates</button>
+      </form>
+      <p class="form__done" id="done" hidden>Thanks. This is a demo, so nothing was sent, but on a live site your request would arrive in our inbox.</p>
+    </div>
+  </section>
+</main>
+<footer>Glen &amp; Ridge is a fictional brand for a design demo. Photos: Unsplash via picsum.photos, brought to life with depth maps in the browser. Built with reference-to-ui. <a href="scenes.html">Shader scenes</a></footer>
+
+<script src="cinema.js"></script>
+<script>
+  document.getElementById('form').addEventListener('submit', (e) => {
+    e.preventDefault();
+    if (!e.target.reportValidity()) return;
+    document.getElementById('done').hidden = false;
+    e.target.querySelector('button').textContent = 'Sent';
+  });
+</script>
+</body>
+</html>

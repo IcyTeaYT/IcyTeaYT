@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Cinematic scroll template</title>
+<link rel="stylesheet" href="cinema.css">
+<style>
+  /* Template: replace tokens, fonts and copy from the PLAN. */
+  :root { color-scheme: dark; --bg: #0c1018; --ink: #f6f1e7; --muted: rgba(246,241,231,.72); --pad: clamp(16px, 4vw, 64px); }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 18px/1.55 Georgia, "Times New Roman", serif; }
+  .film { --scrim: rgba(8, 10, 16, .5); }
+  .beat-1 { left: var(--pad); top: 22vh; max-width: 11ch; font-size: clamp(44px, 8vw, 120px); line-height: .95; letter-spacing: -.02em; }
+  .beat-2 { right: var(--pad); top: 30vh; max-width: 16ch; font-size: clamp(24px, 3vw, 40px); text-align: right; }
+  .beat-3 { left: var(--pad); bottom: 14vh; max-width: 18ch; font-size: clamp(26px, 3.2vw, 46px); }
+  .after { padding: 120px var(--pad); max-width: 900px; }
+  .after p { color: var(--muted); }
+</style>
+</head>
+<body>
+<!--
+  With images: replace data-cine with something like
+  { "shots": [
+      { "image": "frame1.webp", "depth": "frame1.depth.png", "from": 0, "to": 0.5, "focus": [0.6, 0.55], "sky": 0.15,
+        "start": { "dolly": 0, "zoom": 1 }, "end": { "dolly": 0.5, "x": 0.03, "zoom": 1.08 } },
+      { "image": "frame2.webp", "depth": "frame2.depth.png", "from": 0.5, "to": 1, "focus": [0.5, 0.5],
+        "start": { "dolly": 0, "zoom": 1.02 }, "end": { "dolly": 0.45, "zoom": 1.1 } } ],
+    "transition": 0.1,
+    "atmosphere": { "skyDrift": 0.8, "fog": { "color": "#d8cfbe", "amount": 0.2 }, "particles": { "amount": 0.3 },
+                    "rays": { "pos": [0.7, 0.2], "amount": 0.4 }, "vignette": 0.4, "grain": 0.04 } }
+  and remove cinema-shaders.js if no shader scene is used.
+-->
+<section class="cine film" style="height: 450vh" data-cine='{ "shader": "clouds", "palette": ["#2a3d66", "#f0a868", "#fff4e0"] }'>
+  <div class="cine__stage">
+    <canvas class="cine__canvas" data-media aria-hidden="true"></canvas>
+    <h1 class="cine__beat beat-1" data-in="0" data-out="0.24">Above it all.</h1>
+    <p class="cine__beat beat-2" data-in="0.3" data-out="0.6">One line, sized for one scroll flick.</p>
+    <p class="cine__beat beat-3" data-in="0.68" data-out="1">The resting line sits where the film settles.</p>
+  </div>
+</section>
+<main class="after">
+  <h2>The real website starts here</h2>
+  <p>Sections, proof, answers to objections, and one call to action.</p>
+</main>
+<script src="cinema-shaders.js"></script>
+<script src="cinema.js"></script>
+</body>
+</html>

@@ -1,6 +1,6 @@
 # Installing reference-to-ui
 
-Builds websites and UIs from an example you give it (screenshot, URL, screen recording, brand), checks the result against the example in a real browser, and writes Higgsfield prompts when the page needs cinematic footage.
+Builds websites and UIs from an example you give it (screenshot, URL, screen recording, brand) and checks the result against the example in a real browser. Makes cinematic scroll sites without video tools: it writes ChatGPT / Nano Banana image prompts, turns your stills into 3D camera journeys with depth maps, and has procedural shader scenes as backup.
 
 ## Claude Code (terminal, desktop app, IDE)
 
@@ -39,6 +39,9 @@ If these skills are also installed, reference-to-ui uses them; if not, it works 
 ## What is inside
 
 - `SKILL.md`: the workflow.
-- `references/`: skill router, GSAP patterns, example sources (Refero, Godly), Higgsfield prompting.
-- `scripts/`: capture, compare, record, slop-check, video-ref, frames, higgsfield-prompts, doctor.
+- `references/`: skill router, cinematic playbook, GSAP patterns, example sources (Refero, Godly), Higgsfield prompting (optional).
+- `scripts/`: capture, compare, record, slop-check, video-ref, frames, image-prompts, depth, higgsfield-prompts (optional), doctor.
+- `assets/cinematic/`: the cinematic engine (stills + depth → scroll film with atmosphere and captions), five shader backup scenes, and a template page.
 - `assets/scroll-sequence/`: dependency-free scroll-scrubbed footage player and page template.
+
+The depth tool downloads a free 25 MB model on first use (internet needed once); nothing else needs an account or key.
