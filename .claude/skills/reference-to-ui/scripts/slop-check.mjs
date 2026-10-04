@@ -48,7 +48,7 @@ for (const vp of [{ name: 'desktop', width: 1440, height: 900 }, { name: 'mobile
     if (fonts.size > 3) add('too-many-fonts', 'MED', null, [...fonts].join(', '));
     if (accent.size > 4) add('too-many-accents', 'MED', null, `${accent.size} saturated text colours`);
     if (document.documentElement.scrollWidth > innerWidth + 1) add('horizontal-scroll', 'HIGH', null, `page is ${document.documentElement.scrollWidth}px wide`);
-    for (const el of document.querySelectorAll('h1,h2,h3,p')) { const s = getComputedStyle(el); if (el.textContent.trim() && (s.opacity === '0' || s.visibility === 'hidden')) add('hidden-content', 'HIGH', el, 'Text still invisible after scrolling (observer-gated?)'); }
+    for (const el of document.querySelectorAll('h1,h2,h3,p')) { if (el.closest('.cine__beat, [data-beat], [data-in][data-out]')) continue; /* scroll-paced film captions are hidden by design outside their band */ const s = getComputedStyle(el); if (el.textContent.trim() && (s.opacity === '0' || s.visibility === 'hidden')) add('hidden-content', 'HIGH', el, 'Text still invisible after scrolling (observer-gated?)'); }
     const texts = {}; for (const el of document.querySelectorAll('p,h1,h2,h3,blockquote')) { const t = el.textContent.trim().toLowerCase(); if (t.length > 25) texts[t] = (texts[t] || 0) + 1; }
     for (const [t, n] of Object.entries(texts)) if (n > 1) add('repeated-copy', 'MED', null, `"${t.slice(0, 50)}" appears ${n}x`);
     return f;

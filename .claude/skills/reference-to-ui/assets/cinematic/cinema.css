@@ -1,0 +1,18 @@
+/* cinema.css: stage, captions and fallbacks for cinema.js. Override the custom properties per site. */
+.cine { position: relative; height: 400vh; --beat-color: #fff; --scrim: rgba(0, 0, 0, 0.55); }
+.cine__stage { position: sticky; top: 0; height: 100vh; height: 100svh; overflow: hidden; background: #000 center / cover no-repeat; }
+.cine__canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+
+/* Captions: placed by each site; the engine drives --beat (0..1). */
+.cine__beat { position: absolute; z-index: 2; color: var(--beat-color); opacity: var(--beat, 0); transform: translateY(calc((1 - var(--beat, 0)) * 18px)); visibility: hidden; will-change: opacity, transform; text-shadow: 0 1px 2px rgba(0,0,0,.35), 0 8px 30px rgba(0,0,0,.35); }
+/* Local scrim: a soft dark pool behind the words that only exists while the beat is on screen. */
+.cine__beat::before { content: ""; position: absolute; inset: -45% -25%; z-index: -1; border-radius: 50%; background: radial-gradient(closest-side, var(--scrim), transparent); opacity: var(--beat, 0); pointer-events: none; }
+
+/* No WebGL or no images: the first still, captions as normal blocks. */
+.cine--fallback .cine__canvas { display: none; }
+
+@media (prefers-reduced-motion: reduce) {
+  .cine { height: auto; }
+  .cine__stage { position: relative; height: auto; min-height: 100svh; display: grid; align-content: end; gap: 24px; padding: 30vh 24px 48px; }
+  .cine__beat { position: relative; inset: auto !important; opacity: 1; transform: none; visibility: visible; }
+}

@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Shader Scenes</title>
+<link rel="stylesheet" href="cinema.css">
+<style>
+  :root { color-scheme: dark; --pad: clamp(16px, 5vw, 64px); }
+  body { margin: 0; background: #07080b; color: #f3efe7; font: 17px/1.5 "Helvetica Neue", Arial, sans-serif; }
+  .intro { padding: 96px var(--pad) 48px; max-width: 760px; }
+  .intro h1 { font-size: clamp(36px, 6vw, 72px); line-height: 1; margin: 0 0 16px; letter-spacing: -.02em; }
+  .intro p { color: rgba(243,239,231,.7); margin: 0; }
+  .label { left: var(--pad); bottom: 10vh; margin: 0; font-size: clamp(28px, 4vw, 56px); line-height: 1.05; }
+  .label small { display: block; font-size: 15px; letter-spacing: .1em; text-transform: uppercase; opacity: .75; margin-bottom: 10px; }
+</style>
+</head>
+<body>
+<header class="intro"><h1>Backup scenes</h1><p>Procedural, scroll-driven worlds used when a site has no images yet. Scroll through each one; colours come from the site's palette.</p></header>
+<section class="cine" style="height: 260vh" data-cine='{"shader":"clouds"}'><div class="cine__stage"><canvas class="cine__canvas" data-media aria-hidden="true"></canvas><p class="cine__beat label" data-in="0" data-out="1"><small>clouds</small>Above the weather.</p></div></section>
+<section class="cine" style="height: 260vh" data-cine='{"shader":"ocean"}'><div class="cine__stage"><canvas class="cine__canvas" data-media aria-hidden="true"></canvas><p class="cine__beat label" data-in="0" data-out="1"><small>ocean</small>Low over the water.</p></div></section>
+<section class="cine" style="height: 260vh" data-cine='{"shader":"aurora"}'><div class="cine__stage"><canvas class="cine__canvas" data-media aria-hidden="true"></canvas><p class="cine__beat label" data-in="0" data-out="1"><small>aurora</small>Look up.</p></div></section>
+<section class="cine" style="height: 260vh" data-cine='{"shader":"liquid"}'><div class="cine__stage"><canvas class="cine__canvas" data-media aria-hidden="true"></canvas><p class="cine__beat label" data-in="0" data-out="1"><small>liquid</small>Molten and dark.</p></div></section>
+<section class="cine" style="height: 260vh" data-cine='{"shader":"silk"}'><div class="cine__stage"><canvas class="cine__canvas" data-media aria-hidden="true"></canvas><p class="cine__beat label" data-in="0" data-out="1"><small>silk</small>Smooth folds of light.</p></div></section>
+<script src="cinema-shaders.js"></script>
+<script src="cinema.js"></script>
+</body>
+</html>
