@@ -63,8 +63,7 @@ export const projects: Project[] = [
       timezoneLabel: 'Tashkent time',
     },
     stack: ['React', 'Vite', 'TypeScript', 'Tailwind', 'Cloudflare Pages', 'D1'],
-    // TODO: paste the public TISMUN URL here.
-    link: '',
+    link: 'https://mun.tashschool.org',
     accent: { navy: '#2D3748', primary: '#E89A3C', secondary: '#8B2332', tertiary: '#2A7C74' },
     featured: true,
   },
