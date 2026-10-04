@@ -84,7 +84,8 @@ These images become the page's scroll film: each still gets a depth map, then th
 **Which tool**
 - **Nano Banana (Gemini app or Google AI Studio):** best for the journey frames, because you can attach the previous image and ask for the next step while it keeps the scene consistent. Pick the ${aspect} aspect ratio where offered.
 - **ChatGPT (image generation):** excellent single heroes and supporting stills. Ask for "wide ${aspect}" (or pick landscape). It can also make a transparent-background PNG for the layers option.
-- Generate 2 to 4 options per prompt and keep the best. Download the full-size file (PNG or high-quality JPG), not a screenshot.
+- **Resolution matters most:** pick the highest output size offered (Nano Banana Pro: 4K; ChatGPT: the largest landscape/portrait size). If an image comes out under about 2560 px wide, upscale it x2 or x4 with the free Upscayl app before sending it. Never resize it up in a normal editor.
+- Generate 2 to 4 options per prompt and keep the best. Download the full-size original file (PNG or high-quality JPG), not a screenshot or a chat preview.
 
 ---
 

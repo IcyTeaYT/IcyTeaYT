@@ -69,15 +69,17 @@
 
 <section class="cine film" style="height: 520vh" aria-label="A walk through the highlands" data-cine='{
   "shots": [
-    { "image": "film/valley.webp", "depth": "film/valley.depth.webp", "from": 0, "to": 0.56, "focus": [0.55, 0.58], "sky": 0.12,
-      "start": { "dolly": 0, "x": 0, "y": 0, "zoom": 1 }, "end": { "dolly": 0.6, "x": 0.035, "y": -0.015, "zoom": 1.1, "rot": 0.008 } },
-    { "image": "film/waterfall.webp", "depth": "film/waterfall.depth.webp", "from": 0.56, "to": 1, "focus": [0.47, 0.45], "sky": 0.1,
-      "flow": { "dir": [0, 1], "amount": 0.8, "threshold": 0.6 },
-      "start": { "dolly": 0, "x": -0.02, "zoom": 1.02 }, "end": { "dolly": 0.45, "x": 0.02, "y": 0.01, "zoom": 1.12 } } ],
+    { "image": "film/shot1.webp", "depth": "film/shot1.depth.webp", "imageMobile": "film/shot1-m.webp", "depthMobile": "film/shot1-m.depth.webp",
+      "from": 0, "to": 0.56, "focus": [0.55, 0.6], "sky": 0.12,
+      "start": { "dolly": 0, "x": 0, "y": 0, "zoom": 1 }, "end": { "dolly": 0.6, "x": 0.03, "y": -0.015, "zoom": 1.04, "rot": 0.006 } },
+    { "image": "film/shot2.webp", "depth": "film/shot2.depth.webp", "imageMobile": "film/shot2-m.webp", "depthMobile": "film/shot2-m.depth.webp",
+      "from": 0.56, "to": 1, "focus": [0.47, 0.45], "sky": 0,
+      "flow": { "dir": [0, 1], "amount": 0.6, "threshold": 0.66 },
+      "start": { "dolly": 0, "x": -0.02, "zoom": 1.0 }, "end": { "dolly": 0.45, "x": 0.02, "y": 0.01, "zoom": 1.05 } } ],
   "transition": 0.1,
-  "atmosphere": { "skyDrift": 0.8, "fog": { "color": "#d8cfbe", "amount": 0.2, "height": 0.45 },
-    "rays": { "pos": [0.7, 0.18], "color": "#ffd9a8", "amount": 0.45 },
-    "particles": { "color": "#fff1d6", "amount": 0.3, "size": 1, "rise": 0.15 }, "grain": 0.035, "vignette": 0.4, "warmth": 0.25 } }'>
+  "atmosphere": { "skyDrift": 0.8, "fog": { "color": "#d8cfbe", "amount": 0.12, "height": 0.4 },
+    "rays": { "pos": [0.7, 0.18], "color": "#ffd9a8", "amount": 0.35 },
+    "particles": { "color": "#fff1d6", "amount": 0.22, "size": 1, "rise": 0.15 }, "grain": 0.015, "vignette": 0.4, "warmth": 0.25 } }'>
   <div class="cine__stage">
     <canvas class="cine__canvas" data-media aria-hidden="true"></canvas>
     <h1 class="cine__beat b1" data-in="0" data-out="0.22">Walk the quiet glens.</h1>

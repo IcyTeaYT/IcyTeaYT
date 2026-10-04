@@ -40,8 +40,8 @@ If these skills are also installed, reference-to-ui uses them; if not, it works 
 
 - `SKILL.md`: the workflow.
 - `references/`: skill router, cinematic playbook, GSAP patterns, example sources (Refero, Godly), Higgsfield prompting (optional).
-- `scripts/`: capture, compare, record, slop-check, video-ref, frames, image-prompts, depth, higgsfield-prompts (optional), doctor.
+- `scripts/`: capture, compare, record, slop-check, video-ref, frames, image-prompts, prepare-film, depth, higgsfield-prompts (optional), doctor.
 - `assets/cinematic/`: the cinematic engine (stills + depth → scroll film with atmosphere and captions), five shader backup scenes, and a template page.
 - `assets/scroll-sequence/`: dependency-free scroll-scrubbed footage player and page template.
 
-The depth tool downloads a free 25 MB model on first use (internet needed once); nothing else needs an account or key.
+The depth tool downloads a free depth model on first use (about 100 MB for the default high-quality version, internet needed once); nothing else needs an account or key. For the sharpest results, generate images at the highest resolution your tool offers, and upscale small ones with the free Upscayl app.
