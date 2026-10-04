@@ -1,6 +1,6 @@
 ---
 name: reference-to-ui
-description: Build, rebuild or restyle any UI (website, landing page, app screen, component, scroll/GSAP motion site) from real examples, pulling in every installed design skill (ui-ux-pro-max, GSAP patterns, awesome-design-md, awesome-claude-design, Refero styles, design-motion-principles, taste/soft/minimalist/brutalist, ui-styling) so it never looks AI-generated. Use whenever the user asks to build or redesign a UI, says "make it similar to this", "copy this UI", "make it look like this", "screenshot to code", "use this as an example", "animations like this", "it looks AI generated", or shares a screenshot, URL, screen recording or video of a design. The example always leads; the other skills fill gaps. Proves the result with bundled capture, compare, record and slop-check scripts.
+description: Build, rebuild or restyle any UI (website, landing page, app screen, component, scroll/GSAP motion site) from real examples, pulling in every installed design skill (ui-ux-pro-max, GSAP patterns, awesome-design-md, awesome-claude-design, Refero styles, design-motion-principles, taste/soft/minimalist/brutalist, ui-styling) so it never looks AI-generated. Use whenever the user asks to build or redesign a UI, says "make it similar to this", "copy this UI", "make it look like this", "screenshot to code", "use this as an example", "animations like this", "it looks AI generated", or shares a screenshot, URL, screen recording or video of a design. The example always leads; the other skills fill gaps. When a page needs cinematic footage (a jet over clouds, drone shots, product hero video), it writes ready-to-paste Higgsfield prompts, then builds the scroll or loop hero from the clip. Proves the result with bundled capture, compare, record and slop-check scripts.
 ---
 
 # reference-to-ui
@@ -19,10 +19,12 @@ Read these as you need them (all in this skill folder):
 | `references/skill-router.md` | Step 1 and 3: which installed skill to use for what, with exact commands |
 | `references/sources.md` | No example given, or the user mentions Refero, Godly or a gallery |
 | `references/gsap.md` | The example has scroll, pinned, scrubbed or animated motion |
+| `references/higgsfield.md` | The page needs cinematic footage the user does not have (generated on Higgsfield, no API key) |
+| `assets/scroll-sequence/` | Building a scroll-scrubbed footage hero (dependency-free player + page template) |
 
 ## Scripts (`<skill-dir>/scripts/`)
 
-Node 18+ and Playwright (project install, else global) for `.mjs`; `ffmpeg` for `.sh`.
+Node 18+ and Playwright (project install, else global) for `.mjs`; `ffmpeg` and `python3` for `.sh`. **First use on a machine:** `bash <skill-dir>/scripts/doctor.sh` (add `--install` to install what is missing).
 
 | Script | Does |
 |---|---|
@@ -32,6 +34,8 @@ Node 18+ and Playwright (project install, else global) for `.mjs`; `ffmpeg` for 
 | `node compare.mjs <ref.png> <url\|file> <out> [--width N] [--fold]` | Build vs reference: `side-by-side.png`, `diff.png` (red = differs), mismatch % and worst bands |
 | `node record.mjs <url\|file> <out> [--scroll] [--seconds 8] [--mobile] [--selector .x]` | Records the build (scrolling or playing) to mp4 for comparing against a video example |
 | `node slop-check.mjs <url\|file> [--allow rule,...]` | Flags AI-template patterns; exits 1 on any HIGH. Mark real footage canvases with `data-media` |
+| `node higgsfield-prompts.mjs --subject ... --camera dolly-in --use scroll --text left --out PROMPTS.md` | Writes a Higgsfield prompt sheet: start-frame image prompts (16:9 + 9:16), image-to-video prompts for Kling, Higgsfield presets, Veo, Seedance/Hailuo/Wan, negative prompt, settings, variations. `--help` for all fields |
+| `bash doctor.sh [--install]` | Checks Node, Playwright, Chromium, ffmpeg, python3; prints or runs the install commands |
 
 Keep captures, recordings and frames you are not shipping in a scratch folder, never committed unless asked.
 
@@ -41,7 +45,7 @@ Use the first that applies (details in `references/sources.md`):
 
 1. **Screenshot/image:** read it at full size. Measure from pixels: content width, gutters, section heights, type sizes against known elements.
 2. **URL:** `capture.mjs`. Use measured values; never estimate what was measured. Click through menus or hover states with `playwright-cli` if the example's interactions matter.
-3. **Video** (`.mov`, `.mp4`, screen recording, reel): `video-ref.sh`, then read `sheet.png`, the key frames and `motion.txt`. Write down what moves, in what order, how far, for how long, with what easing. Note whether motion is footage (a video playing or scrubbing), UI animation, or both. Footage is almost never code: it needs the actual clip (user's, stock, or AI-generated via `ads-and-videos`), then `frames.sh`.
+3. **Video** (`.mov`, `.mp4`, screen recording, reel): `video-ref.sh`, then read `sheet.png`, the key frames and `motion.txt`. Write down what moves, in what order, how far, for how long, with what easing. Note whether motion is footage (a video playing or scrubbing), UI animation, or both. Footage is almost never code: it needs the actual clip. Ask for the user's own footage first; if they have none, generate prompts for it with Higgsfield (Step 3, **Cinematic footage**).
 4. **Brand name** ("like Stripe"): `awesome-design-md/design-md/<brand>/`. **Aesthetic family** ("editorial", "cinematic", "brutalist"): `awesome-claude-design/design-md/<family>/`.
 5. **Refero:** use the style DESIGN.md or original site URL the user gives, or the Refero MCP if connected. **Never crawl Refero**; its robots.txt blocks AI agents.
 6. **Nothing:** ask for 1 to 3 examples and offer 2 or 3 named options from the brand libraries. Do not invent a look.
@@ -76,7 +80,12 @@ Write `SPEC.md` in the scratch folder. Short and concrete:
 - Order: tokens → skeleton with real section heights → typography → components → motion.
 - **Style skills** (`soft-skill`, `minimalist-skill`, `brutalist-skill`, `taste-skill`, `gpt-tasteskill`): only when the example belongs to that family. Take their craft rules, not their layout mandates (see the router).
 - **Motion:** implement from `references/gsap.md` (scroll, pin, scrub, image sequence, text reveal) and `design-motion-principles` Create mode (hover, micro-interactions, enter/exit). Match the example's measured timing. Hidden start states are set from JS, so content shows if scripts fail. Respect `prefers-reduced-motion`.
-- **Footage:** `frames.sh` at native resolution and fps (never below 18fps or 1600px for desktop, or it looks blurry and stepped); separate portrait crop for phones; progressive loading with the first frame shown immediately.
+- **Cinematic footage** (the example has a jet over clouds, a drone push, a product hero video, and the user has no clip): follow `references/higgsfield.md`.
+  1. Write the shot spec from the example (subject, setting, light, camera move, duration, where the text sits, and whether the clip is scrubbed by `scroll`, a `loop`, or `play`s once). Use the page's palette tokens.
+  2. `node <skill-dir>/scripts/higgsfield-prompts.mjs ... --out PROMPTS.md`, then give the user the file plus a short version in chat: model, settings, and the two prompts to paste (start frame, then animation).
+  3. Build the rest of the page meanwhile with the first frame slot as a labelled placeholder. When the clip comes back, run `video-ref.sh` on it (one continuous shot, no warping, clean text area) and either continue or hand back the matching variation prompt.
+  - Never generate prompts for real brands, logos, celebrities or named products; keep logos out of footage and put them on the page.
+- **Footage build:** `frames.sh` at native resolution and fps (never below 18fps or 1600px for desktop, or it looks blurry and stepped); separate portrait crop for phones; `assets/scroll-sequence/player.js` (progressive loading, first frame immediately, reduced-motion fallback). For `loop`/`play` clips use `<video autoplay muted loop playsinline poster>` with a compressed MP4.
 - Never gate visibility on an observer without a fallback.
 - Mobile: no horizontal scroll, body text 16px+, tap targets about 44px, nav reachable.
 
@@ -100,7 +109,7 @@ Never say it matches unless the last compare/record run shows it.
 
 ## Step 5: Hand over
 
-- Send the user the final side-by-side image(s) and, for motion, the recording.
+- Send the user the final side-by-side image(s) and, for motion, the recording. If footage is still pending, send `PROMPTS.md` and say exactly what to send back.
 - Give them a way to open it: a published preview link when the session can publish one, otherwise the exact command to serve it locally.
 - Report in a few lines: example used, mode, which skills contributed what, what matches, what is substituted or guessed and why, and what they need to provide (fonts, photos, footage, copy).
 

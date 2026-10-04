@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Scroll sequence template</title>
+<style>
+  /* Template: replace tokens and copy with the example's measured values. */
+  :root { color-scheme: dark; --bg: #050b1f; --ink: #f4efe6; --muted: rgba(244,239,230,.7); --pad: clamp(16px, 3.2vw, 48px); }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 16px/1.5 system-ui, sans-serif; }
+  .seq { position: relative; height: 400vh; }
+  .seq__stage { position: sticky; top: 0; height: 100vh; height: 100svh; overflow: hidden; }
+  .seq__canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
+  .seq__copy { position: absolute; left: var(--pad); right: var(--pad); top: 24vh; display: flex; justify-content: space-between; align-items: flex-start; }
+  .seq__copy h1 { margin: 0; font-size: clamp(56px, 9vw, 150px); font-weight: 500; letter-spacing: -0.045em; line-height: .9; }
+  .seq__copy p { margin: .6em 0 0; font-size: clamp(22px, 2.4vw, 38px); line-height: 1.02; text-align: right; }
+  .after { padding: 120px var(--pad); }
+  @media (prefers-reduced-motion: reduce) { .seq { height: auto; } .seq__stage { position: relative; } }
+</style>
+</head>
+<body>
+<section class="seq" id="seq" data-frames="241" data-src-lg="frames/lg/{n}.webp" data-src-sm="frames/sm/{n}.webp">
+  <div class="seq__stage">
+    <canvas class="seq__canvas" data-media aria-hidden="true"></canvas>
+    <div class="seq__copy" id="copy"><h1>Title</h1><p>Two-line<br>tagline.</p></div>
+  </div>
+</section>
+<main class="after"><h2>Next section</h2></main>
+<script src="player.js"></script>
+<script>
+  // Fade the title out over the first 15% of the scroll.
+  const copy = document.getElementById('copy');
+  document.getElementById('seq').addEventListener('seq:progress', (e) => {
+    const f = Math.max(0, 1 - e.detail.progress / 0.15);
+    copy.style.opacity = f; copy.style.transform = `translateY(${(1 - f) * -24}px)`;
+  });
+</script>
+</body>
+</html>

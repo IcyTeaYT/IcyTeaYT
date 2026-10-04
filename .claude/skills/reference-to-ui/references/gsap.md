@@ -59,7 +59,7 @@ imgs[0].onload = size; addEventListener('resize', size);
 gsap.to(state, { f: N - 1, ease: 'none', snap: 'f', onUpdate: draw,
   scrollTrigger: { trigger: '.seq', start: 'top top', end: 'bottom bottom', scrub: 0.5 } });
 ```
-Quality: export frames at the source's native resolution and frame rate (1920px, 24fps, WebP q80); a separate portrait crop for phones. Lower values look blurry and stepped. A dependency-free version of this player is in `registan-night/app.js` in this repo.
+Quality: export frames at the source's native resolution and frame rate (1920px, 24fps, WebP q80); a separate portrait crop for phones. Lower values look blurry and stepped. A dependency-free version of this player (no GSAP needed) is bundled at `assets/scroll-sequence/player.js` with a page template.
 
 ## Pattern: hero text that fades/lifts out as the scene starts
 

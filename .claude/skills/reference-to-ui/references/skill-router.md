@@ -1,16 +1,18 @@
 # Skill router
 
-Which installed design skill to pull in, when, and for what. All paths are under `.claude/skills/`.
+Which installed design skill to pull in, when, and for what. All paths are under the skills folder (`.claude/skills/` in a project, `~/.claude/skills/` for a personal install).
+
+**These skills are optional.** Check whether each exists before using it (`ls <skills-dir>`). If one is missing, use the fallback in this file or proceed from the example alone; never block on a missing skill. The scripts and references inside `reference-to-ui` work on their own.
 
 **Precedence, always:** the user's words > the example (reference) > the project's existing design system > anything a skill below suggests. A skill fills gaps the example leaves open; it never overrides what the example shows. If a skill's rule contradicts the example (e.g. it bans a pattern the example uses), the example wins and you say so in one line.
 
 ## Design intelligence (use on every build)
 
 ### `ui-ux-pro-max`: rules, palettes, type pairings, UX checks, GSAP presets
-Python 3, no deps. Run from the repo root:
+Python 3, no deps. Run from the folder that contains the skills (fallback if not installed: pick type pairings and UX rules yourself and say so):
 
 ```bash
-P=.claude/skills/ui-ux-pro-max/scripts/search.py
+P=<skills-dir>/ui-ux-pro-max/scripts/search.py
 python3 $P "<product> <industry> <mood from the example>" --design-system -p "<Name>"   # full system, only to fill gaps
 python3 $P "<query>" --domain typography     # font pairing close to the example's fonts (for substitutes)
 python3 $P "<query>" --domain google-fonts   # free match for a paid font seen in the example
@@ -64,7 +66,7 @@ These carry strong opinions. Use one only when the example clearly belongs to it
 | Scroll-driven, pinned, scrubbed, image-sequence, text reveals | `references/gsap.md` + `ui-ux-pro-max --domain gsap` |
 | Micro-interactions, hover, enter/exit, component transitions | `design-motion-principles` (Create mode) |
 | Check the motion you built is not "AI slop motion" | `design-motion-principles` (Audit mode) on the finished page |
-| Footage the example has but the user lacks (jet, drone, product shot) | `ads-and-videos` for AI video prompts (Kling, Veo, Seedance via Krea/Higgsfield); then `scripts/frames.sh` |
+| Footage the example has but the user lacks (jet, drone, product shot) | `references/higgsfield.md` + `scripts/higgsfield-prompts.mjs` (built in); then `scripts/frames.sh` and `assets/scroll-sequence/`. `ads-and-videos`, if installed, adds ad-style shot lists |
 
 ## Images and concepts
 
