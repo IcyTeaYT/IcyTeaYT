@@ -625,7 +625,10 @@ a chair) and also gets:
 The log is kept for 30 days and needs the D1 binding. Its two tables are
 created on first use, so no migration is needed. Recording is best-effort:
 if the database is down, people still sign in normally. To change the owners,
-edit the variable and retry the latest deployment.
+edit the variable, then retry the **newest** deployment, the one at the top of
+*All deployments*. Do not retry the one on the *Production* card: while a
+newer build is still finishing, that card shows the previous version, and
+retrying it puts the old code back live.
 
 In demo mode, `yassir.ga2@demo.tis` is the owner, and the log records sign-ins
 in this browser only.
