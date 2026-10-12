@@ -136,6 +136,13 @@ Two optional extras, if every participant has a school Workspace account:
 Without them the login page still tells everyone to use their school Google
 account.
 
+One more optional variable gives the site's owner extra access (see
+[Owner and sign-in log](#owner-and-sign-in-log)):
+
+| Variable | Example | What it does |
+| --- | --- | --- |
+| `OWNER_EMAILS` | `you@school.org` | Comma-separated. These accounts also get the Secretariat view and the sign-in log |
+
 ### If sign-in fails
 
 The login page shows what went wrong in plain English — every setup mistake is
@@ -595,6 +602,33 @@ their own committee, and only the Secretariat may read every committee.
 **In demo mode there is no identity to check**, because the login page hands out
 any account on request, so the live endpoints are open. A demo deployment is
 public by design; do not put real delegate assignments on one.
+
+### Owner and sign-in log
+
+Accounts listed in the `OWNER_EMAILS` environment variable are the site's
+owners. The addresses live in Cloudflare, not in the code, so none is ever
+committed. An owner keeps their own role from the `Users` sheet (a chair stays
+a chair) and also gets:
+
+- **Secretariat access**: the Conference floor, Reset all sessions, and the
+  Emergency Session tools, all checked again on the server.
+- **Sign-in log** (`/activity`), which no one else can open, not even the
+  Secretariat:
+  - **Online now**: anyone with the site open in the last three minutes. An
+    open page checks in every two minutes.
+  - **Activity**: each sign-in and sign-out, each return visit after 15
+    minutes or more away, and each Google account turned away because it is
+    not on the roster. Every entry shows the time, the person's role,
+    committee and country, and the device type (for example "iPhone ·
+    Safari").
+
+The log is kept for 30 days and needs the D1 binding. Its two tables are
+created on first use, so no migration is needed. Recording is best-effort:
+if the database is down, people still sign in normally. To change the owners,
+edit the variable and retry the latest deployment.
+
+In demo mode, `yassir.ga2@demo.tis` is the owner, and the log records sign-ins
+in this browser only.
 
 ---
 

@@ -29,7 +29,7 @@ export function Privacy() {
         <h1 className="mt-3 font-serif text-[30px] leading-tight text-ink-900 sm:text-[36px]">
           Privacy policy and terms of use
         </h1>
-        <p className="mt-3 text-sm text-muted">Last updated September 23, 2026.</p>
+        <p className="mt-3 text-sm text-muted">Last updated October 12, 2026.</p>
 
         <Section id="privacy" title="Privacy policy">
           <p>
@@ -45,6 +45,11 @@ export function Privacy() {
             <li>
               <strong>Conference roster details</strong> (name, role, committee and delegation) that
               the Secretariat enters in the conference registration sheet.
+            </li>
+            <li>
+              <strong>A sign-in record:</strong> when you sign in, sign out and open the site, and
+              your device type (for example "iPhone · Safari"). The organisers use it to help with
+              sign-in problems and to keep the site secure; nobody else can see it.
             </li>
             <li>
               <strong>Committee session records</strong> that chairs enter during the conference,
@@ -73,7 +78,8 @@ export function Privacy() {
           </ul>
           <h3>Keeping and deleting data</h3>
           <p>
-            Session records are kept until the conference ends and are then deleted. To ask what
+            Sign-in records are deleted after 30 days. Session records are kept until the conference
+            ends and are then deleted. To ask what
             we hold about you or to have it removed, email{' '}
             <a href={`mailto:${CONFERENCE.secretariatEmail}`}>{CONFERENCE.secretariatEmail}</a>.
           </p>

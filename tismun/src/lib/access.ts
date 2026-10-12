@@ -17,6 +17,9 @@
  *                                                  its chair
  *   Delegate              their committee          their committee, or the
  *                                                  Emergency Session
+ *
+ * An owner (OWNER_EMAILS on the server) keeps whatever the sheet gives them and
+ * gets Secretariat oversight on top, plus the sign-in log.
  */
 
 import { emergencySession } from '../config/emergency';
@@ -29,6 +32,8 @@ export interface Access {
   chairOf: string | null;
   /** A Day 1 committee this account chaired, open read-only from Day 2. */
   readOnlyChairOf: string | null;
+  /** Listed in OWNER_EMAILS: Secretariat oversight on top of their own role, and the sign-in log. */
+  owner: boolean;
 }
 
 export interface AccessInput {
@@ -38,15 +43,18 @@ export interface AccessInput {
   committeeId: string | null | undefined;
   /** The Emergency Role column. */
   emergencyRole: 'DELEGATE' | 'CHAIR' | null;
+  /** Listed in OWNER_EMAILS. Only the server can know this. */
+  owner?: boolean;
 }
 
 export function accessFor(input: AccessInput, day2: boolean): Access {
   const role = (input.role ?? '').trim().toUpperCase();
-  const secretariat = role === 'SECRETARIAT' || role === 'ADMIN';
+  const owner = input.owner === true;
+  const secretariat = role === 'SECRETARIAT' || role === 'ADMIN' || owner;
   const committeeId = (input.committeeId ?? '').trim();
   const day1Chair = role === 'CHAIR' && committeeId ? committeeId : null;
 
-  if (!day2) return { day: 1, secretariat, chairOf: day1Chair, readOnlyChairOf: null };
+  if (!day2) return { day: 1, secretariat, chairOf: day1Chair, readOnlyChairOf: null, owner };
 
   const emergencyChair = input.emergencyRole === 'CHAIR' ? emergencySession.committeeId : null;
   return {
@@ -54,6 +62,7 @@ export function accessFor(input: AccessInput, day2: boolean): Access {
     secretariat,
     chairOf: emergencyChair,
     readOnlyChairOf: day1Chair && day1Chair !== emergencyChair ? day1Chair : null,
+    owner,
   };
 }
 

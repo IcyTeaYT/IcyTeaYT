@@ -67,11 +67,14 @@ export const useAuth = create<AuthState>((set) => ({
       return false;
     }
     writeJson(DEMO_EMAIL_KEY, user.email);
+    dataSource.recordDemoActivity?.('sign-in', user.email);
     set({ status: 'authenticated', user, error: null });
     return true;
   },
 
   async signOut() {
+    const signedIn = useAuth.getState().user;
+    if (DATA_MODE !== 'live' && signedIn) dataSource.recordDemoActivity?.('sign-out', signedIn.email);
     removeKey(DEMO_EMAIL_KEY);
     if (DATA_MODE === 'live') {
       // Clears the HttpOnly cookie; the browser cannot do this itself.
@@ -95,6 +98,9 @@ export const isChair = (user: User | null): boolean =>
 
 /** Oversees the conference. Kept on both days, whatever else the account does. */
 export const isSecretariat = (user: User | null): boolean => user?.access.secretariat === true;
+
+/** Listed in OWNER_EMAILS on the server: may read the sign-in log. */
+export const isOwner = (user: User | null): boolean => user?.access.owner === true;
 
 /** The committee whose dashboard this account opens: the one it runs, else the Day 1 one it reads. */
 export const chairCommitteeOf = (user: User | null): string | null =>

@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
-import { isChair, isSecretariat, useAuth } from '@/store/auth';
+import { isChair, isOwner, isSecretariat, useAuth } from '@/store/auth';
 
 /** Logged-out visitors are sent to the login page, remembering where they were. */
 export function RequireAuth({ children }: { children: ReactNode }) {
@@ -40,5 +40,18 @@ export function RequireSecretariat({ children }: { children: ReactNode }) {
 
   if (status === 'booting') return null;
   if (!isSecretariat(user)) return <Navigate to="/denied" replace />;
+  return <>{children}</>;
+}
+
+/**
+ * The sign-in log is for the site's owners only. The server refuses everyone
+ * else regardless; this just keeps the page from being shown to them.
+ */
+export function RequireOwner({ children }: { children: ReactNode }) {
+  const user = useAuth((state) => state.user);
+  const status = useAuth((state) => state.status);
+
+  if (status === 'booting') return null;
+  if (!isOwner(user)) return <Navigate to="/denied" replace />;
   return <>{children}</>;
 }

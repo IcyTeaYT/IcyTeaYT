@@ -1,6 +1,7 @@
 import type { ConferenceStatus } from '@/config/emergency';
 import { delegationId, mergeDelegations, rowToCommittee, rowToUser } from './normalise';
 import type {
+  ActivityLog,
   Committee,
   CommitteeRow,
   DataSource,
@@ -134,6 +135,19 @@ export const liveSource: DataSource = {
     }
     const body = (await response.json()) as { last: SessionsReset['last'] };
     return { available: true, last: body.last };
+  },
+
+  /** 403s for everyone but the owners. */
+  async getActivity(): Promise<ActivityLog> {
+    return api<ActivityLog>('/api/activity');
+  },
+
+  async ping(): Promise<void> {
+    try {
+      await fetch('/api/ping', { method: 'POST', credentials: 'same-origin' });
+    } catch {
+      /* offline — the next beat will catch up */
+    }
   },
 
   // listDemoUsers is deliberately absent: enumerating users is a demo-only

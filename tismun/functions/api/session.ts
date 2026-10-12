@@ -1,6 +1,7 @@
 import { fail, json, requireEnv, type Env } from './_lib/env';
 import { verifyGoogleIdToken } from './_lib/google';
-import { clearSessionCookie, createSessionCookie } from './_lib/session';
+import { recordDenied, recordSignIn, recordSignOut } from './_lib/activity';
+import { clearSessionCookie, createSessionCookie, readSession } from './_lib/session';
 import { findUser } from './_lib/sheets';
 
 /**
@@ -8,7 +9,7 @@ import { findUser } from './_lib/sheets';
  * DELETE /api/session — sign out.
  */
 
-export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
+export const onRequestPost: PagesFunction<Env> = async ({ request, env, waitUntil }) => {
   const missing = requireEnv(env, ['GOOGLE_CLIENT_ID', 'SESSION_SECRET', 'SHEET_ID']);
   if (missing) return fail(missing, 503);
 
@@ -27,14 +28,21 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
   // not enough on its own — the email has to be on the roster.
   const user = await findUser(env, result.identity.email);
   if (!user) {
+    waitUntil(recordDenied(env, result.identity.email, result.identity.name ?? null, request));
     return fail(
       'That email is not on the conference roster. Sign in with the school Google account you were registered with, or contact the Secretariat.',
       403,
     );
   }
 
+  waitUntil(recordSignIn(env, user, request));
   return json({ ok: true }, 200, { 'Set-Cookie': await createSessionCookie(env, user.Email) });
 };
 
-export const onRequestDelete: PagesFunction<Env> = async () =>
-  json({ ok: true }, 200, { 'Set-Cookie': clearSessionCookie() });
+export const onRequestDelete: PagesFunction<Env> = async ({ request, env, waitUntil }) => {
+  if (env.SESSION_SECRET) {
+    const email = await readSession(request, env);
+    if (email) waitUntil(recordSignOut(env, email, request));
+  }
+  return json({ ok: true }, 200, { 'Set-Cookie': clearSessionCookie() });
+};

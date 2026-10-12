@@ -8,7 +8,7 @@ import { AccessDenied, NotFound } from '@/pages/ErrorPages';
 import { Home } from '@/pages/Home';
 import { Login } from '@/pages/Login';
 import { Privacy } from '@/pages/Privacy';
-import { RequireAuth, RequireChair, RequireSecretariat } from '@/routes/guards';
+import { RequireAuth, RequireChair, RequireOwner, RequireSecretariat } from '@/routes/guards';
 import { useAuth } from '@/store/auth';
 import { useConference } from '@/store/conference';
 import { useConferenceStatusPolling } from '@/store/conferenceStatus';
@@ -20,6 +20,9 @@ import { useConferenceStatusPolling } from '@/store/conferenceStatus';
  */
 const ChairDashboard = lazy(() =>
   import('@/features/chair/ChairDashboard').then((m) => ({ default: m.ChairDashboard })),
+);
+const ActivityLog = lazy(() =>
+  import('@/features/owner/ActivityLog').then((m) => ({ default: m.ActivityLog })),
 );
 const ProjectorDisplay = lazy(() =>
   import('@/features/chair/ProjectorDisplay').then((m) => ({ default: m.ProjectorDisplay })),
@@ -126,6 +129,16 @@ export function App() {
                             <CommitteeLive />
                           </Suspense>
                         </RequireSecretariat>
+                      }
+                    />
+                    <Route
+                      path="/activity"
+                      element={
+                        <RequireOwner>
+                          <Suspense fallback={<PaneSkeleton />}>
+                            <ActivityLog />
+                          </Suspense>
+                        </RequireOwner>
                       }
                     />
                     <Route path="/denied" element={<AccessDenied />} />

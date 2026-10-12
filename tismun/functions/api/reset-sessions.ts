@@ -2,6 +2,7 @@ import { fail, json, requireEnv, type Env } from './_lib/env';
 import { lastSessionsReset, readStatus, resetAllSessions } from './_lib/conference';
 import { ensureControlTable } from './_lib/control';
 import { describeDbError } from './_lib/live';
+import { accessOf } from './_lib/access';
 import { currentUser } from './_lib/session';
 
 /**
@@ -11,14 +12,13 @@ import { currentUser } from './_lib/session';
  *      and awards — on the server and, as they next check in, on every chair's
  *      device.
  *
- * SECRETARIAT accounts only, checked here against the sheet on every request.
+ * Secretariat accounts (and owners) only, checked here against the sheet on every request.
  */
 
 async function secretariatOnly(request: Request, env: Env) {
   const user = await currentUser(request, env);
   if (!user) return { error: fail('Not signed in.', 401) };
-  const role = (user.Role ?? '').trim().toUpperCase();
-  if (role !== 'SECRETARIAT' && role !== 'ADMIN') {
+  if (!(await accessOf(env, user)).secretariat) {
     return { error: fail('Only the Secretariat can reset every session.', 403) };
   }
   return { user };

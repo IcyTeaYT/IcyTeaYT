@@ -1,4 +1,5 @@
 import { fail, json, requireEnv, type Env } from './_lib/env';
+import { accessOf } from './_lib/access';
 import { allDelegations, emergencyRoleOf } from './_lib/emergency';
 import { currentUser } from './_lib/session';
 import { readUsers } from './_lib/sheets';
@@ -15,8 +16,7 @@ export const onRequestGet: PagesFunction<Env> = async ({ request, env }) => {
   const user = await currentUser(request, env);
   if (!user) return fail('Not signed in.', 401);
 
-  const role = (user.Role ?? '').trim().toUpperCase();
-  const secretariat = role === 'SECRETARIAT' || role === 'ADMIN';
+  const { secretariat } = await accessOf(env, user);
   if (!secretariat && emergencyRoleOf(user) !== 'CHAIR') {
     return fail('Only the Emergency Session chairs and the Secretariat can see every delegation.', 403);
   }

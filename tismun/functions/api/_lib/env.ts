@@ -16,6 +16,13 @@ export interface Env {
    * type it is.
    */
   SCHOOL_DOMAIN?: string;
+  /**
+   * Optional. Comma-separated emails of the site's owners. They keep their own
+   * role from the Users sheet (a chair stays a chair) and also get Secretariat
+   * oversight and the sign-in log, which nobody else can see. Kept out of the
+   * code so no address is ever committed.
+   */
+  OWNER_EMAILS?: string;
   /** The Google Sheet's ID, taken from its URL. */
   SHEET_ID: string;
   /** Service account address, e.g. tismun-sheets@project.iam.gserviceaccount.com */

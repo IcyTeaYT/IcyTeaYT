@@ -114,6 +114,12 @@ export interface DataSource {
   getSessionsReset(): Promise<SessionsReset>;
   /** Secretariat only: reset every committee's session, logs and awards. */
   resetAllSessions(): Promise<SessionsReset>;
+  /** Owners only: who is online now and the sign-in log. */
+  getActivity(): Promise<ActivityLog>;
+  /** Live mode: the open page's heartbeat, for "online now". */
+  ping?(): Promise<void>;
+  /** Demo mode: note a demo sign-in or sign-out, so the demo log has something in it. */
+  recordDemoActivity?(kind: 'sign-in' | 'sign-out', email: string): void;
   /**
    * Demo mode only: the list the login page's user picker is built from.
    * Undefined in live mode, where you may never enumerate users.
@@ -191,5 +197,42 @@ export interface EmergencyAdmin {
   /** false without the live-sync database: the schedule applies, with no overrides. */
   overridesAvailable: boolean;
   events: ConferenceEvent[];
+  error?: string;
+}
+
+export type ActivityKind = 'sign-in' | 'sign-out' | 'visit' | 'denied';
+
+/** One line of the sign-in log. Role, committee and country are as the sheet had them at the time. */
+export interface ActivityEvent {
+  id: string;
+  at: number;
+  kind: ActivityKind;
+  email: string;
+  name: string | null;
+  role: string | null;
+  committeeId: string | null;
+  country: string | null;
+  /** "iPhone · Safari" — never anything more identifying. */
+  device: string | null;
+}
+
+/** When someone was last seen on the site. */
+export interface Presence {
+  email: string;
+  name: string | null;
+  role: string | null;
+  committeeId: string | null;
+  country: string | null;
+  device: string | null;
+  lastSeen: number;
+}
+
+export interface ActivityLog {
+  /** false without the live-sync database: nothing is recorded. */
+  available: boolean;
+  presence: Presence[];
+  events: ActivityEvent[];
+  /** The server's clock when it answered, so "2 min ago" is measured against it. */
+  now: number;
   error?: string;
 }

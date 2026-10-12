@@ -2,6 +2,7 @@ import { accessFor, type Access } from '../../../src/lib/access';
 import { readStatus } from './conference';
 import { emergencyRoleOf } from './emergency';
 import type { Env } from './env';
+import { isOwner } from './owners';
 import type { SheetUser } from './sheets';
 
 /**
@@ -13,7 +14,12 @@ import type { SheetUser } from './sheets';
 export async function accessOf(env: Env, user: SheetUser): Promise<Access> {
   const status = await readStatus(env);
   return accessFor(
-    { role: user.Role, committeeId: user['Committee ID'], emergencyRole: emergencyRoleOf(user) },
+    {
+      role: user.Role,
+      committeeId: user['Committee ID'],
+      emergencyRole: emergencyRoleOf(user),
+      owner: isOwner(env, user.Email),
+    },
     status.day2,
   );
 }

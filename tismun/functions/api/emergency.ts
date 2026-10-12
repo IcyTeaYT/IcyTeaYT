@@ -1,6 +1,7 @@
 import { fail, json, requireEnv, type Env } from './_lib/env';
 import { applyOverride, isOverrideAction, readStatus, recentEvents } from './_lib/conference';
 import { describeDbError } from './_lib/live';
+import { accessOf } from './_lib/access';
 import { currentUser } from './_lib/session';
 
 /**
@@ -9,7 +10,7 @@ import { currentUser } from './_lib/session';
  * POST /api/emergency — `{ action }`: a backup override.
  *      release-now · unrelease · release-auto · day2-now · day2-hold · day2-auto
  *
- * SECRETARIAT accounts only, checked here against the sheet on every request.
+ * Secretariat accounts (and owners) only, checked here against the sheet on every request.
  * The normal path needs none of this: the topic releases on its own at the
  * scheduled time.
  */
@@ -17,8 +18,7 @@ import { currentUser } from './_lib/session';
 async function secretariatOnly(request: Request, env: Env) {
   const user = await currentUser(request, env);
   if (!user) return { error: fail('Not signed in.', 401) };
-  const role = (user.Role ?? '').trim().toUpperCase();
-  if (role !== 'SECRETARIAT' && role !== 'ADMIN') {
+  if (!(await accessOf(env, user)).secretariat) {
     return { error: fail('Only the Secretariat can change the Emergency Session release.', 403) };
   }
   return { user };

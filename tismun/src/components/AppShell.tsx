@@ -1,10 +1,36 @@
-import type { ReactNode } from 'react';
+import { useEffect, type ReactNode } from 'react';
 import { CONFERENCE } from '@/config/conference';
+import { dataSource } from '@/data/source';
 import { formatDateRange } from '@/lib/conferenceDates';
 import { HostedBy } from './HostedBy';
 import { TopNav } from './TopNav';
 
+/** How often an open, visible page tells the server it is still here. */
+const HEARTBEAT_MS = 2 * 60 * 1000;
+
+/**
+ * Keeps "online now" in the owners' sign-in log honest: a beat every two
+ * minutes while the page is visible, and one straight away on coming back.
+ * Live mode only; the demo has no server to tell.
+ */
+function useHeartbeat() {
+  useEffect(() => {
+    const ping = dataSource.ping;
+    if (!ping) return;
+    const beat = () => {
+      if (document.visibilityState === 'visible') void ping();
+    };
+    const id = window.setInterval(beat, HEARTBEAT_MS);
+    document.addEventListener('visibilitychange', beat);
+    return () => {
+      window.clearInterval(id);
+      document.removeEventListener('visibilitychange', beat);
+    };
+  }, []);
+}
+
 export function AppShell({ children }: { children: ReactNode }) {
+  useHeartbeat();
   return (
     <div className="flex min-h-screen flex-col bg-canvas">
       <TopNav />

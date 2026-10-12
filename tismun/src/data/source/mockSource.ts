@@ -6,6 +6,8 @@ import committeeRowsJson from '../mock/committees.json';
 import userRowsJson from '../mock/users.json';
 import { delegationId, mergeDelegations, rowToCommittee, rowToUser } from './normalise';
 import type {
+  ActivityEvent,
+  ActivityLog,
   Committee,
   CommitteeRow,
   ConferenceEvent,
@@ -43,6 +45,13 @@ const byEmail = new Map(users.map((u) => [u.email, u]));
 /** Must match the key the auth store remembers the demo account under. */
 const DEMO_EMAIL_KEY = 'tismun.demo-email';
 const DEMO_EMERGENCY_KEY = 'tismun.demo.emergency';
+const DEMO_ACTIVITY_KEY = 'tismun.demo.activity';
+
+/**
+ * Demo stand-in for OWNER_EMAILS: the demo GA 2 chair gets Secretariat access
+ * and the sign-in log on top of chairing, the way the live owner does.
+ */
+const DEMO_OWNERS = new Set(['yassir.ga2@demo.tis']);
 
 interface DemoEmergency {
   release: ReleaseMode;
@@ -107,7 +116,12 @@ export const mockSource: DataSource = {
     return {
       ...user,
       access: accessFor(
-        { role: user.role, committeeId: user.committeeId, emergencyRole: user.emergency?.role ?? null },
+        {
+          role: user.role,
+          committeeId: user.committeeId,
+          emergencyRole: user.emergency?.role ?? null,
+          owner: DEMO_OWNERS.has(user.email),
+        },
         status().day2,
       ),
     };
@@ -202,6 +216,48 @@ export const mockSource: DataSource = {
       // Storage blocked: the chair dashboard still wipes itself from the status.
     }
     return { available: true, last };
+  },
+
+  async getActivity(): Promise<ActivityLog> {
+    // A demo has no server, so the log holds the sign-ins made in this browser.
+    const events = readJson<ActivityEvent[]>(DEMO_ACTIVITY_KEY, []);
+    const current = me();
+    const now = Date.now();
+    return {
+      available: true,
+      now,
+      events,
+      presence: current
+        ? [
+            {
+              email: current.email,
+              name: current.fullName,
+              role: current.role,
+              committeeId: current.committeeId,
+              country: current.country,
+              device: 'This browser',
+              lastSeen: now,
+            },
+          ]
+        : [],
+    };
+  },
+
+  recordDemoActivity(kind, email) {
+    const user = byEmail.get(email.trim().toLowerCase());
+    if (!user) return;
+    const event: ActivityEvent = {
+      id: `demo-${kind}-${Date.now()}`,
+      at: Date.now(),
+      kind,
+      email: user.email,
+      name: user.fullName,
+      role: user.role,
+      committeeId: user.committeeId,
+      country: user.country,
+      device: 'This browser',
+    };
+    writeJson(DEMO_ACTIVITY_KEY, [event, ...readJson<ActivityEvent[]>(DEMO_ACTIVITY_KEY, [])].slice(0, 200));
   },
 
   async listDemoUsers() {

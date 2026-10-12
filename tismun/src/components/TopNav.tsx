@@ -1,9 +1,10 @@
-import { Gavel, Landmark, LogOut, Menu, X } from 'lucide-react';
+import { Gavel, KeyRound, Landmark, LogOut, Menu, X } from 'lucide-react';
 import { useState } from 'react';
 import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { firstNameOf } from '@/data/source';
 import { cn } from '@/lib/cn';
-import { isChair, isSecretariat, useAuth } from '@/store/auth';
+import { isChair, isOwner, isSecretariat, useAuth } from '@/store/auth';
+import { useConference } from '@/store/conference';
 import { Logo } from './Logo';
 import { Badge } from './ui/Badge';
 import { Button } from './ui/Button';
@@ -17,8 +18,13 @@ interface NavItem {
 type SignedInUser = NonNullable<ReturnType<typeof useAuth.getState>['user']>;
 
 /** Delegates are known by their country today; chairs by the committee they run. */
-function subtitleFor(user: SignedInUser): string {
+function subtitleFor(user: SignedInUser, abbreviationOf: (id: string) => string): string {
   if (user.title) return user.title;
+  if (user.access.owner) {
+    const chairs = user.access.chairOf ?? user.access.readOnlyChairOf;
+    if (!chairs) return 'Owner';
+    return `Chair · ${chairs === 'emergency' ? 'Emergency Session' : abbreviationOf(chairs)}`;
+  }
   if (user.access.secretariat) {
     return user.access.chairOf ? 'Secretariat · Emergency Session chair' : 'Secretariat';
   }
@@ -62,10 +68,15 @@ function viewsFor(user: SignedInUser | null): ViewOption[] | null {
     ];
   }
   if (user.emergency?.role === 'DELEGATE' && user.access.readOnlyChairOf) {
-    return [
+    const views: ViewOption[] = [
       { to: '/', label: 'Day 2 · Emergency Session', match: (path) => path === '/' },
       { to: '/chair', label: 'Day 1 Dashboard', match: (path) => path.startsWith('/chair') },
     ];
+    // An owner keeps the conference floor alongside their own two views.
+    if (user.access.secretariat) {
+      views.push({ to: '/secretariat', label: 'Secretariat', match: (path) => path.startsWith('/secretariat') });
+    }
+    return views;
   }
   return null;
 }
@@ -116,6 +127,9 @@ export function TopNav() {
   const navigate = useNavigate();
   const location = useLocation();
   const [menuOpen, setMenuOpen] = useState(false);
+  const committees = useConference((state) => state.committees);
+  const abbreviationOf = (id: string) =>
+    committees.find((committee) => committee.id === id)?.abbreviation ?? id.toUpperCase();
 
   const views = viewsFor(user);
   const items: NavItem[] = [];
@@ -129,6 +143,7 @@ export function TopNav() {
     });
   }
   if (!views && isSecretariat(user)) items.push({ to: '/secretariat', label: 'Secretariat' });
+  if (isOwner(user)) items.push({ to: '/activity', label: 'Sign-in log' });
 
   const handleSignOut = async () => {
     await signOut();
@@ -162,9 +177,14 @@ export function TopNav() {
             <div className="flex items-center gap-2.5 text-right">
               <div className="leading-tight">
                 <p className="text-sm font-medium text-ink-900">{user.fullName}</p>
-                <p className="text-xs text-muted">{subtitleFor(user)}</p>
+                <p className="text-xs text-muted">{subtitleFor(user, abbreviationOf)}</p>
               </div>
-              {isSecretariat(user) ? (
+              {isOwner(user) ? (
+                <Badge tone="teal">
+                  <KeyRound size={11} strokeWidth={1.5} />
+                  Owner
+                </Badge>
+              ) : isSecretariat(user) ? (
                 <Badge tone="teal">
                   <Landmark size={11} strokeWidth={1.5} />
                   Secretariat

@@ -6,6 +6,7 @@ import {
   Gavel,
   Landmark,
   Loader2,
+  LogIn,
   MapPin,
   Siren,
   Users,
@@ -130,6 +131,41 @@ export function Home() {
           </>
         )}
 
+        {user.access.owner ? (
+          <motion.div className="mt-8" {...enter(0.31)}>
+            <Card>
+              <CardBody className="flex flex-col gap-4 px-6 py-5 sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex items-start gap-4">
+                  <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-control bg-teal-50 text-teal-700">
+                    <Landmark size={18} strokeWidth={1.5} />
+                  </span>
+                  <div>
+                    <p className="font-medium text-ink-900">Owner tools</p>
+                    <p className="mt-1 text-sm leading-relaxed text-muted">
+                      The Secretariat's conference floor, and the sign-in log only you can see.
+                    </p>
+                  </div>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <Link
+                    to="/secretariat"
+                    className="inline-flex h-9 items-center gap-1.5 rounded-control border border-hairline bg-surface px-3.5 text-sm font-medium text-ink-800 transition-colors duration-200 hover:border-teal-300 hover:text-teal-700"
+                  >
+                    Conference floor
+                  </Link>
+                  <Link
+                    to="/activity"
+                    className="inline-flex h-9 items-center gap-1.5 rounded-control bg-teal-500 px-3.5 text-sm font-medium text-white transition-colors duration-200 hover:bg-teal-600"
+                  >
+                    <LogIn size={15} strokeWidth={1.5} />
+                    Sign-in log
+                  </Link>
+                </div>
+              </CardBody>
+            </Card>
+          </motion.div>
+        ) : null}
+
         {!emergencyOnly(user, day2) && (committee || isSecretariat(user) || emergencyDelegate) ? (
           <motion.div className="mt-8" {...enter(0.32)}>
             <Link
@@ -170,7 +206,7 @@ function Day1Home({
 
   return (
     <>
-      {isSecretariat(user) ? (
+      {isSecretariat(user) && !user.access.owner ? (
         <Card className="max-w-xl">
           <CardHeader label="Your role" title={user.title ?? 'Secretariat'} />
           <CardBody className="space-y-5 py-6">
