@@ -72,6 +72,9 @@ export interface ChecklistStep {
 function isDone(id: FlowStepId, state: ChairData, res: ResContext): boolean {
   const topic = res.topic;
   if (has(state, skipKey(topic, id))) return true;
+  // Once the committee has voted on the resolution, everything before the
+  // vote is behind it: an amendment left undebated cannot pull it back.
+  if (res.status !== 'open') return true;
   switch (id) {
     case 'roll-call':
       return (
