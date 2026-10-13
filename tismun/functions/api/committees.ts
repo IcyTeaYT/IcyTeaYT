@@ -3,6 +3,7 @@ import { currentUser } from './_lib/session';
 import { readStatus } from './_lib/conference';
 import { publicCommittee } from './_lib/emergency';
 import { statusSeenBy } from './_lib/testing';
+import { withSealedEmergency } from './_lib/sealed';
 import { readCommittees, readUsers } from './_lib/sheets';
 import { withChairsFromUsers } from '../../src/lib/chairs';
 
@@ -29,5 +30,8 @@ export const onRequestGet: PagesFunction<Env> = async ({ request, env }) => {
     readStatus(env),
   ]);
   const seen = statusSeenBy(status, user);
-  return json(withChairsFromUsers(committees, users).map((row) => publicCommittee(row, seen)));
+  // Once released, the Emergency Session's sealed topic and paper fill its blank cells.
+  const rows = withChairsFromUsers(committees, users);
+  const shown = seen.released ? await withSealedEmergency(env, rows) : rows;
+  return json(shown.map((row) => publicCommittee(row, seen)));
 };

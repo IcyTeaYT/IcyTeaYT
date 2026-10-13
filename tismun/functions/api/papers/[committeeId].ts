@@ -2,6 +2,7 @@ import { fail, requireEnv, type Env } from '../_lib/env';
 import { readStatus } from '../_lib/conference';
 import { EMERGENCY_ID } from '../_lib/emergency';
 import { statusSeenBy } from '../_lib/testing';
+import { SEALED_PAPER, sealedPaper } from '../_lib/sealed';
 import { currentUser } from '../_lib/session';
 import { getAccessToken, readCommittees } from '../_lib/sheets';
 
@@ -46,7 +47,20 @@ export const onRequestGet: PagesFunction<Env, 'committeeId'> = async ({ request,
 
   const row = (await readCommittees(env)).find((entry) => entry['Committee ID']?.trim() === EMERGENCY_ID);
   const source = row?.['Background Paper URL']?.trim() ?? '';
-  if (!source) return fail('No background paper has been set for the Emergency Session.', 404);
+
+  // No link in the sheet: the paper sealed in the code, unlocked now.
+  if (!source || source === SEALED_PAPER) {
+    const paper = await sealedPaper(env);
+    if (!paper) return fail('No background paper has been set for the Emergency Session.', 404);
+    return new Response(paper, {
+      status: 200,
+      headers: {
+        'Content-Type': 'application/pdf',
+        'Content-Disposition': 'inline; filename="TISMUN-Emergency-Session-background-paper.pdf"',
+        'Cache-Control': 'private, no-store',
+      },
+    });
+  }
 
   let upstream: Response;
   const fileId = driveFileId(source);

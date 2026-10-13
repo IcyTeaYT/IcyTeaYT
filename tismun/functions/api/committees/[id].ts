@@ -3,6 +3,7 @@ import { currentUser } from '../_lib/session';
 import { readStatus } from '../_lib/conference';
 import { publicCommittee } from '../_lib/emergency';
 import { statusSeenBy } from '../_lib/testing';
+import { withSealedEmergency } from '../_lib/sealed';
 import { readCommittees, readUsers } from '../_lib/sheets';
 import { withChairsFromUsers } from '../../../src/lib/chairs';
 
@@ -16,8 +17,11 @@ export const onRequestGet: PagesFunction<Env, 'id'> = async ({ request, env, par
 
   const id = Array.isArray(params.id) ? params.id[0] : params.id;
   const [committees, users] = await Promise.all([readCommittees(env), readUsers(env)]);
-  const committee = withChairsFromUsers(committees, users).find((entry) => entry['Committee ID'] === id);
+  const seen = statusSeenBy(await readStatus(env), user);
+  const rows = withChairsFromUsers(committees, users);
+  // Once released, the Emergency Session's sealed topic and paper fill its blank cells.
+  const committee = (seen.released ? await withSealedEmergency(env, rows) : rows).find((entry) => entry['Committee ID'] === id);
   if (!committee) return fail('No such committee.', 404);
 
-  return json(publicCommittee(committee, statusSeenBy(await readStatus(env), user)));
+  return json(publicCommittee(committee, seen));
 };
