@@ -1,13 +1,13 @@
 import { CheckCircle2, MessageCircleQuestion, Mic, SkipForward, Siren } from 'lucide-react';
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { Card, CardBody, CardHeader } from '@/components/ui/Card';
-import { Field, Select } from '@/components/ui/Field';
 import { flowFor } from '@/config/flows';
 import { PRESENTATION } from '@/config/rules';
 import { cn } from '@/lib/cn';
+import { countryCodeFor } from '@/lib/countryCodes';
+import { sameCountry } from '@/lib/resolution';
 import { formatClock } from '@/lib/time';
 import { DelegationPicker } from '../components/DelegationPicker';
 import { DurationInput } from '../components/DurationInput';
@@ -15,6 +15,7 @@ import { DurationPresets } from '../components/DurationPresets';
 import { Pane } from '../components/Pane';
 import { TimerPanel } from '../components/TimerPanel';
 import { useChair, useChairContext, useDelegationLookup } from '../context';
+import { useChairRes } from '../resContext';
 import type { PresentationState } from '../types';
 
 /**
@@ -30,7 +31,8 @@ export function Presentation() {
   const { nameOf } = useDelegationLookup();
 
   const presentation = useChair((state) => state.presentation);
-  const resolutions = useChair((state) => state.resolutions);
+  const topic = useChair((state) => state.topic);
+  const { res } = useChairRes();
   const attendance = useChair((state) => state.attendance);
   const held = useChair((state) => state.presentationsHeld);
   const briefingsHeld = useChair((state) => state.briefingsHeld);
@@ -44,16 +46,24 @@ export function Presentation() {
   const [kind, setKind] = useState<PresentationState['kind']>(() =>
     hasBriefing && briefingsHeld === 0 ? 'briefing' : 'draft',
   );
-  const [resolutionId, setResolutionId] = useState<string>(() => resolutions[0]?.id ?? '');
-  const [presenterId, setPresenterId] = useState<string | null>(
-    () => resolutions[0]?.mainSubmitters[0] ?? null,
-  );
+  // The Main Submitter presents, unless the chair picks someone else.
+  const mainSubmitter = res.mainSubmitters[0] ?? null;
+  const mainId =
+    (mainSubmitter &&
+      roster.find(
+        (d) =>
+          sameCountry(d.country, mainSubmitter) ||
+          (Boolean(d.countryCode) && countryCodeFor(mainSubmitter) === d.countryCode),
+      )?.id) ||
+    null;
+  const [chosenPresenter, setPresenterId] = useState<string | null>(null);
+  const presenterId = chosenPresenter ?? mainId;
+  const topicTitle = committee.topics[topic - 1] ?? '';
   const [durationSec, setDurationSec] = useState<number>(PRESENTATION.draftSec);
   const [briefingSec, setBriefingSec] = useState<number>(PRESENTATION.briefingSec);
   const [questionsSec, setQuestionsSec] = useState<number>(PRESENTATION.qaSec);
 
   const presentRoster = roster.filter((d) => (attendance[d.id] ?? 'absent') !== 'absent');
-  const current = resolutions.find((entry) => entry.id === presentation.resolutionId) ?? null;
 
   if (presentation.active) {
     const questions = presentation.phase === 'questions';
@@ -62,17 +72,17 @@ export function Presentation() {
       <Pane
         title={
           questions
-            ? 'Question-and-Answer Period'
+            ? isBriefing
+              ? 'Questions'
+              : 'Points of Clarification and Information'
             : isBriefing
               ? 'Crisis Briefing'
-              : 'Presentation of the Draft Resolution'
+              : 'Presentation of the Resolution'
         }
         description={
           isBriefing
             ? 'The chairs present the Emergency Session topic to the committee.'
-            : current
-              ? `${current.number} — ${current.title}`
-              : 'The Main Submitter presents the draft resolution.'
+            : `Topic ${topic}: ${topicTitle}`
         }
       >
         <Card className="max-w-2xl">
@@ -97,12 +107,12 @@ export function Presentation() {
             {questions ? (
               <Button variant="primary" className="h-12 w-full" onClick={finish}>
                 <CheckCircle2 size={17} strokeWidth={1.5} />
-                End the question-and-answer period
+                {isBriefing ? 'End the questions' : 'Done — yield the floor back to the Chair'}
               </Button>
             ) : (
               <>
                 <DurationInput
-                  label="Question-and-answer period"
+                  label={isBriefing ? 'Questions' : 'Points of Clarification and Information'}
                   valueSec={questionsSec}
                   onChange={setQuestionsSec}
                 />
@@ -114,11 +124,11 @@ export function Presentation() {
                     onClick={() => openQuestions(questionsSec)}
                   >
                     <MessageCircleQuestion size={17} strokeWidth={1.5} />
-                    Open questions ({formatClock(questionsSec * 1000)})
+                    {isBriefing ? 'Open questions' : 'Open POCs and POIs'} ({formatClock(questionsSec * 1000)})
                   </Button>
                   <Button variant="secondary" className="h-12" onClick={finish}>
                     <SkipForward size={17} strokeWidth={1.5} />
-                    {isBriefing ? 'Finish the briefing' : 'Skip questions and finish'}
+                    {isBriefing ? 'Finish the briefing' : 'No questions — yield the floor back'}
                   </Button>
                 </div>
               </>
@@ -131,11 +141,11 @@ export function Presentation() {
 
   return (
     <Pane
-      title={kind === 'briefing' ? 'Crisis Briefing' : 'Presentation of the Draft Resolution'}
+      title={kind === 'briefing' ? 'Crisis Briefing' : 'Presentation of the Resolution'}
       description={
         kind === 'briefing'
           ? 'The chairs present the Emergency Session topic to the committee, followed by optional questions.'
-          : 'The Main Submitter presents the draft resolution to the committee, followed by an optional question-and-answer period.'
+          : 'The Main Submitter presents the resolution, then Points of Clarification and Information.'
       }
       actions={
         held > 0 || briefingsHeld > 0 ? (
@@ -152,7 +162,7 @@ export function Presentation() {
           {(
             [
               ['briefing', 'Crisis Briefing', Siren],
-              ['draft', 'Draft Resolution', Mic],
+              ['draft', 'Resolution', Mic],
             ] as const
           ).map(([value, label, Icon]) => (
             <button
@@ -206,39 +216,20 @@ export function Presentation() {
         <Card className="max-w-2xl">
           <CardHeader label="Set up" />
           <CardBody className="space-y-5 py-5">
-            {resolutions.length > 0 ? (
-              <Field label="Draft resolution" htmlFor="presentation-resolution">
-                <Select
-                  id="presentation-resolution"
-                  value={resolutionId}
-                  onChange={(event) => {
-                    const next = resolutions.find((entry) => entry.id === event.target.value);
-                    setResolutionId(event.target.value);
-                    // The Main Submitter presents, unless the chair says otherwise.
-                    if (next?.mainSubmitters[0]) setPresenterId(next.mainSubmitters[0]);
-                  }}
-                >
-                  {resolutions.map((resolution) => (
-                    <option key={resolution.id} value={resolution.id}>
-                      {resolution.number} — {resolution.title}
-                    </option>
-                  ))}
-                  <option value="">Not on file yet</option>
-                </Select>
-              </Field>
-            ) : (
-              <p className="rounded-control border border-hairline bg-canvas px-3 py-2.5 text-sm text-muted">
-                No draft resolution is on file yet. You can present without one, or{' '}
-                <Link
-                  to="/chair/resolutions"
-                  state={{ create: true }}
-                  className="font-medium text-teal-700 hover:underline"
-                >
-                  register it in Resolutions
-                </Link>{' '}
-                first.
-              </p>
-            )}
+            <div className="rounded-control border border-hairline bg-canvas px-3 py-2.5 text-sm">
+              {res.drafting ? (
+                <span className="text-muted">
+                  No draft has been chosen yet. Choose one in Guided Mode or Resolutions first.
+                </span>
+              ) : (
+                <>
+                  <p className="font-medium text-ink-900">
+                    Topic {topic}: {topicTitle}
+                  </p>
+                  {mainSubmitter ? <p className="mt-0.5 text-muted">Main Submitter: {res.mainSubmitters.join(', ')}</p> : null}
+                </>
+              )}
+            </div>
 
             <div>
               <span className="label-micro mb-1.5 block">Presented by</span>
@@ -265,7 +256,7 @@ export function Presentation() {
               onClick={() =>
                 start({
                   kind: 'draft',
-                  resolutionId: resolutionId || null,
+                  resolutionId: null,
                   presenterId,
                   durationSec,
                 })

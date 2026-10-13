@@ -180,9 +180,16 @@ export function CommitteeLive() {
 
             {/* Resolutions */}
             <Card>
-              <CardHeader label="Resolutions" title={`${snapshot.resolutions.length} on file`} />
+              <CardHeader label="Resolutions" title="Resolution and amendments" />
               {snapshot.resolutions.length === 0 ? (
-                <EmptyState title="No draft resolutions" body="Drafts appear here once created." />
+                <div className="px-5 py-4 text-sm">
+                  <Link
+                    to={`/resolution?committee=${encodeURIComponent(committeeId ?? '')}`}
+                    className="font-medium text-teal-700 hover:underline"
+                  >
+                    Open the resolution, its amendments and every vote
+                  </Link>
+                </div>
               ) : (
                 <ul className="divide-y divide-hairline">
                   {snapshot.resolutions.map((resolution) => {
