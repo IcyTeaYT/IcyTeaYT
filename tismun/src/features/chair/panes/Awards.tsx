@@ -17,7 +17,7 @@ import type { Award } from '../types';
  * One entry per delegation. A double delegation arrives as two roster rows
  * sharing an id; the award goes to the delegation, so it names both delegates.
  */
-function delegationsOf(roster: Delegation[]): Delegation[] {
+export function delegationsOf(roster: Delegation[]): Delegation[] {
   const byId = new Map<string, Delegation>();
   for (const delegation of roster) {
     const existing = byId.get(delegation.id);
@@ -62,7 +62,7 @@ export function Awards() {
   );
 }
 
-function AwardCard({
+export function AwardCard({
   definition,
   award,
   otherAwards,

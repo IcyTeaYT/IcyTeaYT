@@ -1,3 +1,4 @@
+import { AWARDS } from '@/config/awards';
 import { flowFor, type FlowStepId } from '@/config/flows';
 import { hasQuorum, quorumNeeded } from '@/lib/majority';
 import type { Amendment, Draft, TopicNo, TopicState, Votes } from '@/lib/resolution';
@@ -74,6 +75,8 @@ export interface ChecklistStep {
 function isDone(id: FlowStepId, state: ChairData, res: ResContext): boolean {
   const topic = res.topic;
   if (has(state, skipKey(topic, id))) return true;
+  // The awards come after the vote, so the vote does not settle them.
+  if (id === 'awards') return AWARDS.every((award) => state.awards.some((given) => given.type === award.type));
   // Once the committee has voted on the resolution, everything before the
   // vote is behind it: an amendment left undebated cannot pull it back.
   if (res.status !== 'open') return true;
@@ -112,20 +115,25 @@ function isDone(id: FlowStepId, state: ChairData, res: ResContext): boolean {
   }
 }
 
+/** The awards close the session: they come after the last topic's resolution only. */
+const isLastTopic = (res: ResContext): boolean => res.topics.length === 0 || res.topic >= Math.max(...res.topics);
+
 export function sessionChecklist(state: ChairData, committeeId: string, res: ResContext): ChecklistStep[] {
   const present = presentIds(state.attendance).length;
   const total = Object.keys(state.names).length;
-  return flowFor(committeeId).steps.map((step) => ({
-    id: step.id,
-    label: step.label,
-    hint:
-      step.id === 'roll-call' && state.rollCallTakenAt !== null
-        ? `${step.hint} ${present} of ${total} present; ${quorumNeeded(total)} needed.`
-        : step.id === 'debate-amendments' && res.pending.length > 0
-          ? `${res.pending.length} ${res.pending.length === 1 ? 'amendment' : 'amendments'} to debate. ${step.hint}`
-          : step.hint,
-    done: isDone(step.id, state, res),
-  }));
+  return flowFor(committeeId)
+    .steps.filter((step) => step.id !== 'awards' || isLastTopic(res))
+    .map((step) => ({
+      id: step.id,
+      label: step.label,
+      hint:
+        step.id === 'roll-call' && state.rollCallTakenAt !== null
+          ? `${step.hint} ${present} of ${total} present; ${quorumNeeded(total)} needed.`
+          : step.id === 'debate-amendments' && res.pending.length > 0
+            ? `${res.pending.length} ${res.pending.length === 1 ? 'amendment' : 'amendments'} to debate. ${step.hint}`
+            : step.hint,
+      done: isDone(step.id, state, res),
+    }));
 }
 
 /** The first step not yet done — where the committee actually is. */

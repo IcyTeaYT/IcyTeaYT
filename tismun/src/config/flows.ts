@@ -7,6 +7,7 @@
  *
  * Every Day 1 committee debates two pre-written resolutions, Topic 1 then
  * Topic 2, each the same way. Note passing is suspended during any voting.
+ * After the last resolution, the chairs choose the awardees.
  */
 
 import { emergencySession } from './emergency';
@@ -25,7 +26,8 @@ export type FlowStepId =
   | 'more-amendments'
   | 'closing-speeches'
   | 'voting'
-  | 'result';
+  | 'result'
+  | 'awards';
 
 export interface FlowStep {
   id: FlowStepId;
@@ -94,6 +96,13 @@ const DEBATE_STEPS: FlowStep[] = [
   },
 ];
 
+/** The very end of the session, after the last resolution: who gets the awards. */
+const AWARDS_STEP: FlowStep = {
+  id: 'awards',
+  label: 'Awards',
+  hint: 'Choose the Best Delegate and the Honorable Mention. You can change them until the closing ceremony.',
+};
+
 export const DAY_ONE_FLOW: CommitteeFlow = {
   unmoderatedPurpose: 'Writing amendments',
   steps: [
@@ -103,6 +112,7 @@ export const DAY_ONE_FLOW: CommitteeFlow = {
       hint: 'Record every delegation as Present, Present and Voting, or Absent. Debate opens once quorum is met.',
     },
     ...DEBATE_STEPS,
+    AWARDS_STEP,
   ],
 };
 
@@ -135,6 +145,7 @@ export const EMERGENCY_FLOW: CommitteeFlow = {
       hint: 'Pick the submitted draft the committee will debate.',
     },
     ...DEBATE_STEPS,
+    AWARDS_STEP,
   ],
 };
 

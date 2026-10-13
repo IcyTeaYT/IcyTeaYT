@@ -24,6 +24,7 @@ import { Flag } from '@/components/Flag';
 import { Button } from '@/components/ui/Button';
 import { Card, CardBody, CardHeader } from '@/components/ui/Card';
 import { Segmented } from '@/components/ui/Segmented';
+import { AWARDS } from '@/config/awards';
 import { flowFor } from '@/config/flows';
 import { DEBATE, PRESENTATION, QUORUM } from '@/config/rules';
 import { emergencySession } from '@/config/emergency';
@@ -35,6 +36,7 @@ import { countryCode, sameCountryAs, type Amendment } from '@/lib/resolution';
 import { formatClock } from '@/lib/time';
 import { isRunning, type TimerState } from '@/lib/timer';
 import { DurationPresets } from '../components/DurationPresets';
+import { AwardCard, delegationsOf } from './Awards';
 import { Pane, Stat } from '../components/Pane';
 import { TimerDisplay } from '../components/TimerPanel';
 import { VotePanel } from '../components/VotePanel';
@@ -132,7 +134,7 @@ export function Guided() {
                   </p>
                   {isCurrent ? <p className="mt-0.5 text-sm leading-relaxed text-muted">{step.hint}</p> : null}
                 </div>
-                {isCurrent && step.id !== 'roll-call' && step.id !== 'result' ? (
+                {isCurrent && step.id !== 'roll-call' && step.id !== 'result' && step.id !== 'awards' ? (
                   <button
                     type="button"
                     className="shrink-0 self-start text-xs font-medium text-muted hover:text-ink-900"
@@ -789,6 +791,9 @@ function NowPanel({ screen, state }: { screen: GuidedScreen; state: ChairState }
       );
     }
 
+    case 'awards':
+      return <AwardsStep />;
+
     case 'result': {
       const next = res.topics.find((t) => t > topic);
       return (
@@ -815,6 +820,41 @@ function NowPanel({ screen, state }: { screen: GuidedScreen; state: ChairState }
     default:
       return null;
   }
+}
+
+/** The very end of the session: the chairs choose who gets each award. */
+function AwardsStep() {
+  const { roster } = useChairContext();
+  const { res } = useChairRes();
+  const awards = useChair((snapshot) => snapshot.awards);
+  const delegations = useMemo(() => delegationsOf(roster), [roster]);
+  const allGiven = AWARDS.every((definition) => awards.some((award) => award.type === definition.type));
+  const lastResult =
+    res.status === 'open'
+      ? null
+      : `The resolution ${res.status}${res.votes ? ` — ${res.votes.for} for, ${res.votes.against} against, ${res.votes.abstain} abstaining` : ''}.`;
+
+  return (
+    <div className="space-y-5">
+      <Heading stage="Awards" title={allGiven ? 'The awards are chosen' : 'Choose the awardees'}>
+        {lastResult ? `${lastResult} ` : null}
+        {allGiven
+          ? 'That is the end of the session. Well done! You can still change an award until the closing ceremony.'
+          : 'Give each award to one delegation. The Secretariat sees it straight away.'}
+      </Heading>
+      <div className="grid gap-4 md:grid-cols-2">
+        {AWARDS.map((definition) => (
+          <AwardCard
+            key={definition.type}
+            definition={definition}
+            award={awards.find((award) => award.type === definition.type) ?? null}
+            otherAwards={awards.filter((award) => award.type !== definition.type)}
+            delegations={delegations}
+          />
+        ))}
+      </div>
+    </div>
+  );
 }
 
 function AmendmentDebate({
