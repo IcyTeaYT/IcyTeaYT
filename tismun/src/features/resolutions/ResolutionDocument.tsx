@@ -2,9 +2,9 @@ import { Fragment, type ReactNode } from 'react';
 import { Flag } from '@/components/Flag';
 import { Badge } from '@/components/ui/Badge';
 import { cn } from '@/lib/cn';
-import { countryCodeFor } from '@/lib/countryCodes';
 import {
   clauseLines,
+  countryCode,
   diffWords,
   operativeNumber,
   type Amendment,
@@ -100,7 +100,7 @@ export function SubmitterList({ countries, className }: { countries: string[]; c
     <span className={cn('inline-flex flex-wrap items-center gap-x-2.5 gap-y-1', className)}>
       {countries.map((country) => (
         <span key={country} className="inline-flex items-center gap-1.5">
-          <Flag code={countryCodeFor(country)} country={country} size="xs" />
+          <Flag code={countryCode(country)} country={country} size="xs" />
           {country}
         </span>
       ))}
@@ -126,7 +126,14 @@ export function ResolutionHeader({
   if (text.mainSubmitters.length) {
     rows.push([
       text.mainSubmitters.length > 1 ? 'Main submitters' : 'Main submitter',
-      <SubmitterList key="main" countries={text.mainSubmitters} />,
+      <span key="main">
+        <SubmitterList countries={text.mainSubmitters} />
+        {text.replacedMainSubmitters?.length ? (
+          <span className="mt-0.5 block text-xs text-muted">
+            In place of {text.replacedMainSubmitters.join(', ')}, who {text.replacedMainSubmitters.length > 1 ? 'are' : 'is'} not in this committee.
+          </span>
+        ) : null}
+      </span>,
     ]);
   }
   if (text.coSubmitters.length) rows.push(['Co-submitters', <SubmitterList key="co" countries={text.coSubmitters} />]);

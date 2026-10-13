@@ -2,7 +2,14 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { preWrittenResolution, blankResolution, writesOwnResolution } from '@/config/resolutions';
 import { dataSource } from '@/data/source';
 import type { ResAction, ResActionResult, ResCountry, ResMe, ResWorkspace } from '@/data/source/types';
-import { currentText, type CommitteeResState, type Copy, type ResolutionText, type TopicNo } from '@/lib/resolution';
+import {
+  currentText,
+  withSubmittersHere,
+  type CommitteeResState,
+  type Copy,
+  type ResolutionText,
+  type TopicNo,
+} from '@/lib/resolution';
 
 /**
  * A committee's resolution workspace, kept fresh.
@@ -132,10 +139,13 @@ export function useResolutions(
 
   const state = data?.state ?? null;
   const base = committeeId ? baseFor(committeeId, topic, state) : null;
-  const current = useMemo(
-    () => (base && state ? currentText(base, state.amendments, topic) : base),
-    [base, state, topic],
-  );
+  // Who submitted it, as this committee has it: if no Main Submitter sits
+  // here, a co-submitter who does takes their place.
+  const countryNames = useMemo(() => (data?.countries ?? []).map((country) => country.name), [data?.countries]);
+  const current = useMemo(() => {
+    const text = base && state ? currentText(base, state.amendments, topic) : base;
+    return text ? withSubmittersHere(text, countryNames) : text;
+  }, [base, state, topic, countryNames]);
   const drafting = Boolean(committeeId && writesOwnResolution(committeeId) && state && !state.topics[topic].base);
 
   return {

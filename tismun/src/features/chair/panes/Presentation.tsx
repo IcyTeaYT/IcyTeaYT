@@ -6,8 +6,7 @@ import { Card, CardBody, CardHeader } from '@/components/ui/Card';
 import { flowFor } from '@/config/flows';
 import { PRESENTATION } from '@/config/rules';
 import { cn } from '@/lib/cn';
-import { countryCodeFor } from '@/lib/countryCodes';
-import { sameCountry } from '@/lib/resolution';
+import { countryCode, sameCountryAs } from '@/lib/resolution';
 import { formatClock } from '@/lib/time';
 import { DelegationPicker } from '../components/DelegationPicker';
 import { DurationInput } from '../components/DurationInput';
@@ -52,8 +51,8 @@ export function Presentation() {
     (mainSubmitter &&
       roster.find(
         (d) =>
-          sameCountry(d.country, mainSubmitter) ||
-          (Boolean(d.countryCode) && countryCodeFor(mainSubmitter) === d.countryCode),
+          sameCountryAs(d.country, mainSubmitter) ||
+          (Boolean(d.countryCode) && countryCode(mainSubmitter) === d.countryCode),
       )?.id) ||
     null;
   const [chosenPresenter, setPresenterId] = useState<string | null>(null);

@@ -29,7 +29,7 @@ const ChairResContext = createContext<ChairRes | null>(null);
 export function ChairResProvider({ children }: { children: ReactNode }) {
   const { committee } = useChairContext();
   const topic = useChair((state) => state.topic);
-  const ws = useResolutions(committee.id, topic, { fast: false });
+  const ws = useResolutions(committee.id, topic, { fast: false, withCountries: true });
 
   const res = useMemo<ResContext>(() => {
     if (!ws.state) return { ...emptyResContext(topic), topics: topicsOf(committee.id) };

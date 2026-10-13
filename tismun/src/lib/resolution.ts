@@ -22,6 +22,8 @@
  *     numbered in the order received, and clears the copy.
  */
 
+import { countryCodeFor } from './countryCodes';
+
 export type ClauseKind = 'preamble' | 'operative';
 
 export interface Clause {
@@ -41,6 +43,11 @@ export interface ResolutionText {
   freezeDate?: string;
   mainSubmitters: string[];
   coSubmitters: string[];
+  /**
+   * Set when none of the paper's Main Submitters sits in this committee and a
+   * co-submitter has taken their place: who the paper originally named.
+   */
+  replacedMainSubmitters?: string[];
   clauses: Clause[];
 }
 
@@ -327,6 +334,57 @@ export const cleanClauseText = (text: string): string =>
     .filter((line) => line.trim().length > 0)
     .join('\n')
     .slice(0, 4000);
+
+/* ── Who submitted it, in this committee ─────────────────────────────────── */
+
+/** The Russian resolutions name their submitters in Russian. */
+const RUSSIAN_COUNTRIES: Record<string, string> = {
+  'швейцария': 'CH',
+  'австралия': 'AU',
+  'колумбия': 'CO',
+  'нидерланды': 'NL',
+  'франция': 'FR',
+  'бразилия': 'BR',
+  'германия': 'DE',
+  'кения': 'KE',
+  'кенья': 'KE',
+  'великобритания': 'GB',
+  'сша': 'US',
+  'китай': 'CN',
+  'индия': 'IN',
+  'япония': 'JP',
+  'россия': 'RU',
+};
+
+/** A country's ISO code, from English or Russian, or null. */
+export const countryCode = (name: string): string | null =>
+  countryCodeFor(name) ?? RUSSIAN_COUNTRIES[name.trim().toLowerCase()] ?? null;
+
+/** Two ways of writing the same country: "UK" and "United Kingdom", "USSR" and "Russian Federation", "Франция" and "France". */
+export function sameCountryAs(a: string, b: string): boolean {
+  if (sameCountry(a, b)) return true;
+  const code = countryCode(a);
+  return code !== null && code === countryCode(b);
+}
+
+/**
+ * The paper as this committee has it. If none of its Main Submitters sits in
+ * the committee, the first co-submitter who does becomes the Main Submitter,
+ * so there is always someone here to present it.
+ */
+export function withSubmittersHere(text: ResolutionText, countries: string[]): ResolutionText {
+  if (countries.length === 0) return text;
+  const here = (name: string) => countries.some((country) => sameCountryAs(country, name));
+  if (text.mainSubmitters.some(here)) return text;
+  const promoted = text.coSubmitters.find(here);
+  if (!promoted) return text;
+  return {
+    ...text,
+    mainSubmitters: [promoted],
+    coSubmitters: text.coSubmitters.filter((name) => name !== promoted),
+    replacedMainSubmitters: text.mainSubmitters,
+  };
+}
 
 /* ── Committee state ─────────────────────────────────────────────────────── */
 

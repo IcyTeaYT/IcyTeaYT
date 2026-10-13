@@ -30,9 +30,8 @@ import { emergencySession } from '@/config/emergency';
 import type { Delegation } from '@/data/source/types';
 import { AmendmentCard, ResolutionClauses } from '@/features/resolutions/ResolutionDocument';
 import { cn } from '@/lib/cn';
-import { countryCodeFor } from '@/lib/countryCodes';
 import { hasQuorum, quorumNeeded, simpleMajority, twoThirdsMajority } from '@/lib/majority';
-import { sameCountry, type Amendment } from '@/lib/resolution';
+import { countryCode, sameCountryAs, type Amendment } from '@/lib/resolution';
 import { formatClock } from '@/lib/time';
 import { isRunning, type TimerState } from '@/lib/timer';
 import { DurationPresets } from '../components/DurationPresets';
@@ -383,8 +382,8 @@ function ExpectedSpeaker({
 }
 
 const matchesCountry = (delegation: Delegation, name: string): boolean =>
-  sameCountry(delegation.country, name) ||
-  (Boolean(delegation.countryCode) && countryCodeFor(name) === delegation.countryCode);
+  sameCountryAs(delegation.country, name) ||
+  (Boolean(delegation.countryCode) && countryCode(name) === delegation.countryCode);
 
 function NowPanel({ screen, state }: { screen: GuidedScreen; state: ChairState }) {
   const navigate = useNavigate();
