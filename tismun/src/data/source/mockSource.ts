@@ -159,9 +159,17 @@ const demoKey = (email: string): string => {
   return `p${hash.toString(36)}`;
 };
 
-function demoWho(committeeId: string): { me: ResMe; actor: Actor | null } {
+function demoWho(committeeId: string, actAs?: string | null): { me: ResMe; actor: Actor | null } {
   const user = me();
   if (!user) throw new ResolutionError('Not signed in.', 401);
+  // The demo owner, testing as one of the committee's countries.
+  if (actAs && DEMO_OWNERS.has(user.email)) {
+    const match = demoCountries(committeeId).find((entry) => sameCountry(entry.name, actAs));
+    if (!match) throw new ResolutionError('That country is not in this committee.');
+    const key = demoKey(`${user.email}#${match.name}`);
+    const name = `${user.fullName.split(/\s+/)[0] ?? user.fullName} (test)`;
+    return { me: { role: 'delegate', country: match.name, key, name }, actor: { key, name, country: match.name } };
+  }
   const day = status();
   const access = accessFor(
     {
@@ -383,10 +391,10 @@ export const mockSource: DataSource = {
     writeJson(DEMO_ACTIVITY_KEY, [event, ...readJson<ActivityEvent[]>(DEMO_ACTIVITY_KEY, [])].slice(0, 200));
   },
 
-  async getResolutions(committeeId, topic, withCountries) {
+  async getResolutions(committeeId, topic, withCountries, actAs) {
     const now = Date.now();
     if (!hasResolutions(committeeId)) throw new ResolutionError('This committee has no resolutions on the site.', 404);
-    const who = demoWho(committeeId);
+    const who = demoWho(committeeId, actAs);
     const { state, copies } = readRes(committeeId);
     const epoch = state.topics[topic].epoch;
     const country = who.me.country;
@@ -405,9 +413,9 @@ export const mockSource: DataSource = {
     };
   },
 
-  async resolutionAction(committeeId, action): Promise<ResActionResult> {
+  async resolutionAction(committeeId, action, actAs): Promise<ResActionResult> {
     const now = Date.now();
-    const who = demoWho(committeeId);
+    const who = demoWho(committeeId, actAs);
     const data = readRes(committeeId);
     const save = (next: Partial<DemoRes>) => writeRes(committeeId, { ...data, ...next });
 

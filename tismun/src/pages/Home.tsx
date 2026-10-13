@@ -156,7 +156,7 @@ export function Home() {
                   <div>
                     <p className="font-medium text-ink-900">Owner tools</p>
                     <p className="mt-1 text-sm leading-relaxed text-muted">
-                      The Secretariat's conference floor, and the sign-in log only you can see.
+                      The Secretariat's conference floor, testing the delegate view as any country, and the sign-in log only you can see.
                     </p>
                   </div>
                 </div>
@@ -166,6 +166,12 @@ export function Home() {
                     className="inline-flex h-9 items-center gap-1.5 rounded-control border border-hairline bg-surface px-3.5 text-sm font-medium text-ink-800 transition-colors duration-200 hover:border-teal-300 hover:text-teal-700"
                   >
                     Conference floor
+                  </Link>
+                  <Link
+                    to="/resolution"
+                    className="inline-flex h-9 items-center gap-1.5 rounded-control border border-hairline bg-surface px-3.5 text-sm font-medium text-ink-800 transition-colors duration-200 hover:border-teal-300 hover:text-teal-700"
+                  >
+                    Test as a delegate
                   </Link>
                   <Link
                     to="/activity"

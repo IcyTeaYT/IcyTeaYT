@@ -126,9 +126,12 @@ export interface DataSource {
    * delegate — every copy of the topic they may edit. Its delegates, chairs
    * and the Secretariat only.
    */
-  getResolutions(committeeId: string, topic: TopicNo, withCountries?: boolean): Promise<ResWorkspace>;
-  /** Edit or submit a copy, or — chairs — record a decision. */
-  resolutionAction(committeeId: string, action: ResAction): Promise<ResActionResult>;
+  getResolutions(committeeId: string, topic: TopicNo, withCountries?: boolean, actAs?: string | null): Promise<ResWorkspace>;
+  /**
+   * Edit or submit a copy, or — chairs — record a decision. `actAs`: an owner
+   * testing the site as one of the committee's countries.
+   */
+  resolutionAction(committeeId: string, action: ResAction, actAs?: string | null): Promise<ResActionResult>;
   /**
    * Demo mode only: the list the login page's user picker is built from.
    * Undefined in live mode, where you may never enumerate users.

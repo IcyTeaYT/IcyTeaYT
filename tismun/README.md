@@ -670,6 +670,13 @@ a chair) and also gets:
     committee and country, and the device type (for example "iPhone ·
     Safari").
 
+- **Test as a delegate**: on the Resolution page, pick any committee and act
+  as any of its countries. The page then behaves exactly as it does for that
+  country's delegate: My copy, sharing, submitting. Only accounts in
+  `OWNER_EMAILS` can do this; the server ignores the request from anyone else.
+  Whatever is submitted while testing is real, so withdraw it afterwards or
+  use Reset all sessions.
+
 The log is kept for 30 days and needs the D1 binding. Its two tables are
 created on first use, so no migration is needed. Recording is best-effort:
 if the database is down, people still sign in normally. To change the owners,

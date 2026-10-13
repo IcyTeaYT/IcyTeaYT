@@ -144,22 +144,26 @@ export const liveSource: DataSource = {
     return api<ActivityLog>('/api/activity');
   },
 
-  async getResolutions(committeeId, topic, withCountries): Promise<ResWorkspace> {
+  async getResolutions(committeeId, topic, withCountries, actAs): Promise<ResWorkspace> {
     const query = `topic=${topic}${withCountries ? '&countries=1' : ''}`;
     const response = await fetch(`/api/res/${encodeURIComponent(committeeId)}?${query}`, {
       credentials: 'same-origin',
-      headers: { Accept: 'application/json' },
+      headers: { Accept: 'application/json', ...(actAs ? { 'X-Act-As': encodeURIComponent(actAs) } : {}) },
     });
     const body = (await response.json().catch(() => null)) as (ResWorkspace & { error?: string }) | null;
     if (!response.ok) throw new ApiError(body?.error ?? 'The resolution could not be loaded.', response.status);
     return body ?? { available: false, serverNow: Date.now() };
   },
 
-  async resolutionAction(committeeId, action): Promise<ResActionResult> {
+  async resolutionAction(committeeId, action, actAs): Promise<ResActionResult> {
     const response = await fetch(`/api/res/${encodeURIComponent(committeeId)}`, {
       method: 'POST',
       credentials: 'same-origin',
-      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+        ...(actAs ? { 'X-Act-As': encodeURIComponent(actAs) } : {}),
+      },
       body: JSON.stringify(action),
     });
     const body = (await response.json().catch(() => null)) as (ResActionResult & { error?: string }) | null;

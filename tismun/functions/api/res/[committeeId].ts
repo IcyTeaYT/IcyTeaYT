@@ -15,6 +15,7 @@ import {
   freshCopy,
   newCopy,
   ResolutionError,
+  sameCountry,
   setFloor,
   withdrawAmendment,
   type Actor,
@@ -28,6 +29,7 @@ import {
   type Votes,
 } from '../../../src/lib/resolution';
 import { accessOf } from '../_lib/access';
+import { isOwner } from '../_lib/owners';
 import { readStatus } from '../_lib/conference';
 import { EMERGENCY_ID, emergencyCountryOf } from '../_lib/emergency';
 import { fail, isLiveMode, json, type Env } from '../_lib/env';
@@ -88,6 +90,20 @@ async function identify(
   const access = await accessOf(env, user);
   const key = await keyFor(user.Email);
   const name = firstName(user);
+
+  // An owner testing the site can act as any country in the committee.
+  const actAs = request.headers.get('X-Act-As');
+  if (actAs && isOwner(env, user.Email)) {
+    const wanted = decodeURIComponent(actAs).trim();
+    const match = (await countriesOf(env, committeeId)).find((entry) => sameCountry(entry.name, wanted));
+    if (!match) return fail('That country is not in this committee.', 400);
+    const testKey = await keyFor(`${user.Email}#${match.name}`);
+    return {
+      who: { role: 'delegate', country: match.name, actor: { key: testKey, name: `${name} (test)`, country: match.name } },
+      key: testKey,
+      name,
+    };
+  }
 
   let country: string | null = null;
   if (committeeId === EMERGENCY_ID) {
