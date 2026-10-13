@@ -7,6 +7,8 @@ import { describeDbError, guardRead } from '../_lib/live';
  * This is what the Secretariat dashboard polls. It returns summaries only; the
  * full per-committee view is a separate request, so watching six committees at
  * once stays a couple of kilobytes rather than a couple of megabytes.
+ *
+ * The owner's practice copies (committee ids ending "~test") are left out.
  */
 
 /** How many combined log entries the overview carries. */
@@ -38,11 +40,11 @@ export const onRequestGet: PagesFunction<Env> = async ({ request, env }) => {
 
   try {
     [states, log] = await Promise.all([
-      env.DB.prepare('SELECT summary FROM committee_state ORDER BY committee_id').all<{
+      env.DB.prepare("SELECT summary FROM committee_state WHERE committee_id NOT LIKE '%~test' ORDER BY committee_id").all<{
         summary: string;
       }>(),
       env.DB.prepare(
-        'SELECT id, committee_id, at, type, summary, detail FROM session_log ORDER BY at DESC LIMIT ?1',
+        "SELECT id, committee_id, at, type, summary, detail FROM session_log WHERE committee_id NOT LIKE '%~test' ORDER BY at DESC LIMIT ?1",
       )
         .bind(LOG_LIMIT)
         .all<{

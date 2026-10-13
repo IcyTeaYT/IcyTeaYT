@@ -22,9 +22,11 @@ const MAX_AGE_SECONDS = 12 * 60 * 60;
 
 export interface TestSeat {
   committeeId: string;
+  /** The delegate's country. Blank for a chair. */
   country: string;
   /** See it as on Day 2, with the Emergency Session topic released. */
   day2: boolean;
+  role: 'delegate' | 'chair';
 }
 
 /** On a test user's row: the seat, and whose seat it is. Never sent to a browser. */
@@ -45,20 +47,21 @@ function readCookie(request: Request, name: string): string | null {
 export function readTestSeat(request: Request): TestSeat | null {
   const raw = readCookie(request, TEST_COOKIE);
   if (!raw) return null;
-  const [committeeId, country, day2] = raw.split('|').map((part) => {
+  const [committeeId, country, day2, role] = raw.split('|').map((part) => {
     try {
       return decodeURIComponent(part).trim();
     } catch {
       return '';
     }
   });
-  if (!committeeId || !country) return null;
-  return { committeeId, country, day2: day2 === '2' };
+  if (!committeeId) return null;
+  if (role === 'c') return { committeeId, country: '', day2: day2 === '2', role: 'chair' };
+  return country ? { committeeId, country, day2: day2 === '2', role: 'delegate' } : null;
 }
 
 export const testCookie = (seat: TestSeat): string =>
   [
-    `${TEST_COOKIE}=${encodeURIComponent(seat.committeeId)}|${encodeURIComponent(seat.country)}|${seat.day2 ? '2' : '1'}`,
+    `${TEST_COOKIE}=${encodeURIComponent(seat.committeeId)}|${encodeURIComponent(seat.country)}|${seat.day2 ? '2' : '1'}|${seat.role === 'chair' ? 'c' : 'd'}`,
     'Path=/',
     'HttpOnly',
     'Secure',
@@ -68,7 +71,7 @@ export const testCookie = (seat: TestSeat): string =>
 
 export const clearTestCookie = (): string => `${TEST_COOKIE}=; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=0`;
 
-/** Every seat an owner can test as: each committee's countries. */
+/** Every delegate's seat an owner can test as: each committee's countries. */
 export function seatsOf(users: SheetUser[]): Map<string, string[]> {
   const seats = new Map<string, Map<string, string>>();
   const add = (committeeId: string, country: string) => {
@@ -121,32 +124,56 @@ const testEmailOf = (email: string): string => {
 };
 
 /**
- * The row the site answers to while an owner tests a seat: the seat's
- * delegate — their committee, country and Emergency Session assignment — under
- * the owner's name marked "(test)" and an address that is not an owner's.
+ * The row the site answers to while an owner tests a seat.
+ *
+ * A delegate's seat: that delegate — their committee, country and Emergency
+ * Session assignment — under the owner's name marked "(test)" and an address
+ * that is not an owner's. A chair's seat: a chair of that committee and
+ * nothing else; the Emergency Session's is seen on Day 2, when it sits.
  */
 export async function testUserFor(env: Env, owner: SheetUser, seat: TestSeat): Promise<SheetUser | null> {
+  const first = (owner['Full Name'] ?? '').trim().split(/\s+/)[0] || 'Owner';
+  const who = { Email: testEmailOf(owner.Email), 'Full Name': `${first} (test)`, Title: '' };
+
+  if (seat.role === 'chair') {
+    const emergency = seat.committeeId === EMERGENCY_ID;
+    const mark: TestMark = { committeeId: seat.committeeId, country: '', day2: seat.day2 || emergency, role: 'chair', seatEmail: '' };
+    return {
+      ...who,
+      Role: 'CHAIR',
+      'Committee ID': emergency ? '' : seat.committeeId,
+      Country: '',
+      'Country Code': '',
+      'Emergency Role': emergency ? 'CHAIR' : '',
+      'Emergency Country': '',
+      'Test Seat': mark,
+    };
+  }
+
   const holder = seatHolder(await readUsers(env), seat);
   if (!holder) return null;
-  const first = (owner['Full Name'] ?? '').trim().split(/\s+/)[0] || 'Owner';
   const mark: TestMark = {
     committeeId: seat.committeeId,
     country: seat.committeeId === EMERGENCY_ID ? emergencyCountryOf(holder) : (holder.Country ?? '').trim(),
     day2: seat.day2,
+    role: 'delegate',
     seatEmail: holder.Email,
   };
   // Testing is a delegate's view and nothing more: an Emergency Session seat
   // held only by a Day 1 chair or Secretariat member brings no Day 1 role.
   const day1 = isDelegate(holder) ? {} : { Role: 'DELEGATE', 'Committee ID': '', Country: '', 'Country Code': '' };
-  return {
-    ...holder,
-    ...day1,
-    Email: testEmailOf(owner.Email),
-    'Full Name': `${first} (test)`,
-    Title: '',
-    'Test Seat': mark,
-  };
+  return { ...holder, ...day1, ...who, 'Test Seat': mark };
 }
+
+/**
+ * Where a committee's session and resolution are stored for this user. An
+ * owner testing — as a chair or a delegate — works in the committee's practice
+ * copy, so nothing they do reaches the real committee, and their test chair
+ * and test delegates see each other.
+ */
+export const PRACTICE_SUFFIX = '~test';
+export const storeIdFor = (committeeId: string, user: SheetUser | null | undefined): string =>
+  user?.['Test Seat'] ? `${committeeId}${PRACTICE_SUFFIX}` : committeeId;
 
 /** The conference as this user sees it: a test seat on "Day 2" sees Day 2, topic out. */
 export function statusSeenBy(status: ConferenceStatus, user: SheetUser | null): ConferenceStatus {

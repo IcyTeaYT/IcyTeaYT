@@ -6,12 +6,10 @@ import {
   Gavel,
   Landmark,
   Loader2,
-  LogIn,
   MapPin,
   Siren,
   Users,
 } from 'lucide-react';
-import { useState } from 'react';
 import { Link, Navigate, useNavigate } from 'react-router-dom';
 import { PageContainer } from '@/components/AppShell';
 import { Flag } from '@/components/Flag';
@@ -33,7 +31,6 @@ import { useCommittee, useConference } from '@/store/conference';
 import { useConferenceStatus } from '@/store/conferenceStatus';
 import { ResolutionCard } from '@/features/resolutions/ResolutionCard';
 import { resolutionCommitteeOf } from '@/features/resolutions/committeeOf';
-import { TestAsDialog } from '@/features/testing/TestAsDialog';
 
 const enter = (delay: number) => ({
   initial: { opacity: 0, y: 10 },
@@ -48,7 +45,6 @@ export function Home() {
   const day2 = useConferenceStatus((state) => state.status?.day2 ?? false);
   const released = useConferenceStatus((state) => state.status?.released ?? false);
   const resolutionCommittee = resolutionCommitteeOf(user, day2, released);
-  const [testing, setTesting] = useState(false);
 
   if (!user) return null;
 
@@ -147,49 +143,6 @@ export function Home() {
             ) : null}
           </>
         )}
-
-        {user.access.owner ? (
-          <motion.div className="mt-8" {...enter(0.31)}>
-            <Card>
-              <CardBody className="flex flex-col gap-4 px-6 py-5 sm:flex-row sm:items-center sm:justify-between">
-                <div className="flex items-start gap-4">
-                  <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-control bg-teal-50 text-teal-700">
-                    <Landmark size={18} strokeWidth={1.5} />
-                  </span>
-                  <div>
-                    <p className="font-medium text-ink-900">Owner tools</p>
-                    <p className="mt-1 text-sm leading-relaxed text-muted">
-                      The Secretariat's conference floor, seeing the whole site as any delegate, and the sign-in log only you can see.
-                    </p>
-                  </div>
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  <Link
-                    to="/secretariat"
-                    className="inline-flex h-9 items-center gap-1.5 rounded-control border border-hairline bg-surface px-3.5 text-sm font-medium text-ink-800 transition-colors duration-200 hover:border-teal-300 hover:text-teal-700"
-                  >
-                    Conference floor
-                  </Link>
-                  <button
-                    type="button"
-                    onClick={() => setTesting(true)}
-                    className="inline-flex h-9 items-center gap-1.5 rounded-control border border-hairline bg-surface px-3.5 text-sm font-medium text-ink-800 transition-colors duration-200 hover:border-teal-300 hover:text-teal-700"
-                  >
-                    Test as a delegate
-                  </button>
-                  <Link
-                    to="/activity"
-                    className="inline-flex h-9 items-center gap-1.5 rounded-control bg-teal-500 px-3.5 text-sm font-medium text-white transition-colors duration-200 hover:bg-teal-600"
-                  >
-                    <LogIn size={15} strokeWidth={1.5} />
-                    Sign-in log
-                  </Link>
-                </div>
-              </CardBody>
-            </Card>
-            <TestAsDialog open={testing} onClose={() => setTesting(false)} />
-          </motion.div>
-        ) : null}
 
         {!emergencyOnly(user, day2) && (committee || isSecretariat(user) || emergencyDelegate) ? (
           <motion.div className="mt-8" {...enter(0.32)}>

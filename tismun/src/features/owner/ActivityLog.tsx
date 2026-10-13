@@ -68,7 +68,8 @@ const startOfToday = (now: number) => {
   return new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
 };
 
-export function ActivityLog() {
+/** The sign-in log. `embedded`: a section of the Owner tab rather than a page of its own. */
+export function ActivityLog({ embedded = false }: { embedded?: boolean }) {
   const committees = useConference((state) => state.committees);
   const [log, setLog] = useState<Log | null>(null);
   const [failed, setFailed] = useState<string | null>(null);
@@ -146,14 +147,19 @@ export function ActivityLog() {
     return out;
   }, [events, now]);
 
+  const Wrap = embedded ? 'section' : PageContainer;
   return (
-    <PageContainer>
+    <Wrap>
       <header className="flex flex-col gap-4 border-b border-hairline pb-6 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <p className="label-micro">Owner</p>
-          <h1 className="mt-2.5 font-serif text-[28px] leading-tight text-ink-900 sm:text-[32px]">Sign-in log</h1>
+          {embedded ? (
+            <h2 className="mt-2.5 font-serif text-[24px] leading-tight text-ink-900">Sign-in log</h2>
+          ) : (
+            <h1 className="mt-2.5 font-serif text-[28px] leading-tight text-ink-900 sm:text-[32px]">Sign-in log</h1>
+          )}
           <p className="mt-2 text-sm text-muted">
-            Who is on the site right now, and every sign-in. Only you can see this page.
+            Who is on the site right now, and every sign-in. Only you can see this.
           </p>
         </div>
         <div className="flex flex-col items-start gap-2 sm:items-end">
@@ -261,7 +267,7 @@ export function ActivityLog() {
           )}
         </Card>
       </div>
-    </PageContainer>
+    </Wrap>
   );
 }
 

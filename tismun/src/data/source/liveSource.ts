@@ -191,6 +191,16 @@ export const liveSource: DataSource = {
     await fetch('/api/test-as', { method: 'DELETE', credentials: 'same-origin' });
   },
 
+  async clearPractice(): Promise<void> {
+    const response = await fetch('/api/test-as', {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+      body: JSON.stringify({ action: 'clear-practice' }),
+    });
+    if (!response.ok) throw new ApiError('The practice copies could not be cleared.', response.status);
+  },
+
   async ping(): Promise<void> {
     try {
       await fetch('/api/ping', { method: 'POST', credentials: 'same-origin' });

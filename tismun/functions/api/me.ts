@@ -29,6 +29,6 @@ export const onRequestGet: PagesFunction<Env> = async ({ request, env, waitUntil
   return json({
     ...row,
     Access: await accessOf(env, user),
-    Testing: seat ? { committeeId: seat.committeeId, country: seat.country, day2: seat.day2 } : null,
+    Testing: seat ? { committeeId: seat.committeeId, country: seat.country, day2: seat.day2, role: seat.role } : null,
   });
 };

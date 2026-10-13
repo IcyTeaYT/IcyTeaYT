@@ -148,7 +148,7 @@ export function TopNav() {
     });
   }
   if (!views && isSecretariat(user)) items.push({ to: '/secretariat', label: 'Secretariat' });
-  if (isOwner(user)) items.push({ to: '/activity', label: 'Sign-in log' });
+  if (isOwner(user)) items.push({ to: '/owner', label: 'Owner' });
 
   const handleSignOut = async () => {
     await signOut();

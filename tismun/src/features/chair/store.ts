@@ -1030,13 +1030,15 @@ const stores = new Map<string, ChairStore>();
  * chair who also sits as a delegate elsewhere — never overwrite each other's
  * session, and a refresh mid-debate restores exactly what was on screen.
  */
-export function chairStoreFor(committeeId: string): ChairStore {
-  const existing = stores.get(committeeId);
+export function chairStoreFor(committeeId: string, practice = false): ChairStore {
+  // The owner's practice session (testing as a chair) is kept under its own key.
+  const name = `tismun.chair.${practice ? 'practice.' : ''}${committeeId}`;
+  const existing = stores.get(name);
   if (existing) return existing;
 
   const store = create<ChairState>()(
     persist(createChairState(committeeId), {
-      name: `tismun.chair.${committeeId}`,
+      name,
       version: 2,
       // Version 2 is the simplified procedure: no Moderated Caucus, and no
       // Divide the Question. A session saved before then may still hold them.
@@ -1048,7 +1050,7 @@ export function chairStoreFor(committeeId: string): ChairStore {
       },
     }),
   );
-  stores.set(committeeId, store);
+  stores.set(name, store);
   return store;
 }
 

@@ -42,9 +42,11 @@ export interface User {
   testing: TestingSeat | null;
 }
 
-/** A delegate's seat, as the owner tests it. */
+/** A seat the owner tests the site as: a delegate's, or a chair's. */
 export interface TestingSeat {
+  role: 'delegate' | 'chair';
   committeeId: string;
+  /** The delegate's country. Blank for a chair. */
   country: string;
   /** Shown as on Day 2, with the Emergency Session topic released — to the owner alone. */
   day2: boolean;
@@ -150,10 +152,12 @@ export interface DataSource {
   resolutionAction(committeeId: string, action: ResAction): Promise<ResActionResult>;
   /** Owners only: the seat being tested, and every seat there is. */
   getTestOptions(): Promise<TestOptions>;
-  /** Owners only: see the whole site as this seat's delegate. */
+  /** Owners only: see the whole site as this seat's delegate or chair. */
   startTest(seat: TestingSeat): Promise<void>;
   /** Be yourself again. */
   stopTest(): Promise<void>;
+  /** Owners only: empty every committee's practice copy — what was done while testing. */
+  clearPractice(): Promise<void>;
   /**
    * Demo mode only: the list the login page's user picker is built from.
    * Undefined in live mode, where you may never enumerate users.

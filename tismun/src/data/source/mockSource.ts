@@ -129,19 +129,37 @@ function seatHolder(seat: TestingSeat): User | null {
 function asSeen(user: User | null): User | null {
   if (!user || !DEMO_OWNERS.has(user.email)) return user;
   const seat = readJson<TestingSeat | null>(DEMO_TEST_KEY, null);
-  const holder = seat ? seatHolder(seat) : null;
-  if (!seat || !holder) return user;
+  if (!seat) return user;
   const at = user.email.lastIndexOf('@');
+  const who = {
+    email: `${user.email.slice(0, at)}+test${user.email.slice(at)}`,
+    fullName: `${user.fullName.split(/\s+/)[0] ?? user.fullName} (test)`,
+    title: null,
+  };
+  if (seat.role === 'chair') {
+    const emergency = isEmergency(seat.committeeId);
+    return {
+      ...user,
+      ...who,
+      role: 'CHAIR',
+      committeeId: emergency ? null : seat.committeeId,
+      country: null,
+      countryCode: null,
+      emergency: emergency ? { role: 'CHAIR', country: null, countryCode: null } : null,
+      testing: { role: 'chair', committeeId: seat.committeeId, country: '', day2: seat.day2 || emergency },
+    };
+  }
+  const holder = seatHolder(seat);
+  if (!holder) return user;
   // A delegate's view only: no Day 1 chair or Secretariat role comes with it.
   const day1 =
     holder.role === 'DELEGATE' ? {} : { role: 'DELEGATE' as const, committeeId: null, country: null, countryCode: null };
   return {
     ...holder,
     ...day1,
-    email: `${user.email.slice(0, at)}+test${user.email.slice(at)}`,
-    fullName: `${user.fullName.split(/\s+/)[0] ?? user.fullName} (test)`,
-    title: null,
+    ...who,
     testing: {
+      role: 'delegate',
       committeeId: seat.committeeId,
       country: isEmergency(seat.committeeId) ? (holder.emergency?.country ?? seat.country) : (holder.country ?? seat.country),
       day2: seat.day2,
@@ -188,6 +206,9 @@ function delegationFor(country: string, askerEmail: string | null): EmergencyDel
  */
 
 const DEMO_RES_PREFIX = 'tismun.demo.res.';
+/** The owner testing works in each committee's practice copy, as on the server. */
+const PRACTICE = '~test';
+const resKey = (committeeId: string): string => DEMO_RES_PREFIX + committeeId + (me()?.testing ? PRACTICE : '');
 
 interface DemoRes {
   state: CommitteeResState;
@@ -195,10 +216,10 @@ interface DemoRes {
 }
 
 const readRes = (committeeId: string): DemoRes => {
-  const stored = readJson<Partial<DemoRes> | null>(DEMO_RES_PREFIX + committeeId, null);
+  const stored = readJson<Partial<DemoRes> | null>(resKey(committeeId), null);
   return { state: normaliseCommitteeState(stored?.state), copies: stored?.copies ?? [] };
 };
-const writeRes = (committeeId: string, data: DemoRes) => writeJson(DEMO_RES_PREFIX + committeeId, data);
+const writeRes = (committeeId: string, data: DemoRes) => writeJson(resKey(committeeId), data);
 
 let demoIds = 0;
 const demoId = (): string =>
@@ -328,13 +349,13 @@ export const mockSource: DataSource = {
     const user = me();
     if (user?.emergency?.role !== 'DELEGATE' || !user.emergency.country) return null;
     // Testing a seat: "you" is the seat's delegate.
-    const you = user.testing ? (seatHolder(user.testing)?.email ?? null) : user.email;
+    const you = user.testing ? (seatHolder({ ...user.testing, role: 'delegate' })?.email ?? null) : user.email;
     return delegationFor(user.emergency.country, you);
   },
 
   async getTestOptions(): Promise<TestOptions> {
     const user = realMe();
-    if (!user || !DEMO_OWNERS.has(user.email)) throw new ResolutionError('Only the site owner can test as a delegate.', 403);
+    if (!user || !DEMO_OWNERS.has(user.email)) throw new ResolutionError('Only the site owner can test the site.', 403);
     const seats = new Map<string, Set<string>>();
     const add = (committeeId: string | null, country: string | null) => {
       if (!committeeId || !country) return;
@@ -347,7 +368,6 @@ export const mockSource: DataSource = {
     return {
       seat: readJson<TestingSeat | null>(DEMO_TEST_KEY, null),
       options: committeeRows
-        .filter((row) => seats.has(row['Committee ID']))
         .map((row) => ({
           committeeId: row['Committee ID'],
           name: row.Name,
@@ -360,13 +380,28 @@ export const mockSource: DataSource = {
 
   async startTest(seat) {
     const user = realMe();
-    if (!user || !DEMO_OWNERS.has(user.email)) throw new ResolutionError('Only the site owner can test as a delegate.', 403);
+    if (!user || !DEMO_OWNERS.has(user.email)) throw new ResolutionError('Only the site owner can test the site.', 403);
+    if (seat.role === 'chair') {
+      // The Emergency Session sits on Day 2: its chair is only ever seen then.
+      writeJson(DEMO_TEST_KEY, { ...seat, country: '', day2: seat.day2 || isEmergency(seat.committeeId) });
+      return;
+    }
     if (!seatHolder(seat)) throw new ResolutionError('Nobody sits in that seat.');
     writeJson(DEMO_TEST_KEY, seat);
   },
 
   async stopTest() {
     removeKey(DEMO_TEST_KEY);
+  },
+
+  async clearPractice() {
+    try {
+      for (const key of Object.keys(window.localStorage)) {
+        if (key.startsWith(DEMO_RES_PREFIX) && key.endsWith(PRACTICE)) removeKey(key);
+      }
+    } catch {
+      // Storage blocked: nothing was kept to clear.
+    }
   },
 
   async getAllDelegations() {

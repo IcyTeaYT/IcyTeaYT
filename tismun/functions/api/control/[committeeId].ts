@@ -6,6 +6,7 @@ import {
   readControl,
   validDeviceId,
 } from '../_lib/control';
+import { storeIdFor } from '../_lib/testing';
 import { describeDbError, guardRead, guardWrite } from '../_lib/live';
 
 /**
@@ -32,6 +33,8 @@ export const onRequestGet: PagesFunction<Env, 'committeeId'> = async ({ request,
   // Anyone who may view the committee: its chairs, read-only chairs, the Secretariat.
   const guard = await guardRead(request, env, committeeId);
   if (!guard.ok) return fail(guard.error, guard.status);
+  // An owner testing works in the committee's practice copy.
+  const storeId = storeIdFor(committeeId, guard.user);
 
   const url = new URL(request.url);
   const deviceId = url.searchParams.get('device');
@@ -40,9 +43,9 @@ export const onRequestGet: PagesFunction<Env, 'committeeId'> = async ({ request,
   try {
     await ensureControlTable(env.DB);
     const [row, summaryRow] = await Promise.all([
-      readControl(env.DB, committeeId),
+      readControl(env.DB, storeId),
       env.DB.prepare('SELECT summary FROM committee_state WHERE committee_id = ?1')
-        .bind(committeeId)
+        .bind(storeId)
         .first<{ summary: string }>()
         .catch(() => null),
     ]);
@@ -70,6 +73,8 @@ export const onRequestPost: PagesFunction<Env, 'committeeId'> = async ({
 
   const guard = await guardWrite(request, env, committeeId);
   if (!guard.ok) return fail(guard.error, guard.status);
+  // An owner testing works in the committee's practice copy.
+  const storeId = storeIdFor(committeeId, guard.user);
 
   let body: { deviceId?: unknown; force?: unknown };
   try {
@@ -99,7 +104,7 @@ export const onRequestPost: PagesFunction<Env, 'committeeId'> = async ({
           OR ?6 = 1`,
     )
       .bind(
-        committeeId,
+        storeId,
         deviceId,
         name,
         serverNow,
@@ -109,7 +114,7 @@ export const onRequestPost: PagesFunction<Env, 'committeeId'> = async ({
       )
       .run();
 
-    const row = await readControl(env.DB, committeeId);
+    const row = await readControl(env.DB, storeId);
     const acquired = row?.device_id === deviceId;
 
     return json({

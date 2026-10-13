@@ -29,7 +29,7 @@ import {
 } from '../../../src/lib/resolution';
 import { accessOf } from '../_lib/access';
 import { readStatus } from '../_lib/conference';
-import { statusSeenBy } from '../_lib/testing';
+import { statusSeenBy, storeIdFor } from '../_lib/testing';
 import { EMERGENCY_ID, emergencyCountryOf } from '../_lib/emergency';
 import { fail, isLiveMode, json, type Env } from '../_lib/env';
 import { describeDbError } from '../_lib/live';
@@ -83,11 +83,13 @@ async function identify(
   request: Request,
   env: Env,
   committeeId: string,
-): Promise<{ who: Who; key: string; name: string } | Response> {
+): Promise<{ who: Who; key: string; name: string; storeId: string } | Response> {
   const user = await currentUser(request, env);
   if (!user) return fail('Not signed in.', 401);
   const access = await accessOf(env, user);
   const key = await keyFor(user.Email);
+  // An owner testing works in the committee's practice copy.
+  const storeId = storeIdFor(committeeId, user);
   // An owner testing a seat shows as "Yassir (test)" to anyone sharing the copy.
   const name = user['Test Seat'] ? `${firstName(user)} (test)` : firstName(user);
 
@@ -103,9 +105,9 @@ async function identify(
     country = (user.Country ?? '').trim() || null;
   }
 
-  if (canRun(access, committeeId)) return { who: { role: 'chair', country: null, actor: null }, key, name };
-  if (country) return { who: { role: 'delegate', country, actor: { key, name, country } }, key, name };
-  if (canView(access, committeeId)) return { who: { role: 'viewer', country: null, actor: null }, key, name };
+  if (canRun(access, committeeId)) return { who: { role: 'chair', country: null, actor: null }, key, name, storeId };
+  if (country) return { who: { role: 'delegate', country, actor: { key, name, country } }, key, name, storeId };
+  if (canView(access, committeeId)) return { who: { role: 'viewer', country: null, actor: null }, key, name, storeId };
   return fail('Only this committee’s delegates and chairs can open its resolutions.', 403);
 }
 
@@ -157,18 +159,18 @@ export const onRequestGet: PagesFunction<Env, 'committeeId'> = async ({ request,
 
   const identity = await identify(request, env, committeeId);
   if (identity instanceof Response) return identity;
-  const { who, key, name } = identity;
+  const { who, key, name, storeId } = identity;
 
   const url = new URL(request.url);
   const topic = topicOf(url.searchParams.get('topic') ?? '1', committeeId) ?? 1;
 
   try {
     await ensureResTables(env.DB);
-    const { state } = await readCommitteeState(env.DB, committeeId);
+    const { state } = await readCommitteeState(env.DB, storeId);
     const epoch = state.topics[topic].epoch;
     const copies =
       who.role === 'delegate' && who.country
-        ? (await readCopies(env.DB, committeeId, topic))
+        ? (await readCopies(env.DB, storeId, topic))
             .filter((copy) => canEditCopy(copy, who.country ?? ''))
             .map((copy) => freshCopy(copy, epoch))
         : [];
@@ -267,7 +269,7 @@ export const onRequestPost: PagesFunction<Env, 'committeeId'> = async ({ request
 
   const identity = await identify(request, env, committeeId);
   if (identity instanceof Response) return identity;
-  const { who } = identity;
+  const { who, storeId } = identity;
 
   let body: Body;
   try {
@@ -294,7 +296,7 @@ export const onRequestPost: PagesFunction<Env, 'committeeId'> = async ({ request
         const topic = topicOf(body.topic, committeeId);
         if (!topic) return fail('No such topic.', 400);
         const ops = opsOf(body.ops);
-        const { state } = await readCommitteeState(db, committeeId);
+        const { state } = await readCommitteeState(db, storeId);
         const topicState = state.topics[topic];
         if (topicState.status !== 'open') return fail('The committee has already voted on this resolution.', 409);
         const current = currentText(baseOf(committeeId, topic, state), state.amendments, topic);
@@ -303,7 +305,7 @@ export const onRequestPost: PagesFunction<Env, 'committeeId'> = async ({ request
 
         const { copy, result } = await mutateCopy(
           db,
-          { committeeId, topic, copyId, country: delegate.country },
+          { committeeId: storeId, topic, copyId, country: delegate.country },
           () => newCopy(crypto.randomUUID(), topic, delegate.country, topicState.epoch, now),
           (found) => {
             if (!canEditCopy(found, delegate.country)) throw new ResolutionError('This copy has not been shared with you.', 403);
@@ -327,10 +329,10 @@ export const onRequestPost: PagesFunction<Env, 'committeeId'> = async ({ request
         if (!topic) return fail('No such topic.', 400);
         if (typeof body.copyId !== 'string') return fail('Which copy?', 400);
         const found = await readCopy(db, body.copyId);
-        if (!found || found.committeeId !== committeeId) return fail('That copy no longer exists.', 404);
+        if (!found || found.committeeId !== storeId) return fail('That copy no longer exists.', 404);
         if (!canEditCopy(found.copy, delegate.country)) return fail('This copy has not been shared with you.', 403);
 
-        const { state: before } = await readCommitteeState(db, committeeId);
+        const { state: before } = await readCommitteeState(db, storeId);
         const epoch = before.topics[topic].epoch;
         const copy = freshCopy(found.copy, epoch);
         const submitters = [copy.owner, ...copy.members];
@@ -338,7 +340,7 @@ export const onRequestPost: PagesFunction<Env, 'committeeId'> = async ({ request
         // The Emergency Session before a draft is adopted: the copy is a whole draft.
         const drafting = writesOwnResolution(committeeId) && !before.topics[topic].base;
 
-        const { state, result: numbers } = await mutateCommitteeState(db, committeeId, (state) => {
+        const { state, result: numbers } = await mutateCommitteeState(db, storeId, (state) => {
           const current = currentText(baseOf(committeeId, topic, state), state.amendments, topic);
           if (drafting) {
             const added = addDraft(state, draftFromCopy(copy, current), submitters, now, crypto.randomUUID());
@@ -353,7 +355,7 @@ export const onRequestPost: PagesFunction<Env, 'committeeId'> = async ({ request
         // Submitted: the copy starts again from the resolution as it stands.
         const cleared = await mutateCopy(
           db,
-          { committeeId, topic, copyId: copy.id, country: delegate.country },
+          { committeeId: storeId, topic, copyId: copy.id, country: delegate.country },
           () => copy,
           (latest) => ({
             copy: {
@@ -375,7 +377,7 @@ export const onRequestPost: PagesFunction<Env, 'committeeId'> = async ({ request
         if (delegate instanceof Response) return delegate;
         if (typeof body.amendmentId !== 'string') return fail('Which amendment?', 400);
         const amendmentId = body.amendmentId;
-        const { state } = await mutateCommitteeState(db, committeeId, (state) => ({
+        const { state } = await mutateCommitteeState(db, storeId, (state) => ({
           state: withdrawAmendment(state, amendmentId, delegate.country, Date.now()),
           result: null,
         }));
@@ -391,7 +393,7 @@ export const onRequestPost: PagesFunction<Env, 'committeeId'> = async ({ request
         if (typeof body.amendmentId !== 'string' || !AMENDMENT_STATUSES.has(status)) return fail('Bad decision.', 400);
         const amendmentId = body.amendmentId;
         const votes = votesOf(body.votes);
-        const { state } = await mutateCommitteeState(db, committeeId, (state) => ({
+        const { state } = await mutateCommitteeState(db, storeId, (state) => ({
           state: decideAmendment(state, amendmentId, status, votes, Date.now()),
           result: null,
         }));
@@ -405,7 +407,7 @@ export const onRequestPost: PagesFunction<Env, 'committeeId'> = async ({ request
         const status = body.status as TopicState['status'];
         if (!topic || !TOPIC_STATUSES.has(status)) return fail('Bad decision.', 400);
         const votes = votesOf(body.votes);
-        const { state } = await mutateCommitteeState(db, committeeId, (state) => ({
+        const { state } = await mutateCommitteeState(db, storeId, (state) => ({
           state: decideResolution(state, topic, status, votes, Date.now()),
           result: null,
         }));
@@ -416,7 +418,7 @@ export const onRequestPost: PagesFunction<Env, 'committeeId'> = async ({ request
         const chair = asChair();
         if (chair instanceof Response) return chair;
         const floor = floorOf(body.floor, committeeId);
-        const { state } = await mutateCommitteeState(db, committeeId, (state) => ({
+        const { state } = await mutateCommitteeState(db, storeId, (state) => ({
           state: setFloor(state, floor),
           result: null,
         }));
@@ -428,7 +430,7 @@ export const onRequestPost: PagesFunction<Env, 'committeeId'> = async ({ request
         if (chair instanceof Response) return chair;
         if (!writesOwnResolution(committeeId) || typeof body.draftId !== 'string') return fail('Bad request.', 400);
         const draftId = body.draftId;
-        const { state } = await mutateCommitteeState(db, committeeId, (state) => ({
+        const { state } = await mutateCommitteeState(db, storeId, (state) => ({
           state: adoptDraft(state, draftId, Date.now()),
           result: null,
         }));

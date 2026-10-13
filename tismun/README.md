@@ -671,12 +671,13 @@ public by design; do not put real delegate assignments on one.
 Accounts listed in the `OWNER_EMAILS` environment variable are the site's
 owners. The addresses live in Cloudflare, not in the code, so none is ever
 committed. An owner keeps their own role from the `Users` sheet (a chair stays
-a chair) and also gets:
+a chair) and also gets an **Owner** tab (`/owner`) that holds everything
+below, and:
 
 - **Secretariat access**: the Conference floor, Reset all sessions, and the
   Emergency Session tools, all checked again on the server.
-- **Sign-in log** (`/activity`), which no one else can open, not even the
-  Secretariat:
+- **Sign-in log**, at the bottom of the Owner tab, which no one else can open,
+  not even the Secretariat (`/activity` still leads there):
   - **Online now**: anyone with the site open in the last three minutes. An
     open page checks in every two minutes.
   - **Activity**: each sign-in and sign-out, each return visit after 15
@@ -685,18 +686,26 @@ a chair) and also gets:
     committee and country, and the device type (for example "iPhone ·
     Safari").
 
-- **Test as a delegate**: from Owner tools on the home page, pick a committee
-  and a country. The whole site then looks exactly as it does for that seat's
-  delegate — home page, committee, papers, delegation, resolution — with a
-  bar at the top to **Switch** or **Stop testing**. Choose **Day 2, topic
+- **Test the site**, as a delegate or a chair: in the Owner tab, pick
+  **Test as a delegate** (a committee and a country) or **Test as a chair** (a
+  committee). The whole site then looks exactly as it does for that person —
+  home page, committee, papers, delegation, resolution, Chair Dashboard — with
+  a bar at the top to **Switch** or **Stop testing**. Choose **Day 2, topic
   released** to see the Emergency Session as it will open, even while it is
-  locked: only you see it; everyone else still sees it locked. (The
-  conference floor's Emergency Session card has a shortcut, **See it as a
-  delegate will**.) The seat rides in its own cookie, which the server honours
-  only for accounts in `OWNER_EMAILS`. Testing never brings a chair's or the
-  Secretariat's powers, and is not logged as the delegate's visit. Whatever
-  is submitted while testing is real, so withdraw it afterwards or use Reset
-  all sessions.
+  locked: only you see it; everyone else still sees it locked. The Emergency
+  Session's chair is always seen on Day 2, when it sits; the Owner tab has a
+  shortcut for each side of it.
+  - **A practice copy.** While you test, every committee's session and
+    resolution are a practice copy (stored under the committee id with
+    `~test` on the end), so a test chair and test delegates see each other but
+    never the real committee, and the real one never sees them. Test as a
+    chair on a laptop and as a delegate on a phone to try both sides together.
+    The Secretariat's conference floor leaves practice copies out. **Clear
+    practice copies** in the Owner tab empties them all.
+  - The seat rides in its own cookie, which the server honours only for
+    accounts in `OWNER_EMAILS`. A test seat brings only that seat's powers —
+    never the Secretariat's or a real chair's — and is not logged as anyone's
+    visit.
 
 The log is kept for 30 days and needs the D1 binding. Its two tables are
 created on first use, so no migration is needed. Recording is best-effort:

@@ -1,6 +1,7 @@
 import { fail, json, type Env } from '../_lib/env';
 import { readStatus } from '../_lib/conference';
 import { ensureControlTable, holderOf, readControl, validDeviceId } from '../_lib/control';
+import { storeIdFor } from '../_lib/testing';
 import { describeDbError, guardRead, guardWrite, LOG_RETENTION_MS } from '../_lib/live';
 
 /**
@@ -26,10 +27,12 @@ export const onRequestGet: PagesFunction<Env, 'committeeId'> = async ({ request,
 
   const guard = await guardRead(request, env, committeeId);
   if (!guard.ok) return fail(guard.error, guard.status);
+  // An owner testing works in the committee's practice copy.
+  const storeId = storeIdFor(committeeId, guard.user);
 
   try {
     const row = await env.DB.prepare('SELECT snapshot FROM committee_state WHERE committee_id = ?1')
-      .bind(committeeId)
+      .bind(storeId)
       .first<{ snapshot: string }>();
 
     return json({
@@ -64,6 +67,8 @@ export const onRequestPost: PagesFunction<Env, 'committeeId'> = async ({ request
 
   const guard = await guardWrite(request, env, committeeId);
   if (!guard.ok) return fail(guard.error, guard.status);
+  // An owner testing works in the committee's practice copy.
+  const storeId = storeIdFor(committeeId, guard.user);
 
   let body: PushBody;
   try {
@@ -102,7 +107,7 @@ export const onRequestPost: PagesFunction<Env, 'committeeId'> = async ({ request
        WHERE committee_control.device_id = excluded.device_id`,
     )
       .bind(
-        committeeId,
+        storeId,
         deviceId,
         guard.user?.['Full Name']?.trim() || null,
         serverNow,
@@ -112,7 +117,7 @@ export const onRequestPost: PagesFunction<Env, 'committeeId'> = async ({ request
       .run();
 
     if (!claim.meta.changes) {
-      const row = await readControl(env.DB, committeeId);
+      const row = await readControl(env.DB, storeId);
       return json(
         {
           configured: true,
@@ -138,7 +143,7 @@ export const onRequestPost: PagesFunction<Env, 'committeeId'> = async ({ request
          summary = excluded.summary,
          snapshot = excluded.snapshot`,
     ).bind(
-      committeeId,
+      storeId,
       typeof summary.updatedAt === 'number' ? summary.updatedAt : serverNow,
       serverNow,
       JSON.stringify(body.summary),
@@ -154,7 +159,7 @@ export const onRequestPost: PagesFunction<Env, 'committeeId'> = async ({ request
       env.DB.prepare(
         `INSERT OR IGNORE INTO session_log (id, committee_id, at, type, summary, detail)
          VALUES (?1, ?2, ?3, ?4, ?5, ?6)`,
-      ).bind(entry.id, committeeId, entry.at, entry.type, entry.summary, entry.detail ?? null),
+      ).bind(entry.id, storeId, entry.at, entry.type, entry.summary, entry.detail ?? null),
     );
   }
 

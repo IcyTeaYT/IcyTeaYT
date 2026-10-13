@@ -9,8 +9,8 @@ import { useConference } from '@/store/conference';
 import { TestAsDialog } from './TestAsDialog';
 
 /**
- * On every page while the owner tests the site as a delegate: whose view this
- * is, and the way back. Nobody else ever sees it.
+ * On every page while the owner tests the site as a delegate or a chair: whose
+ * view this is, and the way back. Nobody else ever sees it.
  */
 export function TestingBanner() {
   const seat = useAuth((state) => state.user?.testing ?? null);
@@ -35,12 +35,17 @@ export function TestingBanner() {
           <FlaskConical size={15} strokeWidth={1.75} className="shrink-0" />
           <span className="min-w-0">
             <span className="font-semibold">Testing as </span>
-            <span className="inline-flex items-center gap-1.5 font-semibold">
-              <Flag code={countryCode(seat.country)} country={seat.country} size="xs" />
-              {seat.country}
-            </span>
+            {seat.role === 'chair' ? (
+              <span className="font-semibold">Chair</span>
+            ) : (
+              <span className="inline-flex items-center gap-1.5 font-semibold">
+                <Flag code={countryCode(seat.country)} country={seat.country} size="xs" />
+                {seat.country}
+              </span>
+            )}
             {committee ? ` · ${committee.abbreviation || committee.name}` : ''}
             {seat.day2 ? ' · Day 2 preview' : ''}
+            {' · practice copy'}
           </span>
         </p>
         <div className="flex shrink-0 gap-2">

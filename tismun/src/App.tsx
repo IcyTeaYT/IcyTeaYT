@@ -1,5 +1,5 @@
 import { Suspense, lazy, useEffect, useState } from 'react';
-import { BrowserRouter, Route, Routes } from 'react-router-dom';
+import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import { AppShell } from '@/components/AppShell';
 import { LoadingScreen } from '@/components/LoadingScreen';
 import { CommitteeDetail } from '@/pages/CommitteeDetail';
@@ -24,9 +24,7 @@ const ChairDashboard = lazy(() =>
 const ResolutionPage = lazy(() =>
   import('@/features/resolutions/ResolutionPage').then((module) => ({ default: module.ResolutionPage })),
 );
-const ActivityLog = lazy(() =>
-  import('@/features/owner/ActivityLog').then((m) => ({ default: m.ActivityLog })),
-);
+const OwnerPage = lazy(() => import('@/features/owner/OwnerPage').then((m) => ({ default: m.OwnerPage })));
 const ProjectorDisplay = lazy(() =>
   import('@/features/chair/ProjectorDisplay').then((m) => ({ default: m.ProjectorDisplay })),
 );
@@ -143,15 +141,17 @@ export function App() {
                       }
                     />
                     <Route
-                      path="/activity"
+                      path="/owner"
                       element={
                         <RequireOwner>
                           <Suspense fallback={<PaneSkeleton />}>
-                            <ActivityLog />
+                            <OwnerPage />
                           </Suspense>
                         </RequireOwner>
                       }
                     />
+                    {/* The sign-in log lives in the Owner tab now. */}
+                    <Route path="/activity" element={<Navigate to="/owner" replace />} />
                     <Route path="/denied" element={<AccessDenied />} />
                     <Route path="*" element={<NotFound />} />
                   </Routes>

@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { dataSource } from '@/data/source';
 import type { Committee, Delegation } from '@/data/source/types';
+import { useAuth } from '@/store/auth';
 import { chairStoreFor, type ChairState, type ChairStore } from './store';
 
 interface ChairContextValue {
@@ -21,7 +22,9 @@ export function ChairProvider({
   committee: Committee;
   children: ReactNode;
 }) {
-  const store = useMemo(() => chairStoreFor(committee.id), [committee.id]);
+  // The owner testing as a chair keeps a practice session, apart from any real one in this browser.
+  const practice = useAuth((state) => Boolean(state.user?.testing));
+  const store = useMemo(() => chairStoreFor(committee.id, practice), [committee.id, practice]);
   const [roster, setRoster] = useState<Delegation[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
