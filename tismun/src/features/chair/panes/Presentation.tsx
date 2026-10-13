@@ -31,7 +31,7 @@ export function Presentation() {
 
   const presentation = useChair((state) => state.presentation);
   const topic = useChair((state) => state.topic);
-  const { res } = useChairRes();
+  const { res, current } = useChairRes();
   const attendance = useChair((state) => state.attendance);
   const held = useChair((state) => state.presentationsHeld);
   const briefingsHeld = useChair((state) => state.briefingsHeld);
@@ -225,7 +225,14 @@ export function Presentation() {
                   <p className="font-medium text-ink-900">
                     Topic {topic}: {topicTitle}
                   </p>
-                  {mainSubmitter ? <p className="mt-0.5 text-muted">Main Submitter: {res.mainSubmitters.join(', ')}</p> : null}
+                  {mainSubmitter ? (
+                    <p className="mt-0.5 text-muted">
+                      Main Submitter: {res.mainSubmitters.join(', ')}
+                      {current?.replacedMainSubmitters?.length
+                        ? ` (in place of ${current.replacedMainSubmitters.join(', ')}, who is not in this committee)`
+                        : ''}
+                    </p>
+                  ) : null}
                 </>
               )}
             </div>

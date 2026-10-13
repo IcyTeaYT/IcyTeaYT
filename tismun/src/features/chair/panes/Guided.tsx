@@ -388,7 +388,7 @@ const matchesCountry = (delegation: Delegation, name: string): boolean =>
 function NowPanel({ screen, state }: { screen: GuidedScreen; state: ChairState }) {
   const navigate = useNavigate();
   const { committee, roster } = useChairContext();
-  const { res, report } = useChairRes();
+  const { res, report, current: paper } = useChairRes();
   const topic = res.topic;
   const [speechSec, setSpeechSec] = useState<number>(DEBATE.speechSec);
   const [poiSec, setPoiSec] = useState<number>(DEBATE.poiSec);
@@ -643,9 +643,13 @@ function NowPanel({ screen, state }: { screen: GuidedScreen; state: ChairState }
 
     case 'present-draft': {
       const main = res.mainSubmitters[0] ?? null;
+      const replaced = paper?.replacedMainSubmitters;
       return (
         <div className="space-y-5">
           <Heading stage="Presentation of the Resolution" title={main ? `${main} presents the resolution` : 'The Main Submitter presents'}>
+            {replaced?.length
+              ? `${main} is the Main Submitter in place of ${replaced.join(', ')}, who is not in this committee. `
+              : ''}
             Then Points of Clarification and Information, then they yield the floor back to you.
           </Heading>
           <DurationPresets label="Presentation time" valueSec={presentSec} onChange={setPresentSec} presetsSec={PRESENTATION.draftPresetsSec} />

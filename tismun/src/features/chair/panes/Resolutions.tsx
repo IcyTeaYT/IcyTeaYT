@@ -7,7 +7,7 @@ import { EmptyState } from '@/components/ui/EmptyState';
 import { Segmented } from '@/components/ui/Segmented';
 import { AmendmentCard, ResolutionClauses, ResolutionHeader, SubmitterList } from '@/features/resolutions/ResolutionDocument';
 import { baseFor } from '@/features/resolutions/useResolutions';
-import { amendmentsFor, currentText, type TopicNo } from '@/lib/resolution';
+import { amendmentsFor, currentText, withSubmittersHere, type TopicNo } from '@/lib/resolution';
 import { Pane } from '../components/Pane';
 import { VotePanel } from '../components/VotePanel';
 import { useChair, useChairContext } from '../context';
@@ -35,7 +35,13 @@ export function Resolutions() {
   const navigate = useNavigate();
   const topicState = state?.topics[topic];
   const base = baseFor(committee.id, topic, state);
-  const current = useMemo(() => (base && state ? currentText(base, state.amendments, topic) : base), [base, state, topic]);
+  // The same paper delegates see: if no Main Submitter sits in this committee,
+  // the co-submitter who took their place.
+  const countryNames = useMemo(() => ws.countries.map((country) => country.name), [ws.countries]);
+  const current = useMemo(() => {
+    const text = base && state ? currentText(base, state.amendments, topic) : base;
+    return text ? withSubmittersHere(text, countryNames) : text;
+  }, [base, state, topic, countryNames]);
   const marks = useMemo(() => {
     const map = new Map<string, string>();
     for (const amendment of amendments) {
