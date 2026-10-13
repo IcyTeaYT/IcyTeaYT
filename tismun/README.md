@@ -537,6 +537,17 @@ and `/api/papers/emergency` streams it after checking the session and the
 release time — asked for early, it answers 403. Demo mode ships only a
 placeholder topic.
 
+**The real topic and paper are sealed in the code.** This repository is
+public, so `functions/api/_lib/emergencySealed.ts` holds them encrypted
+(AES-256-GCM) — unreadable on GitHub. The key is in a private Google Sheet,
+*TISMUN Emergency Session key (do not delete or share)*, in the owner's Drive
+and shared only with the service account. The server reads it only once the
+topic is released (or for the owner's Day 2 preview), so before then there is
+nothing to send. **Do not delete that sheet**, or the topic and paper will not
+appear. Anything typed into the Emergency Session row of the Committees tab —
+a topic, a description, a Drive link to a different paper — wins over the
+sealed version.
+
 **Your delegation.** Several delegates from different Day 1 committees
 represent one country together. Each sees their own country's team — names and
 Day 1 committees, never email addresses — worked out on the server, so no one
