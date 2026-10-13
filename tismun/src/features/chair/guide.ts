@@ -26,6 +26,7 @@ export interface ResContext {
   drafting: boolean;
   drafts: Draft[];
   mainSubmitters: string[];
+  coSubmitters: string[];
 }
 
 export const emptyResContext = (topic: TopicNo): ResContext => ({
@@ -38,6 +39,7 @@ export const emptyResContext = (topic: TopicNo): ResContext => ({
   drafting: false,
   drafts: [],
   mainSubmitters: [],
+  coSubmitters: [],
 });
 
 export const skipKey = (topic: TopicNo, step: FlowStepId): string => `t${topic}:skip:${step}`;

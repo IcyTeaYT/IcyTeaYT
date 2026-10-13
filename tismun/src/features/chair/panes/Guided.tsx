@@ -312,6 +312,76 @@ function SpeakerChips({
   );
 }
 
+/**
+ * When the order of events already says who speaks — the Main Submitter, an
+ * amendment's submitter — the chair should not have to look for them. Present:
+ * one big button each. Not here: say so, and offer whoever is next in line.
+ * Anyone else stays behind "Someone else", for the unusual case.
+ */
+function ExpectedSpeaker({
+  expected,
+  fallback = [],
+  role,
+  fallbackRole,
+  label,
+  onPick,
+  spokeKey,
+}: {
+  expected: string[];
+  fallback?: string[];
+  role: string;
+  fallbackRole?: string;
+  label: (country: string) => string;
+  onPick: (delegation: Delegation) => void;
+  spokeKey?: string;
+}) {
+  const { roster } = useChairContext();
+  const attendance = useChair((state) => state.attendance);
+  const [anyone, setAnyone] = useState(false);
+  const isPresent = (delegation: Delegation) => (attendance[delegation.id] ?? 'absent') !== 'absent';
+  const find = (names: string[]) =>
+    names
+      .map((name) => roster.find((delegation) => matchesCountry(delegation, name)))
+      .filter((delegation): delegation is Delegation => Boolean(delegation));
+
+  const expectedHere = find(expected).filter(isPresent);
+  const fallbackHere = find(fallback).filter(isPresent);
+  const speakers = expectedHere.length ? expectedHere : fallbackHere;
+  const missing = expected.filter((name) => !expectedHere.some((delegation) => matchesCountry(delegation, name)));
+  const onList = find(missing);
+
+  return (
+    <div className="space-y-3">
+      {missing.length && expectedHere.length === 0 ? (
+        <p className="rounded-control border border-warning-border bg-warning-soft px-3.5 py-2.5 text-sm text-warning">
+          {missing.join(', ')} ({role}) {onList.length ? 'is marked absent' : 'is not on this committee’s list'}
+          {speakers.length && fallbackRole ? `, so ${fallbackRole} speaks instead.` : '. Choose who speaks below.'}
+        </p>
+      ) : null}
+      {speakers.length ? (
+        <div className="space-y-2.5">
+          {speakers.map((delegation) => (
+            <Big key={delegation.id} icon={Mic} onClick={() => onPick(delegation)}>
+              {label(delegation.country)}
+            </Big>
+          ))}
+        </div>
+      ) : null}
+      {speakers.length === 0 || anyone ? (
+        <SpeakerChips spokeKey={spokeKey} onPick={onPick} />
+      ) : (
+        <button
+          type="button"
+          onClick={() => setAnyone(true)}
+          className="text-sm font-medium text-muted underline-offset-2 hover:text-ink-900 hover:underline"
+        >
+          Someone else speaks instead
+        </button>
+      )}
+    </div>
+  );
+}
+
 const matchesCountry = (delegation: Delegation, name: string): boolean =>
   sameCountry(delegation.country, name) ||
   (Boolean(delegation.countryCode) && countryCodeFor(name) === delegation.countryCode);
@@ -580,8 +650,12 @@ function NowPanel({ screen, state }: { screen: GuidedScreen; state: ChairState }
             Then Points of Clarification and Information, then they yield the floor back to you.
           </Heading>
           <DurationPresets label="Presentation time" valueSec={presentSec} onChange={setPresentSec} presetsSec={PRESENTATION.draftPresetsSec} />
-          <SpeakerChips
-            first={res.mainSubmitters}
+          <ExpectedSpeaker
+            expected={res.mainSubmitters}
+            fallback={res.coSubmitters}
+            role="the Main Submitter"
+            fallbackRole="a co-submitter"
+            label={(country) => `Start ${country}’s presentation (${formatClock(presentSec * 1000)})`}
             onPick={(delegation) =>
               state.presentStart({ kind: 'draft', resolutionId: null, presenterId: delegation.id, durationSec: presentSec })
             }
@@ -667,11 +741,19 @@ function NowPanel({ screen, state }: { screen: GuidedScreen; state: ChairState }
             ]}
           />
           {speakingTime}
-          <SpeakerChips
-            spokeKey={key}
-            first={closingSide === 'submitter' ? res.mainSubmitters : []}
-            onPick={(delegation) => speak(closingSide, delegation, { closing: true })}
-          />
+          {closingSide === 'submitter' ? (
+            <ExpectedSpeaker
+              expected={res.mainSubmitters}
+              fallback={res.coSubmitters}
+              role="the Main Submitter"
+              fallbackRole="a co-submitter"
+              label={(country) => `${country} makes closing remarks`}
+              spokeKey={key}
+              onPick={(delegation) => speak('submitter', delegation, { closing: true })}
+            />
+          ) : (
+            <SpeakerChips spokeKey={key} onPick={(delegation) => speak(closingSide, delegation, { closing: true })} />
+          )}
           <Big icon={VoteIcon} onClick={() => state.markStep(closingDoneKey(topic))}>
             Move on to the vote
           </Big>
@@ -783,11 +865,17 @@ function AmendmentDebate({
       ) : (
         <>
           {speakingTime}
-          <SpeakerChips
-            spokeKey={key(part)}
-            first={part === 'submitter' ? amendment.submitters : []}
-            onPick={(delegation) => speak(part, delegation, { amendment })}
-          />
+          {part === 'submitter' ? (
+            <ExpectedSpeaker
+              expected={amendment.submitters}
+              role={amendment.submitters.length > 1 ? 'its submitters' : 'its submitter'}
+              label={(country) => `${country} explains Amendment ${amendment.number}`}
+              spokeKey={key(part)}
+              onPick={(delegation) => speak(part, delegation, { amendment })}
+            />
+          ) : (
+            <SpeakerChips spokeKey={key(part)} onPick={(delegation) => speak(part, delegation, { amendment })} />
+          )}
           <Big icon={ArrowRight} onClick={() => state.markStep(stepKey.movedOn(key(part)))}>
             {part === 'submitter'
               ? count(state, key('submitter')) > 0

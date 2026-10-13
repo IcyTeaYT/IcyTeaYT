@@ -44,6 +44,7 @@ export function ChairResProvider({ children }: { children: ReactNode }) {
       drafting: ws.drafting,
       drafts: ws.state.drafts.filter((draft) => draft.status !== 'withdrawn'),
       mainSubmitters: ws.current?.mainSubmitters ?? [],
+      coSubmitters: ws.current?.coSubmitters ?? [],
     };
   }, [ws.state, ws.drafting, ws.current, topic, committee.id]);
 

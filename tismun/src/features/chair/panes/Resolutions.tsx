@@ -1,4 +1,5 @@
-import { CheckCircle2, RotateCcw, XCircle } from 'lucide-react';
+import { CheckCircle2, Compass, RotateCcw, XCircle } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { useMemo, useState } from 'react';
 import { Button } from '@/components/ui/Button';
 import { Card, CardBody, CardHeader } from '@/components/ui/Card';
@@ -29,6 +30,9 @@ export function Resolutions() {
 
   const state = ws.state;
   const amendments = state ? amendmentsFor(state, topic) : [];
+  const pendingNumbers = amendments.filter((amendment) => amendment.status === 'pending').map((amendment) => amendment.number);
+  const firstPending = pendingNumbers[0] ?? null;
+  const navigate = useNavigate();
   const topicState = state?.topics[topic];
   const base = baseFor(committee.id, topic, state);
   const current = useMemo(() => (base && state ? currentText(base, state.amendments, topic) : base), [base, state, topic]);
@@ -153,6 +157,15 @@ export function Resolutions() {
                 action={
                   amendment.status === 'pending' ? (
                     <>
+                      <p className="w-full text-xs text-muted">
+                        {amendment.number === firstPending
+                          ? 'Next in line. It is debated and voted on in Guided Mode, at Debate on Amendments — after the Unmoderated Caucus.'
+                          : `Debated and voted on in Guided Mode, right after Amendment ${pendingNumbers[pendingNumbers.indexOf(amendment.number) - 1] ?? ''}.`}
+                      </p>
+                      <Button size="sm" variant="secondary" onClick={() => navigate('/chair/guided')}>
+                        <Compass size={14} strokeWidth={1.75} />
+                        Go to Guided Mode
+                      </Button>
                       <Button
                         size="sm"
                         variant="ghost"
