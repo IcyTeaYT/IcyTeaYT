@@ -31,6 +31,7 @@ import { useConferenceStatus } from '@/store/conferenceStatus';
 import { resolutionCommitteeOf } from './committeeOf';
 import { CopyEditor, virtualCopy } from './CopyEditor';
 import { AmendmentCard, ResolutionClauses, ResolutionHeader, SubmitterList } from './ResolutionDocument';
+import { TestAsDialog } from '@/features/testing/TestAsDialog';
 import { useResolutions, type Workspace } from './useResolutions';
 
 type Tab = 'read' | 'copy' | 'amendments';
@@ -80,38 +81,13 @@ export function ResolutionPage() {
   return <ResolutionWorkspace key={committee.id} committee={committee} />;
 }
 
-const actAsKey = (committeeId: string) => `tismun.actAs.${committeeId}`;
-const readActAs = (committeeId: string): string | null => {
-  try {
-    return sessionStorage.getItem(actAsKey(committeeId));
-  } catch {
-    return null;
-  }
-};
-
 function ResolutionWorkspace({ committee }: { committee: Committee }) {
   const topics = topicsOf(committee.id);
   const owner = useAuth((state) => state.user?.access.owner === true);
   const [topicChoice, setTopicChoice] = useState<TopicNo | null>(null);
   const [tab, setTab] = useState<Tab>('read');
-  // An owner testing the site can act as any country in the committee.
-  const [actAs, setActAsState] = useState<string | null>(() => (owner ? readActAs(committee.id) : null));
-  const setActAs = (country: string | null) => {
-    try {
-      if (country) sessionStorage.setItem(actAsKey(committee.id), country);
-      else sessionStorage.removeItem(actAsKey(committee.id));
-    } catch {
-      /* private mode: it lasts until the page closes */
-    }
-    setActAsState(country);
-    if (!country && tab === 'copy') setTab('read');
-  };
   const topic = topicChoice ?? 1;
-  const ws = useResolutions(committee.id, topic, {
-    fast: tab === 'copy',
-    withCountries: true,
-    actAs: owner ? actAs : null,
-  });
+  const ws = useResolutions(committee.id, topic, { fast: tab === 'copy', withCountries: true });
 
   // Open on the topic the committee is debating: the first answer may say Topic 2.
   // During a caucus, a delegate is there to write: open their copy.
@@ -136,7 +112,7 @@ function ResolutionWorkspace({ committee }: { committee: Committee }) {
           Home
         </Link>
 
-        {owner ? <OwnerTestBar committee={committee} ws={ws} actAs={actAs} onActAs={setActAs} /> : null}
+        {owner ? <OwnerBar committee={committee} /> : null}
 
         <div className="mt-4 flex flex-wrap items-start justify-between gap-4">
           <div className="min-w-0">
@@ -227,64 +203,34 @@ function ResolutionWorkspace({ committee }: { committee: Committee }) {
   );
 }
 
-/** The owner's test controls: pick any committee, then act as any of its countries. */
-function OwnerTestBar({
-  committee,
-  ws,
-  actAs,
-  onActAs,
-}: {
-  committee: Committee;
-  ws: Workspace;
-  actAs: string | null;
-  onActAs: (country: string | null) => void;
-}) {
+/** The owner looks at any committee's resolution, or tries it as a delegate. */
+function OwnerBar({ committee }: { committee: Committee }) {
   const navigate = useNavigate();
   const committees = useConference((state) => state.committees).filter((entry) => hasResolutions(entry.id));
+  const [testing, setTesting] = useState(false);
   return (
     <div className="mt-4 rounded-card border border-warning-border bg-warning-soft px-4 py-3.5">
-      <p className="text-sm font-semibold text-warning">Owner testing</p>
-      <div className="mt-2.5 grid gap-2.5 sm:grid-cols-2">
-        <label className="text-xs text-ink-700">
-          Committee
-          <select
-            className="mt-1 block h-10 w-full rounded-control border border-hairline bg-surface px-2.5 text-sm text-ink-900"
-            value={committee.id}
-            onChange={(event) => navigate(`/resolution?committee=${encodeURIComponent(event.target.value)}`)}
-          >
-            {committees.map((entry) => (
-              <option key={entry.id} value={entry.id}>
-                {entry.abbreviation} — {entry.name}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className="text-xs text-ink-700">
-          Act as delegate of
-          <select
-            className="mt-1 block h-10 w-full rounded-control border border-hairline bg-surface px-2.5 text-sm text-ink-900"
-            value={actAs ?? ''}
-            onChange={(event) => onActAs(event.target.value || null)}
-          >
-            <option value="">Nobody — just look</option>
-            {ws.countries.map((entry) => (
-              <option key={entry.name} value={entry.name}>
-                {entry.name}
-              </option>
-            ))}
-          </select>
-        </label>
-      </div>
-      {actAs ? (
-        <Button size="sm" variant="secondary" className="mt-2.5" onClick={() => onActAs(null)}>
-          Stop testing as {actAs}
+      <label className="block text-xs text-ink-700">
+        Look at the resolution of
+        <select
+          className="mt-1 block h-10 w-full rounded-control border border-hairline bg-surface px-2.5 text-sm text-ink-900"
+          value={committee.id}
+          onChange={(event) => navigate(`/resolution?committee=${encodeURIComponent(event.target.value)}`)}
+        >
+          {committees.map((entry) => (
+            <option key={entry.id} value={entry.id}>
+              {entry.abbreviation} — {entry.name}
+            </option>
+          ))}
+        </select>
+      </label>
+      <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-2">
+        <Button size="sm" variant="secondary" onClick={() => setTesting(true)}>
+          Test as a delegate
         </Button>
-      ) : null}
-      <p className="mt-2.5 text-xs leading-relaxed text-warning">
-        {actAs
-          ? `You are ${actAs}. Anything you submit is real: the chairs see it. Withdraw it afterwards, or use Reset all sessions on the conference floor.`
-          : 'Pick a country to try the delegate view: My copy, sharing and submitting.'}
-      </p>
+        <p className="text-xs text-warning">To edit, share and submit, see the whole site as one of the delegates.</p>
+      </div>
+      <TestAsDialog open={testing} onClose={() => setTesting(false)} />
     </div>
   );
 }

@@ -2,6 +2,7 @@ import { fail, json, requireEnv, type Env } from './_lib/env';
 import { currentUser } from './_lib/session';
 import { readStatus } from './_lib/conference';
 import { publicCommittee } from './_lib/emergency';
+import { statusSeenBy } from './_lib/testing';
 import { readCommittees, readUsers } from './_lib/sheets';
 import { withChairsFromUsers } from '../../src/lib/chairs';
 
@@ -27,5 +28,6 @@ export const onRequestGet: PagesFunction<Env> = async ({ request, env }) => {
     readUsers(env),
     readStatus(env),
   ]);
-  return json(withChairsFromUsers(committees, users).map((row) => publicCommittee(row, status)));
+  const seen = statusSeenBy(status, user);
+  return json(withChairsFromUsers(committees, users).map((row) => publicCommittee(row, seen)));
 };

@@ -22,5 +22,6 @@ export const onRequestGet: PagesFunction<Env> = async ({ request, env }) => {
 
   if (emergencyRoleOf(user) !== 'DELEGATE') return json(null);
   const users = await readUsers(env);
-  return json(delegationOf(users, emergencyCountryOf(user), user.Email));
+  // Testing a seat: "you" is the seat's delegate.
+  return json(delegationOf(users, emergencyCountryOf(user), user['Test Seat']?.seatEmail ?? user.Email));
 };

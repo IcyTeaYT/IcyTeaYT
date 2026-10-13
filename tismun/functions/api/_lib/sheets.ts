@@ -1,3 +1,4 @@
+import type { TestMark } from './testing';
 import type { Env } from './env';
 import { importServiceAccountKey, signServiceAccountJwt } from './jwt';
 
@@ -126,6 +127,8 @@ export interface SheetUser {
   'Emergency Role'?: string;
   /** The country an Emergency Session delegate represents. */
   'Emergency Country'?: string;
+  /** Not a sheet column: set while an owner tests the site as this seat. */
+  'Test Seat'?: TestMark;
 }
 
 export interface SheetCommittee {

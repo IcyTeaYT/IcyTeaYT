@@ -1,4 +1,4 @@
-import { CalendarClock, ChevronDown, Lock, LockOpen, RotateCcw, Siren, Sun } from 'lucide-react';
+import { CalendarClock, ChevronDown, Eye, Lock, LockOpen, RotateCcw, Siren, Sun, Undo2 } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import { AllDelegations } from '@/components/emergency/DelegationPanel';
 import { ReleaseCountdown } from '@/components/emergency/ReleaseCountdown';
@@ -7,48 +7,70 @@ import { Button } from '@/components/ui/Button';
 import { Card, CardBody } from '@/components/ui/Card';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { dataSource } from '@/data/source';
+import { emergencySession, type ConferenceStatus } from '@/config/emergency';
 import type { EmergencyAdmin, OverrideAction } from '@/data/source/types';
 import { cn } from '@/lib/cn';
 import { formatDateTimeWithZone, formatTimeOfDay } from '@/lib/time';
+import { isOwner, useAuth } from '@/store/auth';
 import { useConferenceStatus } from '@/store/conferenceStatus';
+import { TestAsDialog } from '@/features/testing/TestAsDialog';
 
-const CONFIRM: Record<
-  OverrideAction,
-  { title: string; body: string; label: string; destructive?: boolean }
-> = {
-  'release-now': {
-    title: 'Release the Emergency Session topic now?',
-    body: 'The topic, description and background paper go out to every delegate straight away, ahead of the schedule. Open pages show them within thirty seconds.',
-    label: 'Release now',
-  },
-  unrelease: {
-    title: 'Un-release the topic?',
-    body: 'The topic, description and background paper are withdrawn and stay locked — even past the scheduled time — until you release them or return to the schedule. Anyone who already downloaded the paper keeps their copy.',
-    label: 'Un-release',
-    destructive: true,
-  },
-  'release-auto': {
-    title: 'Return the release to the schedule?',
-    body: 'The override is removed and the topic follows the scheduled release time again.',
-    label: 'Return to the schedule',
-  },
-  'day2-now': {
-    title: 'Switch to Day 2 now?',
-    body: 'Emergency Session delegates see it as their committee today, and everyone’s Day 2 role takes effect straight away, ahead of the schedule.',
-    label: 'Switch to Day 2 now',
-  },
-  'day2-hold': {
-    title: 'Hold Day 1?',
-    body: 'Day 1 continues past the scheduled time, until you switch to Day 2 or return to the schedule.',
-    label: 'Hold Day 1',
-    destructive: true,
-  },
-  'day2-auto': {
-    title: 'Return Day 2 to the schedule?',
-    body: 'The override is removed and Day 2 begins at its scheduled time.',
-    label: 'Return to the schedule',
-  },
-};
+interface Confirm {
+  title: string;
+  body: string;
+  label: string;
+  destructive?: boolean;
+}
+
+/** What each button will do, said for this moment: before or after the scheduled time. */
+function confirmFor(action: OverrideAction, status: ConferenceStatus): Confirm {
+  const beforeRelease = status.serverNow < status.releaseAt;
+  const beforeDay2 = status.serverNow < status.focusFrom;
+  switch (action) {
+    case 'release-now':
+      return {
+        title: 'Release the Emergency Session topic now?',
+        body: 'The topic, description and background paper go out to every delegate straight away. Open pages show them within thirty seconds. You can un-release it again.',
+        label: 'Release now',
+      };
+    case 'unrelease':
+      return {
+        title: 'Un-release the topic?',
+        body: beforeRelease
+          ? `The topic, description and background paper are hidden again within thirty seconds. It still releases on its own on ${emergencySession.releaseLabel}. Anyone who already downloaded the paper keeps their copy.`
+          : 'The topic, description and background paper are hidden again within thirty seconds, and stay hidden until you press Release now. Anyone who already downloaded the paper keeps their copy.',
+        label: 'Un-release',
+        destructive: true,
+      };
+    case 'release-auto':
+      return {
+        title: 'Go back to the schedule?',
+        body: `The topic stays hidden until ${emergencySession.releaseLabel}, then releases on its own.`,
+        label: 'Back to the schedule',
+      };
+    case 'day2-now':
+      return {
+        title: 'Switch to Day 2 now?',
+        body: 'Emergency Session delegates see it as their committee today, and everyone’s Day 2 role takes effect straight away. You can go back to Day 1 again.',
+        label: 'Switch to Day 2 now',
+      };
+    case 'day2-hold':
+      return {
+        title: 'Go back to Day 1?',
+        body: beforeDay2
+          ? 'Everyone’s Day 1 role comes back straight away. Day 2 still begins on its own at the scheduled time.'
+          : 'Everyone’s Day 1 role comes back, and stays until you press Switch to Day 2 now.',
+        label: 'Back to Day 1',
+        destructive: true,
+      };
+    case 'day2-auto':
+      return {
+        title: 'Go back to the schedule?',
+        body: 'Day 1 continues until the scheduled time, then Day 2 begins on its own.',
+        label: 'Back to the schedule',
+      };
+  }
+}
 
 /**
  * The Emergency Session, from the Secretariat's side: whether the topic is out,
@@ -63,6 +85,8 @@ export function EmergencyPanel() {
   const [error, setError] = useState<string | null>(null);
   const [showDelegations, setShowDelegations] = useState(false);
   const refreshStatus = useConferenceStatus((state) => state.refresh);
+  const owner = useAuth((state) => isOwner(state.user));
+  const [previewing, setPreviewing] = useState(false);
 
   const load = useCallback(async () => {
     try {
@@ -93,7 +117,11 @@ export function EmergencyPanel() {
   };
 
   const status = admin?.status;
-  const confirm = pending ? CONFIRM[pending] : null;
+  const confirm = pending && status ? confirmFor(pending, status) : null;
+  // Held back past the schedule's time from before Un-release went back to the
+  // schedule: it would not happen on its own, so say so and offer the fix.
+  const releaseStuck = status ? status.releaseMode === 'locked' && status.serverNow < status.releaseAt : false;
+  const day2Stuck = status ? status.focusMode === 'off' && status.serverNow < status.focusFrom : false;
 
   return (
     <section className="mt-7">
@@ -130,13 +158,15 @@ export function EmergencyPanel() {
             <div className="space-y-3">
               <p className="label-micro">Topic and background paper</p>
               <p className="text-sm text-ink-800">
-                {status.releaseMode === 'released'
-                  ? 'Released early by the Secretariat.'
-                  : status.releaseMode === 'locked'
-                    ? 'Held locked by the Secretariat, past the schedule if need be.'
-                    : status.released
-                      ? 'Released automatically at the scheduled time.'
-                      : 'Releases automatically at the scheduled time. Nothing to press.'}
+                {releaseStuck
+                  ? 'Held locked — it will NOT release on its own at the scheduled time. Press Back to the schedule to fix that.'
+                  : status.releaseMode === 'released'
+                    ? 'Released early. Un-release hides it again; it still releases on its own at the scheduled time.'
+                    : status.releaseMode === 'locked'
+                      ? 'Un-released by the Secretariat. It stays hidden until you press Release now.'
+                      : status.released
+                        ? 'Released automatically at the scheduled time.'
+                        : 'Releases automatically at the scheduled time. Nothing to press.'}
               </p>
               <p className="flex items-center gap-1.5 text-xs text-muted">
                 <CalendarClock size={13} strokeWidth={1.5} />
@@ -169,38 +199,54 @@ export function EmergencyPanel() {
                     Release now
                   </Button>
                 )}
-                {status.releaseMode !== 'auto' ? (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    disabled={working}
-                    onClick={() => setPending('release-auto')}
-                  >
+                {releaseStuck ? (
+                  <Button variant="ghost" size="sm" disabled={working} onClick={() => setPending('release-auto')}>
                     <RotateCcw size={14} strokeWidth={1.5} />
-                    Return to the schedule
+                    Back to the schedule
                   </Button>
                 ) : null}
               </div>
+              {owner && !status.released ? (
+                <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 rounded-control border border-hairline bg-canvas px-3 py-2.5">
+                  <Button variant="secondary" size="sm" onClick={() => setPreviewing(true)}>
+                    <Eye size={14} strokeWidth={1.5} />
+                    See it as a delegate will
+                  </Button>
+                  <p className="text-xs text-muted">Only you see it. It stays locked for everyone else.</p>
+                </div>
+              ) : null}
             </div>
 
             {/* Day 2 */}
             <div className="space-y-3 md:border-l md:border-hairline md:pl-6">
               <p className="label-micro">Day 2</p>
               <p className="text-sm text-ink-800">
-                {status.focusMode === 'on'
-                  ? 'Switched to Day 2 early by the Secretariat.'
-                  : status.focusMode === 'off'
-                    ? 'Day 1 held by the Secretariat.'
-                    : status.day2
-                      ? 'Day 2 began at the scheduled time.'
-                      : 'Day 2 begins at the scheduled time: Day 2 roles take effect and Emergency Session delegates see it first.'}
+                {day2Stuck
+                  ? 'Held on Day 1 — Day 2 will NOT begin on its own at the scheduled time. Press Back to the schedule to fix that.'
+                  : status.focusMode === 'on'
+                    ? 'Switched to Day 2 early. Back to Day 1 undoes it; Day 2 still begins on its own at the scheduled time.'
+                    : status.focusMode === 'off'
+                      ? 'Held on Day 1 by the Secretariat, until you press Switch to Day 2 now.'
+                      : status.day2
+                        ? 'Day 2 began at the scheduled time.'
+                        : 'Day 2 begins at the scheduled time: Day 2 roles take effect and Emergency Session delegates see it first.'}
               </p>
               <p className="flex items-center gap-1.5 text-xs text-muted">
                 <CalendarClock size={13} strokeWidth={1.5} />
                 Scheduled {formatDateTimeWithZone(status.focusFrom)}
               </p>
               <div className="flex flex-wrap gap-2 pt-1">
-                {!status.day2 ? (
+                {status.day2 ? (
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    disabled={working || !admin.overridesAvailable}
+                    onClick={() => setPending('day2-hold')}
+                  >
+                    <Undo2 size={14} strokeWidth={1.5} />
+                    Back to Day 1
+                  </Button>
+                ) : (
                   <Button
                     variant="secondary"
                     size="sm"
@@ -210,16 +256,11 @@ export function EmergencyPanel() {
                     <Sun size={14} strokeWidth={1.5} />
                     Switch to Day 2 now
                   </Button>
-                ) : null}
-                {status.focusMode !== 'auto' ? (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    disabled={working}
-                    onClick={() => setPending('day2-auto')}
-                  >
+                )}
+                {day2Stuck ? (
+                  <Button variant="ghost" size="sm" disabled={working} onClick={() => setPending('day2-auto')}>
                     <RotateCcw size={14} strokeWidth={1.5} />
-                    Return to the schedule
+                    Back to the schedule
                   </Button>
                 ) : null}
               </div>
@@ -292,6 +333,8 @@ export function EmergencyPanel() {
           </CardBody>
         )}
       </Card>
+
+      {owner ? <TestAsDialog open={previewing} onClose={() => setPreviewing(false)} committeeId={emergencySession.committeeId} /> : null}
 
       <ConfirmDialog
         open={pending !== null}

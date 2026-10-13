@@ -523,7 +523,11 @@ presses anything. Every check uses the **server's** clock, so changing a
 device's date does nothing. Open pages ask every 30 seconds and show the topic
 without a refresh, marked **New**. The Secretariat has **Release now** and
 **Un-release** on the conference floor purely as a backup, plus **Switch to
-Day 2 now**; each needs confirming and is recorded with who did it.
+Day 2 now** and **Back to Day 1**; each needs confirming and is recorded with
+who did it. Undoing before the scheduled time goes back to the schedule, so
+the topic still releases — and Day 2 still begins — on its own when the time
+comes. Only after the scheduled time does Un-release (or Back to Day 1) hold
+it back, until it is pressed again.
 
 **Nothing leaks early.** Before release the API removes the topic, description
 and paper link from the Emergency Session **on the server**, so they are in no
@@ -670,12 +674,18 @@ a chair) and also gets:
     committee and country, and the device type (for example "iPhone ·
     Safari").
 
-- **Test as a delegate**: on the Resolution page, pick any committee and act
-  as any of its countries. The page then behaves exactly as it does for that
-  country's delegate: My copy, sharing, submitting. Only accounts in
-  `OWNER_EMAILS` can do this; the server ignores the request from anyone else.
-  Whatever is submitted while testing is real, so withdraw it afterwards or
-  use Reset all sessions.
+- **Test as a delegate**: from Owner tools on the home page, pick a committee
+  and a country. The whole site then looks exactly as it does for that seat's
+  delegate — home page, committee, papers, delegation, resolution — with a
+  bar at the top to **Switch** or **Stop testing**. Choose **Day 2, topic
+  released** to see the Emergency Session as it will open, even while it is
+  locked: only you see it; everyone else still sees it locked. (The
+  conference floor's Emergency Session card has a shortcut, **See it as a
+  delegate will**.) The seat rides in its own cookie, which the server honours
+  only for accounts in `OWNER_EMAILS`. Testing never brings a chair's or the
+  Secretariat's powers, and is not logged as the delegate's visit. Whatever
+  is submitted while testing is real, so withdraw it afterwards or use Reset
+  all sessions.
 
 The log is kept for 30 days and needs the D1 binding. Its two tables are
 created on first use, so no migration is needed. Recording is best-effort:

@@ -3,6 +3,7 @@ import { verifyGoogleIdToken } from './_lib/google';
 import { recordDenied, recordSignIn, recordSignOut } from './_lib/activity';
 import { clearSessionCookie, createSessionCookie, readSession } from './_lib/session';
 import { findUser } from './_lib/sheets';
+import { clearTestCookie } from './_lib/testing';
 
 /**
  * POST /api/session  — exchange a Google ID token for a signed session cookie.
@@ -36,7 +37,15 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env, waitUnti
   }
 
   waitUntil(recordSignIn(env, user, request));
-  return json({ ok: true }, 200, { 'Set-Cookie': await createSessionCookie(env, user.Email) });
+  // A fresh sign-in starts as yourself, never in a test seat left from before.
+  return json(
+    { ok: true },
+    200,
+    new Headers([
+      ['Set-Cookie', await createSessionCookie(env, user.Email)],
+      ['Set-Cookie', clearTestCookie()],
+    ]),
+  );
 };
 
 export const onRequestDelete: PagesFunction<Env> = async ({ request, env, waitUntil }) => {
@@ -44,5 +53,12 @@ export const onRequestDelete: PagesFunction<Env> = async ({ request, env, waitUn
     const email = await readSession(request, env);
     if (email) waitUntil(recordSignOut(env, email, request));
   }
-  return json({ ok: true }, 200, { 'Set-Cookie': clearSessionCookie() });
+  return json(
+    { ok: true },
+    200,
+    new Headers([
+      ['Set-Cookie', clearSessionCookie()],
+      ['Set-Cookie', clearTestCookie()],
+    ]),
+  );
 };

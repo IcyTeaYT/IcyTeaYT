@@ -41,6 +41,7 @@ export function rowToUser(row: UserRow): User {
     committeeId: committeeId || null,
     country: country || null,
     countryCode: code || null,
+    testing: row.Testing ?? null,
   };
 }
 

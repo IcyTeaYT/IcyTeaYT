@@ -1,7 +1,10 @@
 import {
   conferenceStatus,
+  OVERRIDE_ACTIONS,
+  overrideFor,
   type ConferenceStatus,
   type FocusMode,
+  type OverrideAction,
   type ReleaseMode,
 } from '../../../src/config/emergency';
 import type { Env } from './env';
@@ -106,25 +109,10 @@ export async function recentEvents(db: D1Database, limit = 20): Promise<Conferen
   }));
 }
 
-export type OverrideAction =
-  | 'release-now'
-  | 'unrelease'
-  | 'release-auto'
-  | 'day2-now'
-  | 'day2-hold'
-  | 'day2-auto';
-
-const OVERRIDES: Record<OverrideAction, { key: string; value: string; label: string }> = {
-  'release-now': { key: RELEASE_KEY, value: 'released', label: 'Emergency Session topic released early' },
-  unrelease: { key: RELEASE_KEY, value: 'locked', label: 'Emergency Session topic un-released (locked)' },
-  'release-auto': { key: RELEASE_KEY, value: 'auto', label: 'Topic release returned to the schedule' },
-  'day2-now': { key: FOCUS_KEY, value: 'on', label: 'Switched to Day 2 early' },
-  'day2-hold': { key: FOCUS_KEY, value: 'off', label: 'Day 2 held back — Day 1 continues' },
-  'day2-auto': { key: FOCUS_KEY, value: 'auto', label: 'Day 2 returned to the schedule' },
-};
+export type { OverrideAction };
 
 export const isOverrideAction = (value: unknown): value is OverrideAction =>
-  typeof value === 'string' && value in OVERRIDES;
+  typeof value === 'string' && (OVERRIDE_ACTIONS as readonly string[]).includes(value);
 
 /** Set an override and record who did it, in one transaction. */
 export async function applyOverride(
@@ -134,7 +122,8 @@ export async function applyOverride(
   now = Date.now(),
 ): Promise<void> {
   await ensureConferenceTables(db);
-  const { key, value, label } = OVERRIDES[action];
+  const { target, value, label } = overrideFor(action, now);
+  const key = target === 'release' ? RELEASE_KEY : FOCUS_KEY;
   await db.batch([
     db
       .prepare(

@@ -1,6 +1,7 @@
 import { fail, requireEnv, type Env } from '../_lib/env';
 import { readStatus } from '../_lib/conference';
 import { EMERGENCY_ID } from '../_lib/emergency';
+import { statusSeenBy } from '../_lib/testing';
 import { currentUser } from '../_lib/session';
 import { getAccessToken, readCommittees } from '../_lib/sheets';
 
@@ -40,7 +41,7 @@ export const onRequestGet: PagesFunction<Env, 'committeeId'> = async ({ request,
   const committeeId = paramOf(params.committeeId);
   if (committeeId !== EMERGENCY_ID) return fail('No such paper.', 404);
 
-  const status = await readStatus(env);
+  const status = statusSeenBy(await readStatus(env), user);
   if (!status.released) return fail('The Emergency Session background paper has not been released yet.', 403);
 
   const row = (await readCommittees(env)).find((entry) => entry['Committee ID']?.trim() === EMERGENCY_ID);

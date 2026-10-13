@@ -4,6 +4,7 @@ import { emergencyRoleOf } from './emergency';
 import type { Env } from './env';
 import { isOwner } from './owners';
 import type { SheetUser } from './sheets';
+import { statusSeenBy } from './testing';
 
 /**
  * What this account may do right now: its sheet row, read against whether Day
@@ -12,7 +13,7 @@ import type { SheetUser } from './sheets';
  * 08:30 on Day 2 whatever their browser thinks the time is.
  */
 export async function accessOf(env: Env, user: SheetUser): Promise<Access> {
-  const status = await readStatus(env);
+  const status = statusSeenBy(await readStatus(env), user);
   return accessFor(
     {
       role: user.Role,

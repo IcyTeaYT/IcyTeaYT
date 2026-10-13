@@ -1,6 +1,7 @@
 import type { Env } from './env';
 import { b64urlDecode, b64urlEncode, signPayload, verifyPayload } from './jwt';
 import { findUser, type SheetUser } from './sheets';
+import { ownerSeat, testUserFor } from './testing';
 
 /**
  * The session cookie.
@@ -77,8 +78,22 @@ export async function readSession(request: Request, env: Env): Promise<string | 
   }
 }
 
-/** The signed-in user's sheet row, or null when not signed in or off the roster. */
-export async function currentUser(request: Request, env: Env): Promise<SheetUser | null> {
+/** The signed-in person's own sheet row — never a test seat. */
+export async function realUser(request: Request, env: Env): Promise<SheetUser | null> {
   const email = await readSession(request, env);
   return email ? findUser(env, email) : null;
+}
+
+/**
+ * Who the site answers to: the signed-in user's sheet row, or null when not
+ * signed in or off the roster. While an owner tests the site as a delegate,
+ * that delegate's seat instead — see ./testing.ts.
+ */
+export async function currentUser(request: Request, env: Env): Promise<SheetUser | null> {
+  const email = await readSession(request, env);
+  if (!email) return null;
+  const user = await findUser(env, email);
+  const seat = user ? ownerSeat(request, env, user.Email) : null;
+  if (!user || !seat) return user;
+  return (await testUserFor(env, user, seat)) ?? user;
 }

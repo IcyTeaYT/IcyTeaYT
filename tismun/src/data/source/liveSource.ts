@@ -9,6 +9,8 @@ import type {
   EmergencyAdmin,
   SessionsReset,
   EmergencyDelegation,
+  TestingSeat,
+  TestOptions,
   OverrideAction,
   ResActionResult,
   ResWorkspace,
@@ -144,31 +146,49 @@ export const liveSource: DataSource = {
     return api<ActivityLog>('/api/activity');
   },
 
-  async getResolutions(committeeId, topic, withCountries, actAs): Promise<ResWorkspace> {
+  async getResolutions(committeeId, topic, withCountries): Promise<ResWorkspace> {
     const query = `topic=${topic}${withCountries ? '&countries=1' : ''}`;
     const response = await fetch(`/api/res/${encodeURIComponent(committeeId)}?${query}`, {
       credentials: 'same-origin',
-      headers: { Accept: 'application/json', ...(actAs ? { 'X-Act-As': encodeURIComponent(actAs) } : {}) },
+      headers: { Accept: 'application/json' },
     });
     const body = (await response.json().catch(() => null)) as (ResWorkspace & { error?: string }) | null;
     if (!response.ok) throw new ApiError(body?.error ?? 'The resolution could not be loaded.', response.status);
     return body ?? { available: false, serverNow: Date.now() };
   },
 
-  async resolutionAction(committeeId, action, actAs): Promise<ResActionResult> {
+  async resolutionAction(committeeId, action): Promise<ResActionResult> {
     const response = await fetch(`/api/res/${encodeURIComponent(committeeId)}`, {
       method: 'POST',
       credentials: 'same-origin',
-      headers: {
-        'Content-Type': 'application/json',
-        Accept: 'application/json',
-        ...(actAs ? { 'X-Act-As': encodeURIComponent(actAs) } : {}),
-      },
+      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
       body: JSON.stringify(action),
     });
     const body = (await response.json().catch(() => null)) as (ResActionResult & { error?: string }) | null;
     if (!response.ok) throw new ApiError(body?.error ?? 'That did not save. Try again.', response.status);
     return body ?? { serverNow: Date.now() };
+  },
+
+  /** 403s for everyone but the owners. */
+  async getTestOptions(): Promise<TestOptions> {
+    return api<TestOptions>('/api/test-as');
+  },
+
+  async startTest(seat: TestingSeat): Promise<void> {
+    const response = await fetch('/api/test-as', {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+      body: JSON.stringify(seat),
+    });
+    if (!response.ok) {
+      const body = (await response.json().catch(() => null)) as { error?: string } | null;
+      throw new ApiError(body?.error ?? 'Testing could not start.', response.status);
+    }
+  },
+
+  async stopTest(): Promise<void> {
+    await fetch('/api/test-as', { method: 'DELETE', credentials: 'same-origin' });
   },
 
   async ping(): Promise<void> {

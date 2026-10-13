@@ -52,7 +52,7 @@ const messageOf = (error: unknown): string =>
 export function useResolutions(
   committeeId: string | null,
   topic: TopicNo,
-  options: { fast?: boolean; withCountries?: boolean; actAs?: string | null } = {},
+  options: { fast?: boolean; withCountries?: boolean } = {},
 ): Workspace {
   const [data, setData] = useState<ResWorkspace | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -65,12 +65,7 @@ export function useResolutions(
     if (!committeeId) return;
     const ticket = (latest.current += 1);
     try {
-      const next = await dataSource.getResolutions(
-        committeeId,
-        topic,
-        options.withCountries && !countriesLoaded.current,
-        options.actAs ?? null,
-      );
+      const next = await dataSource.getResolutions(committeeId, topic, options.withCountries && !countriesLoaded.current);
       if (ticket !== latest.current) return;
       if (next.countries) countriesLoaded.current = true;
       setOffset(next.serverNow - Date.now());
@@ -81,7 +76,7 @@ export function useResolutions(
     } finally {
       if (ticket === latest.current) setLoading(false);
     }
-  }, [committeeId, topic, options.withCountries, options.actAs]);
+  }, [committeeId, topic, options.withCountries]);
 
   // A new topic starts from scratch.
   useEffect(() => {
@@ -121,7 +116,7 @@ export function useResolutions(
   const act = useCallback(
     async (action: ResAction): Promise<ResActionResult> => {
       if (!committeeId) throw new Error('No committee.');
-      const result = await dataSource.resolutionAction(committeeId, action, options.actAs ?? null);
+      const result = await dataSource.resolutionAction(committeeId, action);
       // Whatever came back is newer than any poll still in flight.
       latest.current += 1;
       setOffset(result.serverNow - Date.now());
@@ -134,7 +129,7 @@ export function useResolutions(
       });
       return result;
     },
-    [committeeId, options.actAs],
+    [committeeId],
   );
 
   const state = data?.state ?? null;

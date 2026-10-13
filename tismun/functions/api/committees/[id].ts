@@ -2,6 +2,7 @@ import { fail, json, requireEnv, type Env } from '../_lib/env';
 import { currentUser } from '../_lib/session';
 import { readStatus } from '../_lib/conference';
 import { publicCommittee } from '../_lib/emergency';
+import { statusSeenBy } from '../_lib/testing';
 import { readCommittees, readUsers } from '../_lib/sheets';
 import { withChairsFromUsers } from '../../../src/lib/chairs';
 
@@ -18,5 +19,5 @@ export const onRequestGet: PagesFunction<Env, 'id'> = async ({ request, env, par
   const committee = withChairsFromUsers(committees, users).find((entry) => entry['Committee ID'] === id);
   if (!committee) return fail('No such committee.', 404);
 
-  return json(publicCommittee(committee, await readStatus(env)));
+  return json(publicCommittee(committee, statusSeenBy(await readStatus(env), user)));
 };

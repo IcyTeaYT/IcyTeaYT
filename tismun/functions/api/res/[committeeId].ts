@@ -15,7 +15,6 @@ import {
   freshCopy,
   newCopy,
   ResolutionError,
-  sameCountry,
   setFloor,
   withdrawAmendment,
   type Actor,
@@ -29,8 +28,8 @@ import {
   type Votes,
 } from '../../../src/lib/resolution';
 import { accessOf } from '../_lib/access';
-import { isOwner } from '../_lib/owners';
 import { readStatus } from '../_lib/conference';
+import { statusSeenBy } from '../_lib/testing';
 import { EMERGENCY_ID, emergencyCountryOf } from '../_lib/emergency';
 import { fail, isLiveMode, json, type Env } from '../_lib/env';
 import { describeDbError } from '../_lib/live';
@@ -89,26 +88,13 @@ async function identify(
   if (!user) return fail('Not signed in.', 401);
   const access = await accessOf(env, user);
   const key = await keyFor(user.Email);
-  const name = firstName(user);
-
-  // An owner testing the site can act as any country in the committee.
-  const actAs = request.headers.get('X-Act-As');
-  if (actAs && isOwner(env, user.Email)) {
-    const wanted = decodeURIComponent(actAs).trim();
-    const match = (await countriesOf(env, committeeId)).find((entry) => sameCountry(entry.name, wanted));
-    if (!match) return fail('That country is not in this committee.', 400);
-    const testKey = await keyFor(`${user.Email}#${match.name}`);
-    return {
-      who: { role: 'delegate', country: match.name, actor: { key: testKey, name: `${name} (test)`, country: match.name } },
-      key: testKey,
-      name,
-    };
-  }
+  // An owner testing a seat shows as "Yassir (test)" to anyone sharing the copy.
+  const name = user['Test Seat'] ? `${firstName(user)} (test)` : firstName(user);
 
   let country: string | null = null;
   if (committeeId === EMERGENCY_ID) {
     // The Emergency Session's delegates may only start writing once its topic is out.
-    const status = await readStatus(env);
+    const status = statusSeenBy(await readStatus(env), user);
     if (status.released) country = emergencyCountryOf(user) || null;
   } else if (
     (user.Role ?? '').trim().toUpperCase() === 'DELEGATE' &&

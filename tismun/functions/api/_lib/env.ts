@@ -57,15 +57,12 @@ export function requireEnv(env: Env, keys: (keyof Env)[]): string | null {
   return missing.length ? `Server is not configured: missing ${missing.join(', ')}.` : null;
 }
 
-export const json = (body: unknown, status = 200, headers: HeadersInit = {}): Response =>
-  new Response(JSON.stringify(body), {
-    status,
-    headers: {
-      'Content-Type': 'application/json; charset=utf-8',
-      // Per-delegate data must never be held by a shared cache.
-      'Cache-Control': 'private, no-store',
-      ...headers,
-    },
-  });
+export function json(body: unknown, status = 200, headers: HeadersInit = {}): Response {
+  const all = new Headers(headers);
+  all.set('Content-Type', 'application/json; charset=utf-8');
+  // Per-delegate data must never be held by a shared cache.
+  all.set('Cache-Control', 'private, no-store');
+  return new Response(JSON.stringify(body), { status, headers: all });
+}
 
 export const fail = (message: string, status: number): Response => json({ error: message }, status);

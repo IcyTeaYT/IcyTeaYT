@@ -2,6 +2,7 @@ import { useEffect, type ReactNode } from 'react';
 import { CONFERENCE } from '@/config/conference';
 import { dataSource } from '@/data/source';
 import { formatDateRange } from '@/lib/conferenceDates';
+import { TestingBanner } from '@/features/testing/TestingBanner';
 import { HostedBy } from './HostedBy';
 import { TopNav } from './TopNav';
 
@@ -33,6 +34,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   useHeartbeat();
   return (
     <div className="flex min-h-screen flex-col bg-canvas">
+      <TestingBanner />
       <TopNav />
       <main className="flex-1">{children}</main>
       <footer className="border-t border-hairline">

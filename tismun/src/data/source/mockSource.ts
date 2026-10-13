@@ -1,4 +1,4 @@
-import { conferenceStatus, isEmergency, type FocusMode, type ReleaseMode } from '@/config/emergency';
+import { conferenceStatus, isEmergency, overrideFor, type FocusMode, type ReleaseMode } from '@/config/emergency';
 import { blankResolution, hasResolutions, preWrittenResolution, topicsOf, writesOwnResolution } from '@/config/resolutions';
 import { accessFor, canRun, canView } from '@/lib/access';
 import { countryCodeFor } from '@/lib/countryCodes';
@@ -42,10 +42,11 @@ import type {
   DelegationMember,
   EmergencyAdmin,
   EmergencyDelegation,
-  OverrideAction,
   ResActionResult,
   ResMe,
   SessionsReset,
+  TestingSeat,
+  TestOptions,
   User,
   UserRow,
 } from './types';
@@ -103,14 +104,67 @@ const status = () => {
   return conferenceStatus(Date.now(), demo.release, demo.focus, demo.sessionsReset?.at ?? null);
 };
 
+/* ── The owner testing as a delegate, the demo way ─────────────────────────
+ * The same as the server (functions/api/_lib/testing.ts): the seat's delegate,
+ * under the owner's name marked "(test)", kept in this browser.
+ */
+
+const DEMO_TEST_KEY = 'tismun.demo.test';
+
+function seatHolder(seat: TestingSeat): User | null {
+  if (isEmergency(seat.committeeId)) {
+    const holders = users.filter(
+      (u) => u.emergency?.role === 'DELEGATE' && sameCountry(u.emergency.country ?? '', seat.country),
+    );
+    return holders.find((u) => u.role === 'DELEGATE') ?? holders[0] ?? null;
+  }
+  return (
+    users.find(
+      (u) => u.role === 'DELEGATE' && u.committeeId === seat.committeeId && sameCountry(u.country ?? '', seat.country),
+    ) ?? null
+  );
+}
+
+/** Who the demo answers to: the signed-in account, or the seat its owner is testing. */
+function asSeen(user: User | null): User | null {
+  if (!user || !DEMO_OWNERS.has(user.email)) return user;
+  const seat = readJson<TestingSeat | null>(DEMO_TEST_KEY, null);
+  const holder = seat ? seatHolder(seat) : null;
+  if (!seat || !holder) return user;
+  const at = user.email.lastIndexOf('@');
+  // A delegate's view only: no Day 1 chair or Secretariat role comes with it.
+  const day1 =
+    holder.role === 'DELEGATE' ? {} : { role: 'DELEGATE' as const, committeeId: null, country: null, countryCode: null };
+  return {
+    ...holder,
+    ...day1,
+    email: `${user.email.slice(0, at)}+test${user.email.slice(at)}`,
+    fullName: `${user.fullName.split(/\s+/)[0] ?? user.fullName} (test)`,
+    title: null,
+    testing: {
+      committeeId: seat.committeeId,
+      country: isEmergency(seat.committeeId) ? (holder.emergency?.country ?? seat.country) : (holder.country ?? seat.country),
+      day2: seat.day2,
+    },
+  };
+}
+
+/** The signed-in account itself, never a test seat. */
+const realMe = (): User | null => byEmail.get(readJson<string>(DEMO_EMAIL_KEY, '')) ?? null;
+const me = (): User | null => asSeen(realMe());
+
+/** The conference as this account sees it: a test seat "on Day 2" sees Day 2, topic out. */
+const seenStatus = () => {
+  const now = status();
+  return me()?.testing?.day2 ? { ...now, day2: true, released: true } : now;
+};
+
 /** The same stripping the server does before release. */
 function visible(row: CommitteeRow): Committee {
   const committee = rowToCommittee(row);
-  if (!isEmergency(committee.id) || status().released) return committee;
+  if (!isEmergency(committee.id) || seenStatus().released) return committee;
   return { ...committee, topics: ['', ''], description: '', backgroundPaperUrl: '', locked: true };
 }
-
-const me = (): User | null => byEmail.get(readJson<string>(DEMO_EMAIL_KEY, '')) ?? null;
 
 function delegationFor(country: string, askerEmail: string | null): EmergencyDelegation {
   const members = users
@@ -159,18 +213,10 @@ const demoKey = (email: string): string => {
   return `p${hash.toString(36)}`;
 };
 
-function demoWho(committeeId: string, actAs?: string | null): { me: ResMe; actor: Actor | null } {
+function demoWho(committeeId: string): { me: ResMe; actor: Actor | null } {
   const user = me();
   if (!user) throw new ResolutionError('Not signed in.', 401);
-  // The demo owner, testing as one of the committee's countries.
-  if (actAs && DEMO_OWNERS.has(user.email)) {
-    const match = demoCountries(committeeId).find((entry) => sameCountry(entry.name, actAs));
-    if (!match) throw new ResolutionError('That country is not in this committee.');
-    const key = demoKey(`${user.email}#${match.name}`);
-    const name = `${user.fullName.split(/\s+/)[0] ?? user.fullName} (test)`;
-    return { me: { role: 'delegate', country: match.name, key, name }, actor: { key, name, country: match.name } };
-  }
-  const day = status();
+  const day = seenStatus();
   const access = accessFor(
     {
       role: user.role,
@@ -181,7 +227,8 @@ function demoWho(committeeId: string, actAs?: string | null): { me: ResMe; actor
     day.day2,
   );
   const key = demoKey(user.email);
-  const name = user.fullName.split(/\s+/)[0] ?? user.fullName;
+  const first = user.fullName.split(/\s+/)[0] ?? user.fullName;
+  const name = user.testing ? `${first} (test)` : first;
   const country = isEmergency(committeeId)
     ? day.released && user.emergency?.role === 'DELEGATE'
       ? user.emergency.country
@@ -229,18 +276,9 @@ const checkTopic = (committeeId: string, topic: number): TopicNo => {
   throw new ResolutionError('No such topic.');
 };
 
-const OVERRIDES: Record<OverrideAction, { patch: Partial<DemoEmergency>; label: string }> = {
-  'release-now': { patch: { release: 'released' }, label: 'Emergency Session topic released early' },
-  unrelease: { patch: { release: 'locked' }, label: 'Emergency Session topic un-released (locked)' },
-  'release-auto': { patch: { release: 'auto' }, label: 'Topic release returned to the schedule' },
-  'day2-now': { patch: { focus: 'on' }, label: 'Switched to Day 2 early' },
-  'day2-hold': { patch: { focus: 'off' }, label: 'Day 2 held back — Day 1 continues' },
-  'day2-auto': { patch: { focus: 'auto' }, label: 'Day 2 returned to the schedule' },
-};
-
 export const mockSource: DataSource = {
   async getMe(email) {
-    const user = byEmail.get(email.trim().toLowerCase());
+    const user = asSeen(byEmail.get(email.trim().toLowerCase()) ?? null);
     if (!user) return null;
     // What the server would say: the same rules, with this browser standing in
     // for the server's clock.
@@ -253,7 +291,7 @@ export const mockSource: DataSource = {
           emergencyRole: user.emergency?.role ?? null,
           owner: DEMO_OWNERS.has(user.email),
         },
-        status().day2,
+        (user.testing?.day2 ?? false) || status().day2,
       ),
     };
   },
@@ -289,7 +327,46 @@ export const mockSource: DataSource = {
   async getMyDelegation() {
     const user = me();
     if (user?.emergency?.role !== 'DELEGATE' || !user.emergency.country) return null;
-    return delegationFor(user.emergency.country, user.email);
+    // Testing a seat: "you" is the seat's delegate.
+    const you = user.testing ? (seatHolder(user.testing)?.email ?? null) : user.email;
+    return delegationFor(user.emergency.country, you);
+  },
+
+  async getTestOptions(): Promise<TestOptions> {
+    const user = realMe();
+    if (!user || !DEMO_OWNERS.has(user.email)) throw new ResolutionError('Only the site owner can test as a delegate.', 403);
+    const seats = new Map<string, Set<string>>();
+    const add = (committeeId: string | null, country: string | null) => {
+      if (!committeeId || !country) return;
+      seats.set(committeeId, (seats.get(committeeId) ?? new Set()).add(country));
+    };
+    for (const u of users) {
+      if (u.role === 'DELEGATE') add(u.committeeId, u.country);
+      if (u.emergency?.role === 'DELEGATE') add(committeeRows.find((row) => isEmergency(row['Committee ID']))?.['Committee ID'] ?? null, u.emergency.country);
+    }
+    return {
+      seat: readJson<TestingSeat | null>(DEMO_TEST_KEY, null),
+      options: committeeRows
+        .filter((row) => seats.has(row['Committee ID']))
+        .map((row) => ({
+          committeeId: row['Committee ID'],
+          name: row.Name,
+          abbreviation: row.Abbreviation,
+          countries: [...(seats.get(row['Committee ID']) ?? [])].sort((a, b) => a.localeCompare(b)),
+        }))
+        .sort((a, b) => Number(isEmergency(a.committeeId)) - Number(isEmergency(b.committeeId))),
+    };
+  },
+
+  async startTest(seat) {
+    const user = realMe();
+    if (!user || !DEMO_OWNERS.has(user.email)) throw new ResolutionError('Only the site owner can test as a delegate.', 403);
+    if (!seatHolder(seat)) throw new ResolutionError('Nobody sits in that seat.');
+    writeJson(DEMO_TEST_KEY, seat);
+  },
+
+  async stopTest() {
+    removeKey(DEMO_TEST_KEY);
   },
 
   async getAllDelegations() {
@@ -300,7 +377,7 @@ export const mockSource: DataSource = {
   },
 
   async getConferenceStatus() {
-    return status();
+    return seenStatus();
   },
 
   async getEmergencyAdmin(): Promise<EmergencyAdmin> {
@@ -309,7 +386,10 @@ export const mockSource: DataSource = {
 
   async setEmergencyOverride(action) {
     const demo = readDemo();
-    const { patch, label } = OVERRIDES[action];
+    const override = overrideFor(action, Date.now());
+    const patch: Partial<DemoEmergency> =
+      override.target === 'release' ? { release: override.value } : { focus: override.value };
+    const label = override.label;
     const user = me();
     const event: ConferenceEvent = {
       id: `demo-${Date.now()}`,
@@ -391,10 +471,10 @@ export const mockSource: DataSource = {
     writeJson(DEMO_ACTIVITY_KEY, [event, ...readJson<ActivityEvent[]>(DEMO_ACTIVITY_KEY, [])].slice(0, 200));
   },
 
-  async getResolutions(committeeId, topic, withCountries, actAs) {
+  async getResolutions(committeeId, topic, withCountries) {
     const now = Date.now();
     if (!hasResolutions(committeeId)) throw new ResolutionError('This committee has no resolutions on the site.', 404);
-    const who = demoWho(committeeId, actAs);
+    const who = demoWho(committeeId);
     const { state, copies } = readRes(committeeId);
     const epoch = state.topics[topic].epoch;
     const country = who.me.country;
@@ -413,9 +493,9 @@ export const mockSource: DataSource = {
     };
   },
 
-  async resolutionAction(committeeId, action, actAs): Promise<ResActionResult> {
+  async resolutionAction(committeeId, action): Promise<ResActionResult> {
     const now = Date.now();
-    const who = demoWho(committeeId, actAs);
+    const who = demoWho(committeeId);
     const data = readRes(committeeId);
     const save = (next: Partial<DemoRes>) => writeRes(committeeId, { ...data, ...next });
 

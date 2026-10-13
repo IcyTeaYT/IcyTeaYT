@@ -5,7 +5,7 @@
  */
 
 /** Roles come from the "Role" column of the sheet. Add new ones here. */
-import type { ConferenceStatus } from '@/config/emergency';
+import type { ConferenceStatus, OverrideAction } from '@/config/emergency';
 import type { Access } from '@/lib/access';
 import type { AmendmentStatus, CommitteeResState, Copy, CopyOp, Floor, TopicNo, TopicState, Votes } from '@/lib/resolution';
 
@@ -35,6 +35,25 @@ export interface User {
    * from the sheet and its own clock; it changes when Day 2 begins.
    */
   access: Access;
+  /**
+   * Set while the site's owner tests the site as a delegate: the seat this
+   * account is being shown as. Everything else on this record is that seat's.
+   */
+  testing: TestingSeat | null;
+}
+
+/** A delegate's seat, as the owner tests it. */
+export interface TestingSeat {
+  committeeId: string;
+  country: string;
+  /** Shown as on Day 2, with the Emergency Session topic released — to the owner alone. */
+  day2: boolean;
+}
+
+/** Every seat the owner can test as, committee by committee. */
+export interface TestOptions {
+  seat: TestingSeat | null;
+  options: { committeeId: string; name: string; abbreviation: string; countries: string[] }[];
 }
 
 export interface EmergencyAssignment {
@@ -126,12 +145,15 @@ export interface DataSource {
    * delegate — every copy of the topic they may edit. Its delegates, chairs
    * and the Secretariat only.
    */
-  getResolutions(committeeId: string, topic: TopicNo, withCountries?: boolean, actAs?: string | null): Promise<ResWorkspace>;
-  /**
-   * Edit or submit a copy, or — chairs — record a decision. `actAs`: an owner
-   * testing the site as one of the committee's countries.
-   */
-  resolutionAction(committeeId: string, action: ResAction, actAs?: string | null): Promise<ResActionResult>;
+  getResolutions(committeeId: string, topic: TopicNo, withCountries?: boolean): Promise<ResWorkspace>;
+  /** Edit or submit a copy, or — chairs — record a decision. */
+  resolutionAction(committeeId: string, action: ResAction): Promise<ResActionResult>;
+  /** Owners only: the seat being tested, and every seat there is. */
+  getTestOptions(): Promise<TestOptions>;
+  /** Owners only: see the whole site as this seat's delegate. */
+  startTest(seat: TestingSeat): Promise<void>;
+  /** Be yourself again. */
+  stopTest(): Promise<void>;
   /**
    * Demo mode only: the list the login page's user picker is built from.
    * Undefined in live mode, where you may never enumerate users.
@@ -164,6 +186,8 @@ export interface UserRow {
   'Emergency Country'?: string;
   /** Added by /api/me: what the account may do right now. Not a sheet column. */
   Access?: Access;
+  /** Added by /api/me while the owner tests a seat. Not a sheet column. */
+  Testing?: TestingSeat | null;
 }
 
 export interface CommitteeRow {
@@ -181,13 +205,7 @@ export interface CommitteeRow {
   Locked?: string;
 }
 
-export type OverrideAction =
-  | 'release-now'
-  | 'unrelease'
-  | 'release-auto'
-  | 'day2-now'
-  | 'day2-hold'
-  | 'day2-auto';
+export type { OverrideAction } from '@/config/emergency';
 
 export interface ConferenceEvent {
   id: string;

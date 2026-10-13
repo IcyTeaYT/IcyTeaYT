@@ -80,3 +80,58 @@ export function conferenceStatus(
     sessionsResetAt,
   };
 }
+
+/** The Secretariat's backup buttons. */
+export type OverrideAction =
+  | 'release-now'
+  | 'unrelease'
+  | 'release-auto'
+  | 'day2-now'
+  | 'day2-hold'
+  | 'day2-auto';
+
+export const OVERRIDE_ACTIONS: readonly OverrideAction[] = [
+  'release-now',
+  'unrelease',
+  'release-auto',
+  'day2-now',
+  'day2-hold',
+  'day2-auto',
+];
+
+export type Override =
+  | { target: 'release'; value: ReleaseMode; label: string }
+  | { target: 'focus'; value: FocusMode; label: string };
+
+/**
+ * What a button stores, at this moment. Undoing an early release, or an early
+ * Day 2, before its scheduled time goes back to the schedule — so it still
+ * happens on its own when the time comes. Only after the scheduled time does
+ * undoing hold anything back.
+ */
+export function overrideFor(action: OverrideAction, now: number): Override {
+  const beforeRelease = now < RELEASE_AT_MS;
+  const beforeDay2 = now < FOCUS_FROM_MS;
+  switch (action) {
+    case 'release-now':
+      return beforeRelease
+        ? { target: 'release', value: 'released', label: 'Emergency Session topic released early' }
+        : { target: 'release', value: 'auto', label: 'Emergency Session topic released' };
+    case 'unrelease':
+      return beforeRelease
+        ? { target: 'release', value: 'auto', label: 'Topic un-released — it releases on schedule' }
+        : { target: 'release', value: 'locked', label: 'Topic un-released — locked until released again' };
+    case 'release-auto':
+      return { target: 'release', value: 'auto', label: 'Topic release returned to the schedule' };
+    case 'day2-now':
+      return beforeDay2
+        ? { target: 'focus', value: 'on', label: 'Switched to Day 2 early' }
+        : { target: 'focus', value: 'auto', label: 'Switched to Day 2' };
+    case 'day2-hold':
+      return beforeDay2
+        ? { target: 'focus', value: 'auto', label: 'Back to Day 1 — Day 2 begins on schedule' }
+        : { target: 'focus', value: 'off', label: 'Back to Day 1 — held until switched again' };
+    case 'day2-auto':
+      return { target: 'focus', value: 'auto', label: 'Day 2 returned to the schedule' };
+  }
+}

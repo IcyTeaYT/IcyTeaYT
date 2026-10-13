@@ -66,9 +66,12 @@ export const useAuth = create<AuthState>((set) => ({
       set({ error: 'That account is not on the conference roster.' });
       return false;
     }
-    writeJson(DEMO_EMAIL_KEY, user.email);
-    dataSource.recordDemoActivity?.('sign-in', user.email);
-    set({ status: 'authenticated', user, error: null });
+    // Each sign-in starts as that account, never in a seat the owner was testing.
+    await dataSource.stopTest();
+    const fresh = (await dataSource.getMe(email)) ?? user;
+    writeJson(DEMO_EMAIL_KEY, fresh.email);
+    dataSource.recordDemoActivity?.('sign-in', fresh.email);
+    set({ status: 'authenticated', user: fresh, error: null });
     return true;
   },
 
@@ -76,6 +79,7 @@ export const useAuth = create<AuthState>((set) => ({
     const signedIn = useAuth.getState().user;
     if (DATA_MODE !== 'live' && signedIn) dataSource.recordDemoActivity?.('sign-out', signedIn.email);
     removeKey(DEMO_EMAIL_KEY);
+    if (DATA_MODE !== 'live') await dataSource.stopTest();
     if (DATA_MODE === 'live') {
       // Clears the HttpOnly cookie; the browser cannot do this itself.
       try {
