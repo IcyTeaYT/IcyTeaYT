@@ -630,7 +630,7 @@ function createChairState(committeeId: string) {
         const resolution = get().resolutions.find((entry) => entry.id === resolutionId);
         log(
           'presentation',
-          `${presenterId ? nameOf(presenterId) : 'The Main Submitter'} presents ${resolution?.number ?? 'the draft resolution'}`,
+          `${presenterId ? nameOf(presenterId) : 'The Main Submitter'} presents ${resolution?.number ?? `the resolution (Topic ${get().topic})`}`,
           `${resolution ? `${resolution.title}. ` : ''}Presentation time ${formatClock(durationSec * 1000)}.`,
         );
       },
@@ -645,7 +645,11 @@ function createChairState(committeeId: string) {
             timer: startTimer(createTimer(durationSec * 1000), Date.now()),
           },
         });
-        log('presentation', 'Question-and-answer period opened', `${formatClock(durationSec * 1000)}.`);
+        log(
+          'presentation',
+          current.kind === 'briefing' ? 'Questions opened' : 'Points of Clarification and Information opened',
+          `${formatClock(durationSec * 1000)}.`,
+        );
       },
 
       presentEnd() {
@@ -667,8 +671,8 @@ function createChairState(committeeId: string) {
               ? 'Crisis briefing questions closed'
               : 'Crisis briefing finished'
             : current.phase === 'questions'
-            ? 'Question-and-answer period closed'
-            : 'Presentation finished — no question-and-answer period',
+            ? 'Points of Clarification and Information closed — the floor yields back to the Chair'
+            : 'Presentation finished — the floor yields back to the Chair',
         );
       },
 
@@ -1120,10 +1124,12 @@ export function sessionStatusOf(state: ChairData): SessionStatus {
   }
   if (state.reading?.active) return 'Reading Time';
   if (state.presentation?.active) {
-    if (state.presentation.phase === 'questions') return 'Question-and-Answer Period';
+    if (state.presentation.phase === 'questions') {
+      return state.presentation.kind === 'briefing' ? 'Crisis Briefing' : 'Points of Clarification and Information';
+    }
     return state.presentation.kind === 'briefing'
       ? 'Crisis Briefing'
-      : 'Presentation of the Draft Resolution';
+      : 'Presentation of the Resolution';
   }
   if (state.unmoderated.active) return 'Unmoderated Caucus';
   if (state.gsl.currentId) return 'General Speakers’ List';

@@ -207,8 +207,8 @@ export type SessionStatus =
   | 'Points of Information'
   | 'General Speakers’ List'
   | 'Crisis Briefing'
-  | 'Presentation of the Draft Resolution'
-  | 'Question-and-Answer Period'
+  | 'Presentation of the Resolution'
+  | 'Points of Clarification and Information'
   | 'Unmoderated Caucus'
   | 'Voting Procedure';
 

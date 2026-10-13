@@ -1,4 +1,4 @@
-import { CheckCircle2, RotateCcw, Vote as VoteIcon, XCircle } from 'lucide-react';
+import { CheckCircle2, RotateCcw, XCircle } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { Button } from '@/components/ui/Button';
 import { Card, CardBody, CardHeader } from '@/components/ui/Card';
@@ -6,12 +6,11 @@ import { EmptyState } from '@/components/ui/EmptyState';
 import { Segmented } from '@/components/ui/Segmented';
 import { AmendmentCard, ResolutionClauses, ResolutionHeader, SubmitterList } from '@/features/resolutions/ResolutionDocument';
 import { baseFor } from '@/features/resolutions/useResolutions';
-import { amendmentsFor, currentText, type Amendment, type TopicNo } from '@/lib/resolution';
+import { amendmentsFor, currentText, type TopicNo } from '@/lib/resolution';
 import { Pane } from '../components/Pane';
 import { VotePanel } from '../components/VotePanel';
 import { useChair, useChairContext } from '../context';
 import { useChairRes } from '../resContext';
-import { presentIds } from '../store';
 
 /**
  * The committee's resolutions as the server has them: the text as it stands
@@ -21,12 +20,10 @@ import { presentIds } from '../store';
  * mistakes.
  */
 export function Resolutions() {
-  const { committee, roster } = useChairContext();
+  const { committee } = useChairContext();
   const { ws, res, report } = useChairRes();
   const chairTopic = useChair((state) => state.topic);
   const vote = useChair((state) => state.vote);
-  const attendance = useChair((state) => state.attendance);
-  const startVote = useChair((state) => state.startVote);
   const [viewTopic, setViewTopic] = useState<TopicNo | null>(null);
   const topic = viewTopic ?? chairTopic;
 
@@ -44,19 +41,6 @@ export function Resolutions() {
     }
     return map;
   }, [amendments]);
-  const eligible = useMemo(
-    () => roster.filter((d) => presentIds(attendance).includes(d.id)).map((d) => d.id),
-    [roster, attendance],
-  );
-
-  const voteOn = (amendment: Amendment) =>
-    startVote({
-      subjectKind: 'amendment',
-      subjectId: amendment.id,
-      subjectLabel: `Amendment ${amendment.number}`,
-      mode: 'placard',
-      eligible,
-    });
 
   const votePanel = vote ? (
     <VotePanel
@@ -74,7 +58,7 @@ export function Resolutions() {
   return (
     <Pane
       title="Resolutions"
-      description="The resolution as it stands, and every amendment delegates submit from their phones."
+      description="The resolution as it stands, and every amendment delegates submit from their phones. Speeches and votes happen in Guided Mode, in order."
       actions={
         res.topics.length > 1 ? (
           <Segmented
@@ -135,25 +119,7 @@ export function Resolutions() {
                 : `The resolution ${topicState.status}${topicState.votes ? ` — ${topicState.votes.for} for, ${topicState.votes.against} against, ${topicState.votes.abstain} abstaining` : ''}`
             }
             action={
-              topicState.status === 'open' ? (
-                <Button
-                  size="sm"
-                  variant="secondary"
-                  disabled={Boolean(vote)}
-                  onClick={() =>
-                    startVote({
-                      subjectKind: 'resolution',
-                      subjectId: `topic-${topic}`,
-                      subjectLabel: res.topics.length > 1 ? `the resolution (Topic ${topic})` : 'the resolution',
-                      mode: 'placard',
-                      eligible,
-                    })
-                  }
-                >
-                  <VoteIcon size={14} strokeWidth={1.75} />
-                  Vote on it
-                </Button>
-              ) : (
+              topicState.status === 'open' ? null : (
                 <Button
                   size="sm"
                   variant="ghost"
@@ -187,10 +153,6 @@ export function Resolutions() {
                 action={
                   amendment.status === 'pending' ? (
                     <>
-                      <Button size="sm" variant="secondary" disabled={Boolean(vote)} onClick={() => voteOn(amendment)}>
-                        <VoteIcon size={14} strokeWidth={1.75} />
-                        Vote now
-                      </Button>
                       <Button
                         size="sm"
                         variant="ghost"

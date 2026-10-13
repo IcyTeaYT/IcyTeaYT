@@ -1,3 +1,4 @@
+import { useNavigate } from 'react-router-dom';
 import { CheckCheck, ClipboardCheck } from 'lucide-react';
 import { Flag } from '@/components/Flag';
 import { Badge } from '@/components/ui/Badge';
@@ -24,6 +25,7 @@ export function RollCall() {
   const setAttendance = useChair((state) => state.setAttendance);
   const markAllPresent = useChair((state) => state.markAllPresent);
   const takeRollCall = useChair((state) => state.takeRollCall);
+  const navigate = useNavigate();
 
   const total = roster.length;
   const present = roster.filter((d) => (attendance[d.id] ?? 'absent') !== 'absent').length;
@@ -40,7 +42,15 @@ export function RollCall() {
             <CheckCheck size={15} strokeWidth={1.5} />
             Mark all present
           </Button>
-          <Button variant="primary" onClick={takeRollCall} disabled={total === 0}>
+          <Button
+            variant="primary"
+            onClick={() => {
+              takeRollCall();
+              // Recorded: back to the order of events.
+              navigate('/chair/guided');
+            }}
+            disabled={total === 0}
+          >
             <ClipboardCheck size={15} strokeWidth={1.5} />
             Take roll call
           </Button>

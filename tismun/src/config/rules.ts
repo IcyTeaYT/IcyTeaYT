@@ -17,9 +17,6 @@ export type MajorityKind = 'simple' | 'two-thirds';
 export type MotionTypeId =
   | 'speaking-time'
   | 'unmoderated-caucus'
-  | 'set-agenda'
-  | 'introduce-resolution'
-  | 'introduce-amendment'
   | 'close-debate'
   | 'voting-procedure'
   | 'table-topic'
@@ -166,7 +163,7 @@ export const MOTIONS: MotionRule[] = [
     majority: 'two-thirds',
     disruptiveness: 65,
     fields: [],
-    hint: 'Opens voting on the draft resolutions on the floor.',
+    hint: 'Moves the committee to the vote on the resolution.',
   },
   {
     id: 'unmoderated-caucus',
@@ -180,11 +177,11 @@ export const MOTIONS: MotionRule[] = [
         key: 'purpose',
         label: 'Purpose',
         kind: 'text',
-        defaultValue: 'Editing the draft resolution',
-        placeholder: 'e.g. Editing the draft resolution',
+        defaultValue: 'Writing amendments',
+        placeholder: 'e.g. Writing amendments',
       },
     ],
-    hint: 'Suspends formal debate so delegates can work on the draft resolution together.',
+    hint: 'Suspends formal debate so delegates can write amendments together.',
   },
   {
     id: 'speaking-time',
@@ -195,57 +192,6 @@ export const MOTIONS: MotionRule[] = [
       { key: 'speakingTimeSec', label: 'New speaking time', kind: 'duration', defaultValue: DEFAULTS.speakingTimeSec },
     ],
     hint: 'Changes the time each delegate gets on the General Speakers’ List.',
-  },
-  {
-    id: 'introduce-amendment',
-    label: 'Introduce an amendment',
-    majority: 'simple',
-    disruptiveness: 20,
-    fields: [
-      {
-        key: 'note',
-        label: 'Amendment',
-        kind: 'text',
-        defaultValue: '',
-        required: true,
-        placeholder: 'e.g. Amendment 1 to DR 1.1',
-      },
-    ],
-    hint: 'Puts an amendment to a draft resolution on the floor.',
-  },
-  {
-    id: 'introduce-resolution',
-    label: 'Introduce a draft resolution',
-    majority: 'simple',
-    disruptiveness: 15,
-    fields: [
-      {
-        key: 'note',
-        label: 'Draft resolution',
-        kind: 'text',
-        defaultValue: '',
-        required: true,
-        placeholder: 'e.g. DR 1.1',
-      },
-    ],
-    hint: 'Reads a draft resolution into the record for debate.',
-  },
-  {
-    id: 'set-agenda',
-    label: 'Open / set the agenda',
-    majority: 'simple',
-    disruptiveness: 10,
-    fields: [
-      {
-        key: 'note',
-        label: 'Proposed order',
-        kind: 'text',
-        defaultValue: '',
-        required: true,
-        placeholder: 'e.g. Topic 2 first, then Topic 1',
-      },
-    ],
-    hint: 'Fixes the order in which the committee takes its topics.',
   },
 ];
 

@@ -116,7 +116,7 @@ export function WatchPanel({
                   {summary.present} of {summary.total}
                 </span>{' '}
                 present · {summary.quorum ? 'Quorum' : 'No quorum'} · {summary.motionsOnFloor}{' '}
-                motions on the floor · {summary.resolutionCount} draft resolutions
+                motions on the floor · Topic {summary.topic ?? 1}
               </p>
               <p className="text-xs text-muted">Updates every 10 seconds.</p>
             </div>

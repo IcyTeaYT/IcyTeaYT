@@ -35,6 +35,8 @@ export interface LiveSummary {
   secondaryTimer: { label: string; timer: TimerState } | null;
   motionsOnFloor: number;
   resolutionCount: number;
+  /** The topic being debated. Absent from sessions reported before topics existed. */
+  topic?: number;
   /** What the committee is voting on, when it is in voting procedure. */
   voteSubject: string | null;
   /**

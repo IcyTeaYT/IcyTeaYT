@@ -17,7 +17,7 @@ import { useChair, useChairContext, useDelegationLookup } from '../context';
 /**
  * The committee's main debate tool. TISMUN runs a simplified procedure with no
  * Moderated Caucus: between speeches on the General Speakers' List, delegates
- * move Unmoderated Caucuses to work on the draft resolution together.
+ * move Unmoderated Caucuses to write amendments together.
  */
 export function UnmoderatedCaucus() {
   const { roster, committee } = useChairContext();
@@ -41,7 +41,7 @@ export function UnmoderatedCaucus() {
     return (
       <Pane
         title="Unmoderated Caucus"
-        description="Formal debate is suspended while delegates work on the draft resolution together, until the clock runs out."
+        description="Formal debate is suspended while delegates write amendments on the site, until the clock runs out."
         actions={
           <Button variant="primary" onClick={() => setMotionOpen(true)}>
             <Gavel size={15} strokeWidth={1.5} />

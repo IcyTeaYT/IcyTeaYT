@@ -12,13 +12,14 @@ import {
   Monitor,
   MonitorCheck,
   RotateCcw,
+  MoreHorizontal,
   ScrollText,
   Volume2,
   VolumeX,
   type LucideIcon,
 } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
-import { Navigate, NavLink, Route, Routes, useNavigate } from 'react-router-dom';
+import { Navigate, NavLink, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
@@ -37,7 +38,7 @@ import { useLivePush, useSecretariatReset } from '@/features/live/useLive';
 import { ChairProvider, useChair, useChairContext, useChairStoreApi } from './context';
 import { ChairResProvider, FloorReporter, useChairRes } from './resContext';
 import { buildDisplayState, displayChannelName, type DisplayExtra, type DisplayMessage } from './display';
-import { guidedScreen } from './guide';
+import { currentStepIndex, guidedScreen, sessionChecklist } from './guide';
 import { Awards } from './panes/Awards';
 import { Guided } from './panes/Guided';
 import { Motions } from './panes/Motions';
@@ -57,23 +58,25 @@ interface Section {
   icon: LucideIcon;
   /** The committee's main debate tool, shown first and set apart. */
   featured?: boolean;
+  /** Only for the unusual: behind "More tools", since Guided Mode does it all. */
+  extra?: boolean;
 }
 
 /**
- * Guided Mode leads. The Unmoderated Caucus comes next and stands out: in the
- * simplified procedure it is where most of the debate happens. The rest are the
- * full tools, in order of procedure.
+ * Guided Mode leads and stands out: it walks the whole order of events, so a
+ * chair never needs anything else. The individual tools it uses wait behind
+ * "More tools", for the day the room does something unexpected.
  */
 const SECTIONS: Section[] = [
-  { to: '/chair/guided', label: 'Guided Mode', icon: Compass },
-  { to: '/chair/unmoderated', label: 'Unmoderated Caucus', icon: Coffee, featured: true },
+  { to: '/chair/guided', label: 'Guided Mode', icon: Compass, featured: true },
+  { to: '/chair/resolutions', label: 'Resolution & Amendments', icon: FileText },
   { to: '/chair/roll-call', label: 'Roll Call', icon: ClipboardCheck },
-  { to: '/chair/speakers', label: 'Speakers’ List', icon: ListOrdered },
-  { to: '/chair/presentation', label: 'Presentation', icon: Mic },
-  { to: '/chair/motions', label: 'Motions', icon: Gavel },
-  { to: '/chair/resolutions', label: 'Resolutions', icon: FileText },
   { to: '/chair/awards', label: 'Awards', icon: Award },
   { to: '/chair/log', label: 'Session Log', icon: ScrollText },
+  { to: '/chair/presentation', label: 'Presentation', icon: Mic, extra: true },
+  { to: '/chair/unmoderated', label: 'Unmoderated Caucus', icon: Coffee, extra: true },
+  { to: '/chair/speakers', label: 'Speakers’ List', icon: ListOrdered, extra: true },
+  { to: '/chair/motions', label: 'Motions', icon: Gavel, extra: true },
 ];
 
 /** Keeps the projector window fed with the current session snapshot. */
@@ -121,6 +124,39 @@ function useProjectorBroadcast() {
   }, [committee, store, findAmendment]);
 }
 
+/**
+ * On every screen but Guided Mode: what the order of events says comes next,
+ * and the way back to it — so nobody wanders off and does things out of order.
+ */
+function BackToGuided() {
+  const { committee } = useChairContext();
+  const { res } = useChairRes();
+  const state = useChair((snapshot) => snapshot);
+  const location = useLocation();
+  const navigate = useNavigate();
+  if (location.pathname.startsWith('/chair/guided')) return null;
+  const steps = sessionChecklist(state, committee.id, res);
+  const step = steps[currentStepIndex(steps)];
+  const screen = guidedScreen(state, committee.id, res);
+  const now =
+    screen.kind === 'motions'
+      ? 'Decide the motions on the floor here, then go back'
+      : screen.kind === 'roll-call' || screen.kind === 'no-quorum'
+        ? 'Take the Roll Call here, then go back'
+        : `Next: ${step?.label ?? 'the order of events'}`;
+  return (
+    <div className="mb-5 flex flex-col gap-3 rounded-card border border-teal-200 bg-teal-50/60 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+      <p className="text-sm text-teal-900">
+        <span className="font-semibold">Guided Mode</span> · {now}
+      </p>
+      <Button variant="primary" size="sm" className="shrink-0" onClick={() => navigate('/chair/guided')}>
+        <Compass size={14} strokeWidth={1.5} />
+        Back to Guided Mode
+      </Button>
+    </div>
+  );
+}
+
 function DashboardChrome() {
   const { committee, loading, error, roster } = useChairContext();
   const status = useChair(sessionStatusOf);
@@ -130,6 +166,10 @@ function DashboardChrome() {
   const store = useChairStoreApi();
   const navigate = useNavigate();
   const [confirmReset, setConfirmReset] = useState(false);
+  const location = useLocation();
+  const onExtra = SECTIONS.some((section) => section.extra && location.pathname.startsWith(section.to));
+  const [showExtraChoice, setShowExtra] = useState(false);
+  const showExtra = showExtraChoice || onExtra;
 
   useProjectorBroadcast();
   // One device runs the committee at a time; any other chair's device watches
@@ -225,13 +265,15 @@ function DashboardChrome() {
             phone instead of letting the strip below scroll. */}
           <nav aria-label="Chair tools" className="min-w-0 lg:sticky lg:top-24 lg:self-start">
             <ul className="no-scrollbar -mx-5 flex gap-1.5 overflow-x-auto px-5 lg:mx-0 lg:flex-col lg:gap-0.5 lg:overflow-visible lg:px-0">
-              {SECTIONS.map((section, index) => (
+              {SECTIONS.filter((section) => !section.extra || showExtra).map((section, index) => (
                 <li
                   key={section.to}
                   className={
                     index === 1
                       ? 'shrink-0 lg:mt-2 lg:border-t lg:border-hairline lg:pt-2'
-                      : 'shrink-0'
+                      : section.extra && SECTIONS.findIndex((entry) => entry.extra) === SECTIONS.indexOf(section)
+                        ? 'shrink-0 lg:mt-2 lg:border-t lg:border-hairline lg:pt-2'
+                        : 'shrink-0'
                   }
                 >
                   <NavLink
@@ -253,6 +295,17 @@ function DashboardChrome() {
                   </NavLink>
                 </li>
               ))}
+              <li className="shrink-0">
+                <button
+                  type="button"
+                  onClick={() => setShowExtra((open) => !open)}
+                  aria-expanded={showExtra}
+                  className="flex items-center gap-2.5 whitespace-nowrap rounded-control px-3 py-2.5 text-sm font-medium text-muted transition-colors duration-200 hover:bg-ink-50 hover:text-ink-900"
+                >
+                  <MoreHorizontal size={16} strokeWidth={1.5} className="shrink-0" />
+                  {showExtra ? 'Fewer tools' : 'More tools'}
+                </button>
+              </li>
             </ul>
 
             <div className="mt-5 hidden rounded-card border border-hairline bg-surface p-4 lg:block">
@@ -285,6 +338,8 @@ function DashboardChrome() {
                 </div>
               </Card>
             ) : (
+              <>
+              <BackToGuided />
               <Routes>
                 <Route index element={<Navigate to="/chair/guided" replace />} />
                 <Route path="guided" element={<Guided />} />
@@ -298,6 +353,7 @@ function DashboardChrome() {
                 <Route path="log" element={<SessionLog />} />
                 <Route path="*" element={<Navigate to="/chair/guided" replace />} />
               </Routes>
+              </>
             )}
           </div>
         </div>

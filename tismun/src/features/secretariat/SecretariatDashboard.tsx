@@ -23,8 +23,13 @@ const STATUS_TONE: Record<string, 'neutral' | 'teal' | 'warning'> = {
   'In session': 'teal',
   'General Speakers’ List': 'teal',
   'Crisis Briefing': 'teal',
-  'Presentation of the Draft Resolution': 'teal',
-  'Question-and-Answer Period': 'teal',
+  'Reading Time': 'teal',
+  'Presentation of the Resolution': 'teal',
+  'Points of Clarification and Information': 'teal',
+  'Speech in favour': 'teal',
+  'Speech against': 'teal',
+  'Submitter’s speech': 'teal',
+  'Points of Information': 'teal',
   'Unmoderated Caucus': 'teal',
   'Voting Procedure': 'warning',
 };
@@ -302,11 +307,11 @@ function CommitteeCard({
                 <dd className="mt-0.5 text-[11px] text-muted">on the floor</dd>
               </div>
               <div>
-                <dt className="label-micro">Drafts</dt>
+                <dt className="label-micro">Topic</dt>
                 <dd className="tabular mt-1 text-sm font-semibold text-ink-900">
-                  {summary.resolutionCount}
+                  {summary.topic ?? 1}
                 </dd>
-                <dd className="mt-0.5 text-[11px] text-muted">resolutions</dd>
+                <dd className="mt-0.5 text-[11px] text-muted">being debated</dd>
               </div>
             </dl>
           </>

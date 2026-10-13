@@ -19,7 +19,7 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 import { useMemo, useState, type ReactNode } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { Flag } from '@/components/Flag';
 import { Button } from '@/components/ui/Button';
 import { Card, CardBody, CardHeader } from '@/components/ui/Card';
@@ -858,10 +858,6 @@ function ChooseDraft({ unmodSec, onUnmod }: { unmodSec: number; onUnmod: () => v
       <Small icon={Coffee} onClick={onUnmod}>
         Another Unmoderated Caucus to keep writing ({formatClock(unmodSec * 1000)})
       </Small>
-      <Link to="/chair/resolutions" className="inline-flex items-center gap-1 text-sm font-medium text-teal-700">
-        Open Resolutions
-        <ArrowRight size={14} strokeWidth={1.5} />
-      </Link>
     </div>
   );
 }

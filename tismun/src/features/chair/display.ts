@@ -112,7 +112,11 @@ export function buildDisplayState(state: ChairState, committee: Committee, extra
     );
     return {
       ...base,
-      detail: resolution ? `${resolution.number} — ${resolution.title}` : '',
+      detail: resolution
+        ? `${resolution.number} — ${resolution.title}`
+        : state.presentation.kind === 'briefing'
+          ? ''
+          : `The resolution — Topic ${state.topic}`,
       speakerName: nameOf(state.presentation.presenterId),
       speakerCode: codeOf(state.presentation.presenterId),
       primary: {

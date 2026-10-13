@@ -70,7 +70,11 @@ function timersOf(state: ChairData): {
       secondary: null,
       speakerId: state.presentation.presenterId,
       queueIds: [],
-      detail: resolution ? `${resolution.number} — ${resolution.title}` : '',
+      detail: resolution
+        ? `${resolution.number} — ${resolution.title}`
+        : state.presentation.kind === 'briefing'
+          ? ''
+          : `The resolution — Topic ${state.topic ?? 1}`,
     };
   }
 
@@ -126,6 +130,7 @@ export function buildLiveSummary(
     secondaryTimer: shiftLabelled(secondary, offsetToServer),
     motionsOnFloor: state.motions.filter((motion) => motion.status === 'floor').length,
     resolutionCount: state.resolutions.length,
+    topic: state.topic ?? 1,
     voteSubject: state.vote?.subjectLabel ?? null,
     awards: (state.awards ?? []).map((award) => ({
       ...award,

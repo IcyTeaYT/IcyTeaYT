@@ -25,32 +25,34 @@ export function useChairShortcuts(openProjector: () => void, enabled = true): vo
       if (isTypingTarget(event.target)) return;
 
       const state = store.getState();
-      const activeTimer: TimerKey = state.presentation.active
-        ? 'present'
-        : state.unmoderated.active
-          ? 'unmod'
-          : 'gsl';
+      // The clock that is in play right now — or none, when nothing is running.
+      const activeTimer: TimerKey | null = state.speech.active
+        ? 'speech'
+        : state.reading.active
+          ? 'reading'
+          : state.presentation.active
+            ? 'present'
+            : state.unmoderated.active
+              ? 'unmod'
+              : state.gsl.currentId
+                ? 'gsl'
+                : null;
 
       switch (event.key) {
         case ' ':
         case 'Spacebar':
           event.preventDefault();
-          state.timerToggle(activeTimer);
+          if (activeTimer) state.timerToggle(activeTimer);
           break;
         case 'r':
         case 'R':
           event.preventDefault();
-          state.timerReset(activeTimer);
+          if (activeTimer) state.timerReset(activeTimer);
           break;
         case 'f':
         case 'F':
           event.preventDefault();
           openProjector();
-          break;
-        case 'n':
-        case 'N':
-          event.preventDefault();
-          if (!state.unmoderated.active && !state.presentation.active) state.gslNext();
           break;
         default:
           break;
@@ -65,6 +67,5 @@ export function useChairShortcuts(openProjector: () => void, enabled = true): vo
 export const SHORTCUTS: { keys: string; action: string }[] = [
   { keys: 'Space', action: 'Start / pause' },
   { keys: 'R', action: 'Reset timer' },
-  { keys: 'N', action: 'Next speaker' },
   { keys: 'F', action: 'Projector' },
 ];
