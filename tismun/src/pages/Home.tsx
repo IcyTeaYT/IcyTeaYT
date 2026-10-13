@@ -30,6 +30,8 @@ import { formatDateRange } from '@/lib/conferenceDates';
 import { emergencyOnly, isSecretariat, useAuth } from '@/store/auth';
 import { useCommittee, useConference } from '@/store/conference';
 import { useConferenceStatus } from '@/store/conferenceStatus';
+import { ResolutionCard } from '@/features/resolutions/ResolutionCard';
+import { resolutionCommitteeOf } from '@/features/resolutions/committeeOf';
 
 const enter = (delay: number) => ({
   initial: { opacity: 0, y: 10 },
@@ -42,6 +44,8 @@ export function Home() {
   const committee = useCommittee(user?.committeeId);
   const emergency = useCommittee(emergencySession.committeeId);
   const day2 = useConferenceStatus((state) => state.status?.day2 ?? false);
+  const released = useConferenceStatus((state) => state.status?.released ?? false);
+  const resolutionCommittee = resolutionCommitteeOf(user, day2, released);
 
   if (!user) return null;
 
@@ -95,10 +99,20 @@ export function Home() {
                 <EmergencyCard committee={emergency} user={user} primary />
               )}
             </motion.div>
+            {resolutionCommittee === emergency.id ? (
+              <motion.div className="mt-5" {...enter(0.2)}>
+                <ResolutionCard committee={emergency} />
+              </motion.div>
+            ) : null}
           </>
         ) : (
           <>
             <Day1Home user={user} committee={committee} emergencyDelegate={emergencyDelegate} />
+            {committee && resolutionCommittee === committee.id ? (
+              <motion.div className="mt-5" {...enter(0.28)}>
+                <ResolutionCard committee={committee} />
+              </motion.div>
+            ) : null}
             {user.emergency?.role === 'CHAIR' && emergency && !user.access.secretariat ? (
               <motion.div className="mt-8" {...enter(0.3)}>
                 <Card>

@@ -18,6 +18,13 @@ const shiftLabelled = (
 ): { label: string; timer: TimerState } | null =>
   entry ? { label: entry.label, timer: shiftTimer(entry.timer, deltaMs) } : null;
 
+/** "Against Amendment 3", "In favour of the resolution — closing". */
+export function speechDetail(speech: ChairData['speech']): string {
+  const about = speech.amendmentNumber ? `Amendment ${speech.amendmentNumber}` : 'the resolution';
+  if (speech.part === 'submitter') return `Submitter of ${about}`;
+  return `${speech.part === 'for' ? 'In favour of' : 'Against'} ${about}${speech.closing ? ' — closing speeches' : ''}`;
+}
+
 /** Which clocks a committee is showing right now, given what it is doing. */
 function timersOf(state: ChairData): {
   primary: { label: string; timer: TimerState } | null;
@@ -26,6 +33,26 @@ function timersOf(state: ChairData): {
   queueIds: string[];
   detail: string;
 } {
+  if (state.speech?.active) {
+    return {
+      primary: { label: state.speech.phase === 'pois' ? 'Points of Information' : 'Speaking time', timer: state.speech.timer },
+      secondary: null,
+      speakerId: state.speech.speakerId,
+      queueIds: [],
+      detail: speechDetail(state.speech),
+    };
+  }
+
+  if (state.reading?.active) {
+    return {
+      primary: { label: 'Reading Time', timer: state.reading.timer },
+      secondary: null,
+      speakerId: null,
+      queueIds: [],
+      detail: `Topic ${state.topic ?? 1}`,
+    };
+  }
+
   if (state.presentation.active) {
     const resolution = state.resolutions.find(
       (entry) => entry.id === state.presentation.resolutionId,

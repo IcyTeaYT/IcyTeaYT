@@ -51,6 +51,32 @@ export interface PresentationState {
   timer: TimerState;
 }
 
+/** Reading Time: delegates read the draft resolution before it is presented. */
+export interface ReadingState {
+  active: boolean;
+  timer: TimerState;
+}
+
+/**
+ * Who a speech is for: the resolution (or an amendment to it), against it, or
+ * — for an amendment — its submitter explaining why it is needed.
+ */
+export type SpeechPart = 'for' | 'against' | 'submitter';
+
+/** One speech on the resolution or an amendment, then the Points of Information after it. */
+export interface SpeechState {
+  active: boolean;
+  part: SpeechPart;
+  /** Closing speeches on the resolution as amended, just before the vote. */
+  closing: boolean;
+  /** null: the resolution itself. */
+  amendmentId: string | null;
+  amendmentNumber: number | null;
+  speakerId: string | null;
+  phase: 'speech' | 'pois';
+  timer: TimerState;
+}
+
 export type MotionStatus = 'floor' | 'passed' | 'failed' | 'withdrawn';
 
 export interface Motion {
@@ -174,6 +200,11 @@ export interface LogEntry {
 export type SessionStatus =
   | 'Not in session'
   | 'In session'
+  | 'Reading Time'
+  | 'Speech in favour'
+  | 'Speech against'
+  | 'Submitter’s speech'
+  | 'Points of Information'
   | 'General Speakers’ List'
   | 'Crisis Briefing'
   | 'Presentation of the Draft Resolution'

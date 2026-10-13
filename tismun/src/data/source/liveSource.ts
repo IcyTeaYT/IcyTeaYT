@@ -10,6 +10,8 @@ import type {
   SessionsReset,
   EmergencyDelegation,
   OverrideAction,
+  ResActionResult,
+  ResWorkspace,
   User,
   UserRow,
 } from './types';
@@ -140,6 +142,29 @@ export const liveSource: DataSource = {
   /** 403s for everyone but the owners. */
   async getActivity(): Promise<ActivityLog> {
     return api<ActivityLog>('/api/activity');
+  },
+
+  async getResolutions(committeeId, topic, withCountries): Promise<ResWorkspace> {
+    const query = `topic=${topic}${withCountries ? '&countries=1' : ''}`;
+    const response = await fetch(`/api/res/${encodeURIComponent(committeeId)}?${query}`, {
+      credentials: 'same-origin',
+      headers: { Accept: 'application/json' },
+    });
+    const body = (await response.json().catch(() => null)) as (ResWorkspace & { error?: string }) | null;
+    if (!response.ok) throw new ApiError(body?.error ?? 'The resolution could not be loaded.', response.status);
+    return body ?? { available: false, serverNow: Date.now() };
+  },
+
+  async resolutionAction(committeeId, action): Promise<ResActionResult> {
+    const response = await fetch(`/api/res/${encodeURIComponent(committeeId)}`, {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+      body: JSON.stringify(action),
+    });
+    const body = (await response.json().catch(() => null)) as (ResActionResult & { error?: string }) | null;
+    if (!response.ok) throw new ApiError(body?.error ?? 'That did not save. Try again.', response.status);
+    return body ?? { serverNow: Date.now() };
   },
 
   async ping(): Promise<void> {

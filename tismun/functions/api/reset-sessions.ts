@@ -2,14 +2,15 @@ import { fail, json, requireEnv, type Env } from './_lib/env';
 import { lastSessionsReset, readStatus, resetAllSessions } from './_lib/conference';
 import { ensureControlTable } from './_lib/control';
 import { describeDbError } from './_lib/live';
+import { resetResolutions } from './_lib/resolutions';
 import { accessOf } from './_lib/access';
 import { currentUser } from './_lib/session';
 
 /**
  * GET  /api/reset-sessions — when every committee's session was last reset, and by whom.
  * POST /api/reset-sessions — `{ confirm: "RESET" }`: reset every committee's
- *      session — roll call, timers, motions, resolutions, votes, session logs
- *      and awards — on the server and, as they next check in, on every chair's
+ *      session — roll call, timers, motions, resolutions, amendments and
+ *      delegates' copies, votes, session logs and awards — on the server and, as they next check in, on every chair's
  *      device.
  *
  * Secretariat accounts (and owners) only, checked here against the sheet on every request.
@@ -59,6 +60,8 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
       name: check.user['Full Name']?.trim() || null,
       email: check.user.Email?.trim().toLowerCase() || null,
     });
+    // Amendments, drafts and delegates' copies go too: the conference starts again.
+    await resetResolutions(env.DB);
     return json({ status: await readStatus(env), last: await lastSessionsReset(env.DB) });
   } catch (error) {
     return fail(`The reset did not go through: ${describeDbError(error)}`, 500);

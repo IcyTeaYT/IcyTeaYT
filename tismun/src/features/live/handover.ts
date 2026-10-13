@@ -1,5 +1,7 @@
 import {
   emptyPresentation,
+  emptyReading,
+  emptySpeech,
   knownMotions,
   type ChairData,
   type ChairState,
@@ -26,6 +28,10 @@ const CHAIR_DATA_KEYS = [
   'presentationsHeld',
   'briefingsHeld',
   'unmoderatedHeld',
+  'topic',
+  'reading',
+  'speech',
+  'progress',
   'motions',
   'resolutions',
   'amendments',
@@ -55,6 +61,8 @@ export function shiftChairData(data: ChairData, deltaMs: number): ChairData {
     gsl: { ...data.gsl, timer: shiftTimer(data.gsl.timer, deltaMs) },
     unmoderated: { ...data.unmoderated, timer: shiftTimer(data.unmoderated.timer, deltaMs) },
     presentation: { ...data.presentation, timer: shiftTimer(data.presentation.timer, deltaMs) },
+    reading: { ...data.reading, timer: shiftTimer(data.reading.timer, deltaMs) },
+    speech: { ...data.speech, timer: shiftTimer(data.speech.timer, deltaMs) },
     motions: data.motions.map((motion) => ({
       ...motion,
       raisedAt: motion.raisedAt + deltaMs,
@@ -103,6 +111,10 @@ export function fromHandover(raw: unknown, offsetToServer: number): ChairData | 
       presentationsHeld: data.presentationsHeld ?? 0,
       briefingsHeld: data.briefingsHeld ?? 0,
       unmoderatedHeld: data.unmoderatedHeld ?? 0,
+      topic: data.topic === 2 ? 2 : 1,
+      reading: { ...emptyReading(), ...data.reading },
+      speech: { ...emptySpeech(), ...data.speech },
+      progress: data.progress ?? {},
       // Sent by a device on an older version, the session may still hold
       // motion types that have since been removed from the rules.
       motions: knownMotions(data.motions ?? []),

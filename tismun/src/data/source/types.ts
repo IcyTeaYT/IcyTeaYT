@@ -7,6 +7,7 @@
 /** Roles come from the "Role" column of the sheet. Add new ones here. */
 import type { ConferenceStatus } from '@/config/emergency';
 import type { Access } from '@/lib/access';
+import type { AmendmentStatus, CommitteeResState, Copy, CopyOp, Floor, TopicNo, TopicState, Votes } from '@/lib/resolution';
 
 export const ROLES = ['DELEGATE', 'CHAIR', 'SECRETARIAT', 'ADMIN'] as const;
 export type Role = (typeof ROLES)[number];
@@ -120,6 +121,14 @@ export interface DataSource {
   ping?(): Promise<void>;
   /** Demo mode: note a demo sign-in or sign-out, so the demo log has something in it. */
   recordDemoActivity?(kind: 'sign-in' | 'sign-out', email: string): void;
+  /**
+   * A committee's resolution workspace: its amendments and votes, and — for a
+   * delegate — every copy of the topic they may edit. Its delegates, chairs
+   * and the Secretariat only.
+   */
+  getResolutions(committeeId: string, topic: TopicNo, withCountries?: boolean): Promise<ResWorkspace>;
+  /** Edit or submit a copy, or — chairs — record a decision. */
+  resolutionAction(committeeId: string, action: ResAction): Promise<ResActionResult>;
   /**
    * Demo mode only: the list the login page's user picker is built from.
    * Undefined in live mode, where you may never enumerate users.
@@ -235,4 +244,50 @@ export interface ActivityLog {
   /** The server's clock when it answered, so "2 min ago" is measured against it. */
   now: number;
   error?: string;
+}
+
+/* ─── Resolutions ─────────────────────────────────────────────────────── */
+
+export interface ResCountry {
+  name: string;
+  code: string | null;
+}
+
+export interface ResMe {
+  /** delegate: edits copies. chair: runs the committee. viewer: Secretariat or a Day 1 chair reading back. */
+  role: 'delegate' | 'chair' | 'viewer';
+  country: string | null;
+  /** Matches the holder of a clause this person is typing in. */
+  key: string;
+  name: string;
+}
+
+export interface ResWorkspace {
+  /** false without the database: amendments cannot be written. */
+  available: boolean;
+  serverNow: number;
+  me?: ResMe;
+  state?: CommitteeResState;
+  copies?: Copy[];
+  countries?: ResCountry[];
+  error?: string;
+}
+
+export type ResAction =
+  | { action: 'edit'; topic: TopicNo; copyId: string | null; ops: CopyOp[] }
+  | { action: 'submit'; topic: TopicNo; copyId: string }
+  | { action: 'withdraw'; amendmentId: string }
+  | { action: 'decide'; amendmentId: string; status: AmendmentStatus; votes: Votes | null }
+  | { action: 'resolution'; topic: TopicNo; status: TopicState['status']; votes: Votes | null }
+  | { action: 'floor'; floor: Omit<Floor, 'at'> | null }
+  | { action: 'adopt'; draftId: string };
+
+export interface ResActionResult {
+  serverNow: number;
+  state?: CommitteeResState;
+  copy?: Copy;
+  /** Clauses someone else was typing in, so the change did not go through. */
+  refused?: string[];
+  /** What a submission became: amendment numbers, or the draft's number. */
+  numbers?: number[];
 }

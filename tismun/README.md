@@ -372,35 +372,82 @@ clears it.
 
 ### Guided Mode
 
-The dashboard opens on **Guided Mode**: the committee's order of business as a
-numbered list, with the step the committee is actually on opened up, showing
-the clock that matters and large buttons for what to do next. The Day 1 flow:
+The dashboard opens on **Guided Mode**. At the top is one panel: what the
+committee does right now, with big buttons that do it. To give someone the
+floor, the chair taps their country and the clock starts. Under that panel is
+TISMUN's order of events for the current topic, with each step ticked off as
+it happens:
 
-1. Roll Call
-2. Setting the Agenda
-3. Presentation of the Draft Resolution — the Main Submitter presents
-   (3:00 by default; 2, 3 or 5 minutes one tap each), then an optional
-   question-and-answer period (3:00 by default) that can be skipped
-4. General Speakers' List
-5. Motion for an Unmoderated Caucus
-6. Unmoderated Caucus
-7. Back to the General Speakers' List, or another Unmoderated Caucus
-8. Close Debate
-9. Voting Procedure
-10. Result
+1. Roll Call (**Everyone is here** marks all present and records the roll in one tap)
+2. Reading Time (10 minutes by default)
+3. Presentation of the Resolution: the Main Submitter, then Points of
+   Clarification and Information, then the floor yields back to the Chair
+4. Speeches in Favour, each followed by Points of Information
+5. Speeches Against, each followed by Points of Information
+6. Unmoderated Caucus for Amendments (15 minutes by default; **Extend by 5
+   minutes** is one tap). Delegates write amendments on their phones.
+7. Debate on Amendments: for each amendment in the order it was submitted,
+   its submitter's speech, then speeches for, then speeches against, then a
+   vote. The amendment is shown with its changes in red and green.
+8. More Amendments?: another caucus if needed, then those amendments are
+   debated too
+9. Closing Speeches: for or against the resolution as amended (the
+   Main Submitter is offered first for closing remarks)
+10. Voting Procedure. Note passing is suspended, and the projector says so.
+11. Result, then **Move on to Topic 2**, and the same again
 
-Flows are per committee and live in `src/config/flows.ts`. Underneath sit the standing figures a chair is asked for constantly:
-present, quorum, simple and two-thirds majorities.
+Each step knows from the session whether it has happened, so the list cannot
+disagree with the room. Every step also has a **Skip** for the day the room
+does something unexpected. Flows live in `src/config/flows.ts`. Durations
+(reading time, speeches, POIs) live in `DEBATE` in `src/config/rules.ts`.
 
-Steps tick themselves off by reading the session, not by anyone marking them,
-so the list cannot disagree with what happened: the Roll Call step completes
-when the roll is taken, the Voting Procedure step when a Draft Resolution has
-actually been decided.
+### Resolutions and amendments
 
-Which stage is offered follows the rules of procedure: Voting Procedure
-outranks a caucus, a caucus outranks Motions on the floor, and nothing opens
-before quorum is met. The tools remain in the sidebar for everything Guided
-Mode does not put one tap away.
+All twelve pre-written draft resolutions are on the site, one per committee per
+topic, in `src/config/resolutionTexts.ts`, generated from the PDFs.
+`src/config/resolutions.ts` says which committee debates which one:
+
+- both HSCs share theirs
+- HRC 1 and HRC 2 share the English pair
+- HRC RU has the Russian translations
+
+Delegates read them from **Resolution** in the menu, or from the card on their
+home page. They can read them before the conference too.
+
+**Proposing amendments.** Every country has its own copy of the resolution, on
+the same page under **My copy**. A delegate taps **Change this** on a clause
+and types; it saves as they type. They can remove a clause, or add a new one
+after any clause. Changes show in red and green against the resolution as it
+stands. **Share with other countries** lets any countries in the committee
+edit the copy with them, live: whoever is typing in a clause holds it for a
+few seconds, and the others see "Ali (Brazil) is editing". **Submit** turns
+each changed clause into its own amendment, numbered in the order received,
+with every country on the copy listed as a submitter, and clears the copy.
+Submitters can withdraw an amendment until it is debated.
+
+**What the chairs see.** Amendments arrive in Guided Mode and in
+**Resolutions** within seconds. When an amendment passes, the resolution
+changes for everyone at once: the delegate view, the chair's view and every
+copy. A clause someone was still editing is flagged "The committee changed
+this clause since you edited it", with **Keep my version** or **Use the new
+wording**, so nobody can undo a passed amendment by accident.
+**Resolutions** also has **Undo** on any result, for a vote recorded by
+mistake. Delegates' screens show what the committee is doing right now, for
+example "Now: Speeches against — Amendment 3".
+
+**Emergency Session.** No resolution is pre-written. During the writing
+caucus, delegates write draft resolutions in the same editor, with teammates
+of the same country on one copy, and submit them. The chairs read the drafts
+and press **Choose this one**. From then on it is debated and amended like
+any other.
+
+This needs the D1 binding. Its two tables (`res_committee`, `res_copy`) are
+created on first use. The Secretariat's **Reset all sessions** clears them
+too. The rules live in `src/lib/resolution.ts`, shared by the server and
+demo mode. The API is `functions/api/res/[committeeId].ts`: delegates can
+only edit copies they own or that were shared with them, only a committee's
+chairs can record votes, and no email address is ever sent to other
+delegates.
 
 ### Simplified procedure
 
@@ -423,10 +470,11 @@ future year want the Moderated Caucus back.
 ### Voting
 
 There is no separate voting screen. A Motion is voted on in **Motions**, where
-it was raised. A Draft Resolution or an Unfriendly Amendment is voted on in
-**Resolutions**, on the item itself — placard or roll call, with the tally and
-the required majority in view. The chair never has to leave the thing being
-voted on and re-select it somewhere else.
+it was raised. Amendments and the resolution are voted on in Guided Mode, at
+the step they come up, or in **Resolutions**. Votes are by placard or roll
+call, with the tally and the required majority in view. **Record the result**
+saves it to the server. If the internet drops, it keeps retrying until the
+result is saved.
 
 ### Awards
 

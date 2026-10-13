@@ -35,7 +35,9 @@ import { clockOffset } from '@/features/live/serverClock';
 import { useCommitteeControl } from '@/features/live/useControl';
 import { useLivePush, useSecretariatReset } from '@/features/live/useLive';
 import { ChairProvider, useChair, useChairContext, useChairStoreApi } from './context';
-import { buildDisplayState, displayChannelName, type DisplayMessage } from './display';
+import { ChairResProvider, FloorReporter, useChairRes } from './resContext';
+import { buildDisplayState, displayChannelName, type DisplayExtra, type DisplayMessage } from './display';
+import { guidedScreen } from './guide';
 import { Awards } from './panes/Awards';
 import { Guided } from './panes/Guided';
 import { Motions } from './panes/Motions';
@@ -45,7 +47,7 @@ import { RollCall } from './panes/RollCall';
 import { SessionLog } from './panes/SessionLog';
 import { SpeakersList } from './panes/SpeakersList';
 import { UnmoderatedCaucus } from './panes/UnmoderatedCaucus';
-import { sessionStatusOf } from './store';
+import { sessionStatusOf, type ChairState } from './store';
 import { SHORTCUTS, useChairShortcuts } from './useChairShortcuts';
 import { WatchPanel } from './WatchPanel';
 
@@ -77,11 +79,31 @@ const SECTIONS: Section[] = [
 /** Keeps the projector window fed with the current session snapshot. */
 function useProjectorBroadcast() {
   const { committee, store } = useChairContext();
+  const { ws, res } = useChairRes();
+  // The amendment on the floor: the one being spoken on or voted on, or the
+  // next in line while the committee debates amendments.
+  const amendments = ws.state?.amendments;
+  const findAmendment = useCallback(
+    (state: ChairState) => {
+      let id: string | null = null;
+      if (state.speech.active) id = state.speech.amendmentId;
+      else if (state.vote) id = state.vote.subjectKind === 'amendment' ? state.vote.subjectId : null;
+      else if (!state.unmoderated.active && !state.reading.active && !state.presentation.active) {
+        const screen = guidedScreen(state, committee.id, res);
+        if (screen.kind === 'step' && screen.amendment) id = screen.amendment.id;
+      }
+      return id ? (amendments?.find((amendment) => amendment.id === id) ?? null) : null;
+    },
+    [amendments, committee.id, res],
+  );
 
   useEffect(() => {
     const channel = createChannel<DisplayMessage>(displayChannelName(committee.id));
-    const publish = () =>
-      channel.post({ kind: 'state', state: buildDisplayState(store.getState(), committee) });
+    const publish = () => {
+      const state = store.getState();
+      const extra: DisplayExtra = { amendment: findAmendment(state) };
+      channel.post({ kind: 'state', state: buildDisplayState(state, committee, extra) });
+    };
 
     // Any state change republishes; the payload carries timer STATE, so the
     // projector keeps counting smoothly between messages on its own.
@@ -96,7 +118,7 @@ function useProjectorBroadcast() {
       unsubscribeChannel();
       channel.close();
     };
-  }, [committee, store]);
+  }, [committee, store, findAmendment]);
 }
 
 function DashboardChrome() {
@@ -135,6 +157,7 @@ function DashboardChrome() {
 
   return (
     <div className="mx-auto max-w-[1400px] px-5 pb-16 pt-7 sm:px-6">
+      {running ? <FloorReporter /> : null}
       <header className="flex flex-col gap-5 border-b border-hairline pb-6 lg:flex-row lg:items-start lg:justify-between">
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-3">
@@ -319,7 +342,13 @@ export function ChairDashboard() {
 
   return (
     <ChairProvider committee={committee}>
-      {readOnly ? <ReadOnlyDashboard /> : <DashboardChrome />}
+      {readOnly ? (
+        <ReadOnlyDashboard />
+      ) : (
+        <ChairResProvider>
+          <DashboardChrome />
+        </ChairResProvider>
+      )}
     </ChairProvider>
   );
 }

@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { UNMODERATED_PRESETS_SEC } from '@/config/rules';
 import { cn } from '@/lib/cn';
-import { formatClock } from '@/lib/time';
 import { DurationInput } from './DurationInput';
 
 /**
@@ -43,7 +42,11 @@ export function DurationPresets({
                   : 'border-hairline bg-surface text-ink-700 hover:border-ink-300',
               )}
             >
-              {seconds % 60 === 0 ? `${seconds / 60} min` : formatClock(seconds * 1000)}
+              {seconds % 60 === 0
+                ? `${seconds / 60} min`
+                : seconds < 60
+                  ? `${seconds} s`
+                  : `${Math.floor(seconds / 60)} min ${seconds % 60} s`}
             </button>
           );
         })}

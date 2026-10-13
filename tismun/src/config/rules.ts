@@ -77,6 +77,23 @@ export const PRESENTATION = {
   briefingPresetsSec: [3 * 60, 5 * 60, 10 * 60],
 } as const;
 
+/** Debate on a draft resolution and its amendments. */
+export const DEBATE = {
+  /** Reading Time before the resolution is presented. */
+  readingSec: 10 * 60,
+  readingPresetsSec: [5 * 60, 10 * 60, 15 * 60, 20 * 60],
+  /** A speech for or against the resolution, or on an amendment. */
+  speechSec: 90,
+  speechPresetsSec: [60, 90, 120, 180],
+  /** Points of Information to the speaker afterwards. */
+  poiSec: 60,
+  poiPresetsSec: [30, 60, 120],
+  /** The Unmoderated Caucus to write amendments. Usually extended. */
+  amendmentUnmodSec: 15 * 60,
+  /** How many speeches for and against the chairs usually take — a guide, not a limit. */
+  speechesEachSide: 2,
+} as const;
+
 export const QUORUM = {
   /**
    * Fraction of the committee that must be present for debate to open.

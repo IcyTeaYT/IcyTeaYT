@@ -7,7 +7,7 @@ import { MAJORITY_LABEL, VOTING } from '@/config/rules';
 import { cn } from '@/lib/cn';
 import { resolveVote } from '@/lib/majority';
 import { useChair, useChairContext, useDelegationLookup } from '../context';
-import { presentAndVotingIds, presentIds } from '../store';
+import { presentAndVotingIds, presentIds, type ChairState } from '../store';
 import type { RollCallChoice } from '../types';
 
 const CHOICES: { value: RollCallChoice; label: string; on: string }[] = [
@@ -25,7 +25,12 @@ const CHOICES: { value: RollCallChoice; label: string; on: string }[] = [
  * re-selecting it somewhere else. This panel assumes the subject is already
  * decided by where it is mounted.
  */
-export function VotePanel() {
+export function VotePanel({
+  onClosed,
+}: {
+  /** Called with the result once the chair records it. */
+  onClosed?: (result: NonNullable<ReturnType<ChairState['closeVote']>>) => void;
+} = {}) {
   const { roster } = useChairContext();
   const { nameOf, codeOf } = useDelegationLookup();
 
@@ -270,8 +275,15 @@ export function VotePanel() {
           <Button variant="ghost" size="sm" onClick={cancelVote}>
             Cancel
           </Button>
-          <Button variant="primary" size="sm" onClick={closeVote}>
-            Close vote
+          <Button
+            variant="primary"
+            size="sm"
+            onClick={() => {
+              const result = closeVote();
+              if (result) onClosed?.(result);
+            }}
+          >
+            Record the result
           </Button>
         </div>
       </div>

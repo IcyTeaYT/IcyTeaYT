@@ -1,5 +1,5 @@
 import { readJson } from '@/lib/storage';
-import { emptyPresentation, knownMotions, type ChairData } from '@/features/chair/store';
+import { emptyPresentation, emptyReading, emptySpeech, knownMotions, type ChairData } from '@/features/chair/store';
 import { buildLiveSnapshot, buildLiveSummary } from './snapshot';
 import type { LiveLogEntry, LiveOverview, LiveSnapshot } from './types';
 import { useConferenceStatus } from '@/store/conferenceStatus';
@@ -43,6 +43,10 @@ function readCommittee(committeeId: string): ChairData | null {
     presentationsHeld: state.presentationsHeld ?? 0,
     briefingsHeld: state.briefingsHeld ?? 0,
     unmoderatedHeld: state.unmoderatedHeld ?? 0,
+    topic: state.topic === 2 ? 2 : 1,
+    reading: { ...emptyReading(), ...state.reading },
+    speech: { ...emptySpeech(), ...state.speech },
+    progress: state.progress ?? {},
     motions: knownMotions(state.motions ?? []),
     resolutions: state.resolutions ?? [],
     amendments: state.amendments ?? [],

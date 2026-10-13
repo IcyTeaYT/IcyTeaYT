@@ -8,7 +8,8 @@ import { phaseOf, type TimerState } from '@/lib/timer';
 import { useTimer } from '@/lib/useTimer';
 import { useAuth } from '@/store/auth';
 import { useCommittee } from '@/store/conference';
-import { displayChannelName, type DisplayMessage, type DisplayState } from './display';
+import { DiffText, WholeClause } from '@/features/resolutions/ResolutionDocument';
+import { displayChannelName, type DisplayAmendment, type DisplayMessage, type DisplayState } from './display';
 
 /**
  * The classroom projector view.
@@ -77,6 +78,12 @@ export function ProjectorDisplay() {
         </div>
       </header>
 
+      {snapshot?.notice ? (
+        <p className="mt-[2vh] rounded-card bg-warning px-[1.5vw] py-[1vh] text-center text-[1.6vw] font-semibold text-white">
+          {snapshot.notice}
+        </p>
+      ) : null}
+
       <main className="flex flex-1 flex-col justify-center py-[2vh]">
         {/* With no clock running the status IS the headline below, so showing
             it here too would just print "In session" twice. */}
@@ -123,6 +130,8 @@ export function ProjectorDisplay() {
             <SecondaryTimer label={snapshot.secondary.label} timer={snapshot.secondary.timer} />
           ) : null}
         </div>
+
+        {snapshot?.amendment ? <ProjectedAmendment amendment={snapshot.amendment} /> : null}
 
         {snapshot && snapshot.queue.length > 0 ? (
           <div className="mt-[3vh] border-t border-white/10 pt-[2vh]">
@@ -205,6 +214,26 @@ function SecondaryTimer({ label, timer }: { label: string; timer: TimerState }) 
       <p className={cn('tabular text-[5.5vw] font-semibold leading-none', PHASE_COLOUR[phase])}>
         {formatClock(view.remainingMs)}
       </p>
+    </div>
+  );
+}
+
+/** The amendment on the floor, large enough to read from the back row. */
+function ProjectedAmendment({ amendment }: { amendment: DisplayAmendment }) {
+  return (
+    <div className="mt-[3vh] rounded-card bg-white px-[2vw] py-[2vh] text-ink-900">
+      <p className="text-[1.1vw] font-semibold uppercase tracking-label text-teal-700">
+        Amendment {amendment.number} · {amendment.heading} · {amendment.submitters.join(', ')}
+      </p>
+      <div className="mt-[1.2vh] max-h-[34vh] overflow-hidden text-[1.7vw] leading-snug">
+        {amendment.kind === 'add' ? (
+          <WholeClause text={amendment.newText ?? ''} mode="added" />
+        ) : amendment.kind === 'remove' ? (
+          <WholeClause text={amendment.oldText ?? ''} mode="removed" />
+        ) : (
+          <DiffText before={amendment.oldText ?? ''} after={amendment.newText ?? ''} />
+        )}
+      </div>
     </div>
   );
 }

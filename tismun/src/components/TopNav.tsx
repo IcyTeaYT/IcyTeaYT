@@ -5,6 +5,8 @@ import { firstNameOf } from '@/data/source';
 import { cn } from '@/lib/cn';
 import { isChair, isOwner, isSecretariat, useAuth } from '@/store/auth';
 import { useConference } from '@/store/conference';
+import { useConferenceStatus } from '@/store/conferenceStatus';
+import { resolutionCommitteeOf } from '@/features/resolutions/committeeOf';
 import { Logo } from './Logo';
 import { Badge } from './ui/Badge';
 import { Button } from './ui/Button';
@@ -127,6 +129,8 @@ export function TopNav() {
   const navigate = useNavigate();
   const location = useLocation();
   const [menuOpen, setMenuOpen] = useState(false);
+  const day2 = useConferenceStatus((state) => state.status?.day2 ?? false);
+  const released = useConferenceStatus((state) => state.status?.released ?? false);
   const committees = useConference((state) => state.committees);
   const abbreviationOf = (id: string) =>
     committees.find((committee) => committee.id === id)?.abbreviation ?? id.toUpperCase();
@@ -135,6 +139,7 @@ export function TopNav() {
   const items: NavItem[] = [];
   // With a switcher, its two views replace the links that would repeat them.
   if (!views) items.push({ to: '/', label: 'Home', end: true });
+  if (resolutionCommitteeOf(user, day2, released)) items.push({ to: '/resolution', label: 'Resolution' });
   items.push({ to: '/committees', label: 'Committees' });
   if (!views && isChair(user)) {
     items.push({

@@ -21,6 +21,9 @@ import { useConferenceStatusPolling } from '@/store/conferenceStatus';
 const ChairDashboard = lazy(() =>
   import('@/features/chair/ChairDashboard').then((m) => ({ default: m.ChairDashboard })),
 );
+const ResolutionPage = lazy(() =>
+  import('@/features/resolutions/ResolutionPage').then((module) => ({ default: module.ResolutionPage })),
+);
 const ActivityLog = lazy(() =>
   import('@/features/owner/ActivityLog').then((m) => ({ default: m.ActivityLog })),
 );
@@ -101,6 +104,14 @@ export function App() {
                     <Route path="/" element={<Home />} />
                     <Route path="/committees" element={<Committees />} />
                     <Route path="/committees/:id" element={<CommitteeDetail />} />
+                    <Route
+                      path="/resolution"
+                      element={
+                        <Suspense fallback={<PaneSkeleton />}>
+                          <ResolutionPage />
+                        </Suspense>
+                      }
+                    />
                     <Route
                       path="/chair/*"
                       element={

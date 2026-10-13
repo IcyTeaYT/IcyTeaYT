@@ -1,9 +1,10 @@
 import { create, type StoreApi, type UseBoundStore } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { AWARD_LABEL, type AwardType } from '@/config/awards';
-import { DEFAULTS, MOTION_BY_ID, PRESENTATION, VOTING, type MotionTypeId } from '@/config/rules';
+import { DEBATE, DEFAULTS, MOTION_BY_ID, PRESENTATION, VOTING, type MotionTypeId } from '@/config/rules';
 import type { Delegation } from '@/data/source/types';
-import { requiredVotes, resolveVote } from '@/lib/majority';
+import { requiredVotes, resolveVote, type VoteOutcome } from '@/lib/majority';
+import type { TopicNo } from '@/lib/resolution';
 import { formatClock } from '@/lib/time';
 import { adjustTimer, createTimer, pauseTimer, resetTimer, startTimer, type TimerState } from '@/lib/timer';
 import type {
@@ -16,11 +17,14 @@ import type {
   LogType,
   Motion,
   PresentationState,
+  ReadingState,
   Resolution,
   ResolutionStatus,
   RollCallChoice,
   SessionStatus,
   SpeakerEntry,
+  SpeechPart,
+  SpeechState,
   UnmoderatedState,
   VoteSession,
 } from './types';
@@ -31,7 +35,28 @@ const uid = (): string =>
     : `id-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
 
 /** Which clock an action is talking about. */
-export type TimerKey = 'gsl' | 'unmod' | 'present';
+export type TimerKey = 'gsl' | 'unmod' | 'present' | 'reading' | 'speech';
+
+/** Keys for the order of business: what has happened, per topic and per amendment. */
+export const stepKey = {
+  reading: (topic: TopicNo) => `t${topic}:reading`,
+  presented: (topic: TopicNo) => `t${topic}:presented`,
+  unmod: (topic: TopicNo) => `t${topic}:unmod`,
+  /** Speeches on the resolution: how many, or that the chair moved on. */
+  speeches: (topic: TopicNo, part: SpeechPart, closing: boolean) => `t${topic}:res:${part}${closing ? ':closing' : ''}`,
+  movedOn: (key: string) => `${key}:done`,
+  amendment: (amendmentId: string, part: SpeechPart) => `a:${amendmentId}:${part}`,
+  closingStarted: (topic: TopicNo) => `t${topic}:closing`,
+};
+
+export interface SpeechInput {
+  part: SpeechPart;
+  closing: boolean;
+  amendmentId: string | null;
+  amendmentNumber: number | null;
+  speakerId: string | null;
+  durationSec: number;
+}
 
 export interface ChairState {
   /** Delegation id → country name, so log entries read in plain English. */
@@ -49,6 +74,12 @@ export interface ChairState {
   briefingsHeld: number;
   /** How many Unmoderated Caucuses have been opened. */
   unmoderatedHeld: number;
+  /** The topic the committee is on: 1, then 2. */
+  topic: TopicNo;
+  reading: ReadingState;
+  speech: SpeechState;
+  /** The order of business so far — see `stepKey`. */
+  progress: Record<string, number>;
   motions: Motion[];
   resolutions: Resolution[];
   amendments: Amendment[];
@@ -97,6 +128,16 @@ export interface ChairState {
   unmodExtend: (seconds: number) => void;
   unmodEnd: () => void;
 
+  // The order of business
+  setTopic: (topic: TopicNo) => void;
+  /** Count a step as done — or the chair moving the committee on past it. */
+  markStep: (key: string) => void;
+  readingStart: (durationSec: number) => void;
+  readingEnd: () => void;
+  speechStart: (input: SpeechInput) => void;
+  speechOpenPois: (durationSec: number) => void;
+  speechEnd: () => void;
+
   // Presentation of a draft resolution
   presentStart: (input: {
     kind: PresentationState['kind'];
@@ -142,7 +183,8 @@ export interface ChairState {
   adjustPlacard: (field: 'for' | 'against' | 'abstain', delta: number) => void;
   castRollCallVote: (delegationId: string, choice: RollCallChoice | null) => void;
   beginSecondRound: () => void;
-  closeVote: () => void;
+  /** Records the result; returns it so it can be reported to the server. */
+  closeVote: () => (VoteOutcome & { tally: { for: number; against: number; abstain: number }; vote: VoteSession }) | null;
   cancelVote: () => void;
 
   // Awards
@@ -169,6 +211,22 @@ const emptyUnmoderated = (): UnmoderatedState => ({
   timer: createTimer(DEFAULTS.unmoderatedSec * 1000),
 });
 
+export const emptyReading = (): ReadingState => ({
+  active: false,
+  timer: createTimer(DEBATE.readingSec * 1000),
+});
+
+export const emptySpeech = (): SpeechState => ({
+  active: false,
+  part: 'for',
+  closing: false,
+  amendmentId: null,
+  amendmentNumber: null,
+  speakerId: null,
+  phase: 'speech',
+  timer: createTimer(DEBATE.speechSec * 1000),
+});
+
 export const emptyPresentation = (): PresentationState => ({
   active: false,
   kind: 'draft',
@@ -189,6 +247,10 @@ const initialState = () => ({
   presentationsHeld: 0,
   briefingsHeld: 0,
   unmoderatedHeld: 0,
+  topic: 1 as TopicNo,
+  reading: emptyReading(),
+  speech: emptySpeech(),
+  progress: {} as Record<string, number>,
   motions: [] as Motion[],
   resolutions: [] as Resolution[],
   amendments: [] as Amendment[],
@@ -221,6 +283,10 @@ function createChairState(committeeId: string) {
             return { unmoderated: { ...state.unmoderated, timer: transform(state.unmoderated.timer) } };
           case 'present':
             return { presentation: { ...state.presentation, timer: transform(state.presentation.timer) } };
+          case 'reading':
+            return { reading: { ...state.reading, timer: transform(state.reading.timer) } };
+          case 'speech':
+            return { speech: { ...state.speech, timer: transform(state.speech.timer) } };
         }
       });
     };
@@ -451,11 +517,12 @@ function createChairState(committeeId: string) {
             timer: startTimer(createTimer(durationSec * 1000), Date.now()),
           },
           unmoderatedHeld: state.unmoderatedHeld + 1,
+          progress: bump(state.progress, stepKey.unmod(state.topic)),
         }));
         log(
           'caucus',
           `Unmoderated caucus opened — ${formatClock(durationSec * 1000)}`,
-          `Proposed by ${nameOf(proposedBy)}.${purpose ? ` Purpose: ${purpose}.` : ''}`,
+          `${proposedBy ? `Proposed by ${nameOf(proposedBy)}.` : 'Opened by the Chair.'}${purpose ? ` Purpose: ${purpose}.` : ''}`,
         );
       },
 
@@ -470,6 +537,76 @@ function createChairState(committeeId: string) {
         const wasActive = get().unmoderated.active;
         set({ unmoderated: emptyUnmoderated() });
         if (wasActive) log('caucus', 'Unmoderated caucus closed');
+      },
+
+      /* ── The order of business ─────────────────────────────────────────── */
+
+      setTopic(topic) {
+        if (get().topic === topic) return;
+        set({ topic, reading: emptyReading(), speech: emptySpeech() });
+        log('session', `Topic ${topic} opened`);
+      },
+
+      markStep(key) {
+        set((state) => ({ progress: bump(state.progress, key) }));
+      },
+
+      readingStart(durationSec) {
+        set({ reading: { active: true, timer: startTimer(createTimer(durationSec * 1000), Date.now()) } });
+        log('presentation', `Reading Time — ${formatClock(durationSec * 1000)}`, `Topic ${get().topic}.`);
+      },
+
+      readingEnd() {
+        if (!get().reading.active) return;
+        set((state) => ({ reading: emptyReading(), progress: bump(state.progress, stepKey.reading(state.topic)) }));
+        log('presentation', 'Reading Time over');
+      },
+
+      speechStart({ part, closing, amendmentId, amendmentNumber, speakerId, durationSec }) {
+        set({
+          speech: {
+            active: true,
+            part,
+            closing,
+            amendmentId,
+            amendmentNumber,
+            speakerId,
+            phase: 'speech',
+            // The speaker is on their feet: the clock starts with them.
+            timer: startTimer(createTimer(durationSec * 1000), Date.now()),
+          },
+        });
+        const about = amendmentNumber ? `Amendment ${amendmentNumber}` : 'the resolution';
+        log(
+          'speaker',
+          part === 'submitter'
+            ? `${nameOf(speakerId)} speaks for ${about} as its submitter`
+            : `${nameOf(speakerId)} speaks ${part === 'for' ? 'in favour of' : 'against'} ${about}${closing ? ' (closing)' : ''}`,
+          `Speaking time ${formatClock(durationSec * 1000)}.`,
+        );
+      },
+
+      speechOpenPois(durationSec) {
+        const speech = get().speech;
+        if (!speech.active) return;
+        set({ speech: { ...speech, phase: 'pois', timer: startTimer(createTimer(durationSec * 1000), Date.now()) } });
+        log('speaker', 'Points of Information', `${formatClock(durationSec * 1000)} for questions to ${nameOf(speech.speakerId)}.`);
+      },
+
+      speechEnd() {
+        const speech = get().speech;
+        if (!speech.active) return;
+        const key = speech.amendmentId
+          ? stepKey.amendment(speech.amendmentId, speech.part)
+          : stepKey.speeches(get().topic, speech.part, speech.closing);
+        set((state) => ({
+          speech: emptySpeech(),
+          // Also who spoke, so the chair can see who has had a turn.
+          progress: speech.speakerId
+            ? bump(bump(state.progress, key), `${key}@${speech.speakerId}`)
+            : bump(state.progress, key),
+        }));
+        log('speaker', `${nameOf(speech.speakerId)} yields the floor back to the Chair`);
       },
 
       /* ── Presentation of a draft resolution ────────────────────────────── */
@@ -517,7 +654,11 @@ function createChairState(committeeId: string) {
         set((state) =>
           current.kind === 'briefing'
             ? { presentation: emptyPresentation(), briefingsHeld: state.briefingsHeld + 1 }
-            : { presentation: emptyPresentation(), presentationsHeld: state.presentationsHeld + 1 },
+            : {
+                presentation: emptyPresentation(),
+                presentationsHeld: state.presentationsHeld + 1,
+                progress: bump(state.progress, stepKey.presented(state.topic)),
+              },
         );
         log(
           'presentation',
@@ -737,7 +878,7 @@ function createChairState(committeeId: string) {
       closeVote() {
         const state = get();
         const vote = state.vote;
-        if (!vote) return;
+        if (!vote) return null;
 
         const tally =
           vote.mode === 'placard'
@@ -779,6 +920,7 @@ function createChairState(committeeId: string) {
           `${vote.subjectLabel} — ${outcome.passed ? 'PASSED' : 'FAILED'}`,
           `${tally.for} for, ${tally.against} against, ${tally.abstain} abstaining. ${outcome.required} of ${outcome.base} votes cast needed.`,
         );
+        return { ...outcome, tally, vote };
       },
 
       cancelVote() {
@@ -839,6 +981,11 @@ function createChairState(committeeId: string) {
     };
   };
 }
+
+const bump = (progress: Record<string, number>, key: string): Record<string, number> => ({
+  ...progress,
+  [key]: (progress[key] ?? 0) + 1,
+});
 
 function describeParams(params: Record<string, string | number>): string | undefined {
   const parts: string[] = [];
@@ -948,6 +1095,10 @@ export type ChairData = Pick<
   | 'presentationsHeld'
   | 'briefingsHeld'
   | 'unmoderatedHeld'
+  | 'topic'
+  | 'reading'
+  | 'speech'
+  | 'progress'
   | 'motions'
   | 'resolutions'
   | 'amendments'
@@ -959,6 +1110,15 @@ export type ChairData = Pick<
 
 export function sessionStatusOf(state: ChairData): SessionStatus {
   if (state.vote) return 'Voting Procedure';
+  if (state.speech?.active) {
+    if (state.speech.phase === 'pois') return 'Points of Information';
+    return state.speech.part === 'submitter'
+      ? 'Submitter’s speech'
+      : state.speech.part === 'for'
+        ? 'Speech in favour'
+        : 'Speech against';
+  }
+  if (state.reading?.active) return 'Reading Time';
   if (state.presentation?.active) {
     if (state.presentation.phase === 'questions') return 'Question-and-Answer Period';
     return state.presentation.kind === 'briefing'

@@ -1,10 +1,11 @@
-import { ArrowLeft, Cloud, Laptop } from 'lucide-react';
+import { ArrowLeft, Cloud, FileText, Laptop } from 'lucide-react';
 import { Link, useParams } from 'react-router-dom';
 import { PageContainer } from '@/components/AppShell';
 import { Flag } from '@/components/Flag';
 import { Badge } from '@/components/ui/Badge';
 import { Card, CardBody, CardHeader } from '@/components/ui/Card';
 import { AWARDS } from '@/config/awards';
+import { hasResolutions } from '@/config/resolutions';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { MAJORITY_LABEL, MOTION_BY_ID } from '@/config/rules';
 import {
@@ -64,10 +65,21 @@ export function CommitteeLive() {
           {summary?.detail ? <p className="mt-2 text-sm text-muted">{summary.detail}</p> : null}
         </div>
 
-        <Badge tone={remote ? 'success' : 'neutral'}>
-          {remote ? <Cloud size={11} strokeWidth={1.5} /> : <Laptop size={11} strokeWidth={1.5} />}
-          {remote ? 'Live' : 'This browser'}
-        </Badge>
+        <div className="flex flex-wrap items-center gap-3">
+          {committeeId && hasResolutions(committeeId) ? (
+            <Link
+              to={`/resolution?committee=${encodeURIComponent(committeeId)}`}
+              className="inline-flex h-8 items-center gap-1.5 rounded-control border border-hairline bg-surface px-3 text-[13px] font-medium text-ink-800 transition-colors duration-200 hover:border-teal-300 hover:text-teal-700"
+            >
+              <FileText size={14} strokeWidth={1.5} />
+              Resolution and amendments
+            </Link>
+          ) : null}
+          <Badge tone={remote ? 'success' : 'neutral'}>
+            {remote ? <Cloud size={11} strokeWidth={1.5} /> : <Laptop size={11} strokeWidth={1.5} />}
+            {remote ? 'Live' : 'This browser'}
+          </Badge>
+        </div>
       </header>
 
       {!snapshot ? (

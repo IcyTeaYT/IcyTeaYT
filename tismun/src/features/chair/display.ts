@@ -1,5 +1,7 @@
 import type { Committee } from '@/data/source/types';
+import type { Amendment } from '@/lib/resolution';
 import type { TimerState } from '@/lib/timer';
+import { speechDetail } from '@/features/live/snapshot';
 import { sessionStatusOf, type ChairState } from './store';
 import type { SessionStatus } from './types';
 
@@ -20,7 +22,25 @@ export interface DisplayState {
   primary: { label: string; timer: TimerState } | null;
   secondary: { label: string; timer: TimerState } | null;
   queue: string[];
+  /** The amendment being debated or voted on, so the whole room can read it. */
+  amendment?: DisplayAmendment | null;
+  /** e.g. "Note passing is suspended", during a vote. */
+  notice?: string | null;
   updatedAt: number;
+}
+
+export interface DisplayAmendment {
+  number: number;
+  heading: string;
+  kind: Amendment['kind'];
+  oldText: string | null;
+  newText: string | null;
+  submitters: string[];
+}
+
+/** What the projector shows beyond the session itself: the amendment on the floor. */
+export interface DisplayExtra {
+  amendment: Amendment | null;
 }
 
 export type DisplayMessage =
@@ -33,16 +53,58 @@ export const displayChannelName = (committeeId: string): string => `tismun.displ
 /* ────────────────────────────────────────────────────────────────────────── */
 
 /** Reduce the whole session down to what belongs on a projector. */
-export function buildDisplayState(state: ChairState, committee: Committee): DisplayState {
+export function buildDisplayState(state: ChairState, committee: Committee, extra?: DisplayExtra): DisplayState {
+  const amendment = extra?.amendment ?? null;
   const base = {
     committeeName: committee.name,
     committeeAbbreviation: committee.abbreviation,
     status: sessionStatusOf(state),
     updatedAt: Date.now(),
+    amendment: amendment
+      ? {
+          number: amendment.number,
+          heading:
+            amendment.kind === 'add'
+              ? amendment.label
+              : `${amendment.kind === 'remove' ? 'Removes' : 'Changes'} ${amendment.label.toLowerCase()}`,
+          kind: amendment.kind,
+          oldText: amendment.oldText,
+          newText: amendment.newText,
+          submitters: amendment.submitters,
+        }
+      : null,
+    notice: state.vote ? 'Note passing is suspended' : null,
   };
 
   const nameOf = (id: string | null | undefined) => (id ? (state.names[id] ?? null) : null);
   const codeOf = (id: string | null | undefined) => (id ? (state.codes[id] ?? null) : null);
+
+  if (state.speech.active) {
+    return {
+      ...base,
+      detail: speechDetail(state.speech),
+      speakerName: nameOf(state.speech.speakerId),
+      speakerCode: codeOf(state.speech.speakerId),
+      primary: {
+        label: state.speech.phase === 'pois' ? 'Points of Information' : 'Speaking time',
+        timer: state.speech.timer,
+      },
+      secondary: null,
+      queue: [],
+    };
+  }
+
+  if (state.reading.active) {
+    return {
+      ...base,
+      detail: 'Read the draft resolution',
+      speakerName: null,
+      speakerCode: null,
+      primary: { label: 'Reading Time', timer: state.reading.timer },
+      secondary: null,
+      queue: [],
+    };
+  }
 
   if (state.presentation.active) {
     const resolution = state.resolutions.find(
