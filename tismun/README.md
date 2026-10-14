@@ -395,7 +395,8 @@ it happens:
    Main Submitter is offered first for closing remarks)
 10. Voting Procedure. Note passing is suspended, and the projector says so.
 11. Result, then **Move on to Topic 2**, and the same again
-12. Awards, after the last resolution only: the chair picks the Best Delegate
+12. Awards (every committee but the Emergency Session), after the last
+    resolution only: the chair picks the Best Delegate
     and the Honorable Mention right there in Guided Mode (the same pickers as
     the Awards page). The session is finished when both are given; they can
     still be changed until the closing ceremony.
@@ -571,7 +572,9 @@ Mode follows a different flow: Roll Call, the chairs' Crisis Briefing (5:00),
 the General Speakers' List, Motion for an Unmoderated Caucus (purpose "Writing
 the draft resolution"), back to the GSL or another caucus, Register the Draft
 Resolution once delegates submit one, its Presentation, debate and amendments,
-Close Debate, Voting Procedure and the Result, then the Awards.
+Close Debate, Voting Procedure and the Result. The Emergency Session gives no
+awards: it has no Awards step or page, and the Secretariat's awards table
+leaves it out.
 
 ### Roles by day
 

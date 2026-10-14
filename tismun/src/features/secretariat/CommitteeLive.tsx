@@ -4,7 +4,7 @@ import { PageContainer } from '@/components/AppShell';
 import { Flag } from '@/components/Flag';
 import { Badge } from '@/components/ui/Badge';
 import { Card, CardBody, CardHeader } from '@/components/ui/Card';
-import { AWARDS } from '@/config/awards';
+import { AWARDS, givesAwards } from '@/config/awards';
 import { hasResolutions } from '@/config/resolutions';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { MAJORITY_LABEL, MOTION_BY_ID } from '@/config/rules';
@@ -259,7 +259,8 @@ export function CommitteeLive() {
           </div>
 
           <div className="space-y-5 xl:sticky xl:top-24 xl:self-start">
-            {/* Awards */}
+            {/* Awards — the Emergency Session gives none. */}
+            {givesAwards(committeeId) ? (
             <Card>
               <CardHeader
                 label="Awards"
@@ -291,6 +292,7 @@ export function CommitteeLive() {
                 })}
               </ul>
             </Card>
+            ) : null}
 
             {/* Attendance */}
             <Card>

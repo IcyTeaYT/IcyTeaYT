@@ -7,7 +7,8 @@
  *
  * Every Day 1 committee debates two pre-written resolutions, Topic 1 then
  * Topic 2, each the same way. Note passing is suspended during any voting.
- * After the last resolution, the chairs choose the awardees.
+ * After the last resolution, the chairs choose the awardees — every committee
+ * but the Emergency Session, which gives no awards.
  */
 
 import { emergencySession } from './emergency';
@@ -144,8 +145,8 @@ export const EMERGENCY_FLOW: CommitteeFlow = {
       label: 'Choose the Draft Resolution',
       hint: 'Pick the submitted draft the committee will debate.',
     },
+    // The Emergency Session gives no awards: it ends with the result.
     ...DEBATE_STEPS,
-    AWARDS_STEP,
   ],
 };
 

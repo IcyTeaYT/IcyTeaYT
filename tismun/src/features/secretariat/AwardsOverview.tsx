@@ -5,7 +5,7 @@ import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { CONFERENCE } from '@/config/conference';
-import { AWARDS } from '@/config/awards';
+import { AWARDS, givesAwards } from '@/config/awards';
 import type { Committee } from '@/data/source/types';
 import type { Award } from '@/features/chair/types';
 import type { LiveSummary } from '@/features/live/types';
@@ -17,10 +17,12 @@ import { formatDateTime } from '@/lib/time';
  * the closing ceremony and to hand to whoever prints the certificates.
  */
 export function AwardsOverview({
-  rows,
+  rows: allRows,
 }: {
   rows: { committee: Committee; summary: LiveSummary | null }[];
 }) {
+  // The Emergency Session gives no awards.
+  const rows = allRows.filter((row) => givesAwards(row.committee.id));
   const total = rows.length * AWARDS.length;
   const given = rows.reduce((count, row) => count + (row.summary?.awards?.length ?? 0), 0);
 

@@ -40,6 +40,7 @@ import { ChairResProvider, FloorReporter, useChairRes } from './resContext';
 import { buildDisplayState, displayChannelName, type DisplayExtra, type DisplayMessage } from './display';
 import { currentStepIndex, guidedScreen, sessionChecklist } from './guide';
 import { Awards } from './panes/Awards';
+import { givesAwards } from '@/config/awards';
 import { Guided } from './panes/Guided';
 import { Motions } from './panes/Motions';
 import { Presentation } from './panes/Presentation';
@@ -170,6 +171,8 @@ function DashboardChrome() {
   const onExtra = SECTIONS.some((section) => section.extra && location.pathname.startsWith(section.to));
   const [showExtraChoice, setShowExtra] = useState(false);
   const showExtra = showExtraChoice || onExtra;
+  // The Emergency Session gives no awards.
+  const sections = givesAwards(committee.id) ? SECTIONS : SECTIONS.filter((section) => section.to !== '/chair/awards');
 
   useProjectorBroadcast();
   // One device runs the committee at a time; any other chair's device watches
@@ -265,13 +268,13 @@ function DashboardChrome() {
             phone instead of letting the strip below scroll. */}
           <nav aria-label="Chair tools" className="min-w-0 lg:sticky lg:top-24 lg:self-start">
             <ul className="no-scrollbar -mx-5 flex gap-1.5 overflow-x-auto px-5 lg:mx-0 lg:flex-col lg:gap-0.5 lg:overflow-visible lg:px-0">
-              {SECTIONS.filter((section) => !section.extra || showExtra).map((section, index) => (
+              {sections.filter((section) => !section.extra || showExtra).map((section, index) => (
                 <li
                   key={section.to}
                   className={
                     index === 1
                       ? 'shrink-0 lg:mt-2 lg:border-t lg:border-hairline lg:pt-2'
-                      : section.extra && SECTIONS.findIndex((entry) => entry.extra) === SECTIONS.indexOf(section)
+                      : section.extra && sections.findIndex((entry) => entry.extra) === sections.indexOf(section)
                         ? 'shrink-0 lg:mt-2 lg:border-t lg:border-hairline lg:pt-2'
                         : 'shrink-0'
                   }
@@ -349,7 +352,10 @@ function DashboardChrome() {
                 <Route path="unmoderated" element={<UnmoderatedCaucus />} />
                 <Route path="motions" element={<Motions />} />
                 <Route path="resolutions" element={<Resolutions />} />
-                <Route path="awards" element={<Awards />} />
+                <Route
+                  path="awards"
+                  element={givesAwards(committee.id) ? <Awards /> : <Navigate to="/chair/guided" replace />}
+                />
                 <Route path="log" element={<SessionLog />} />
                 <Route path="*" element={<Navigate to="/chair/guided" replace />} />
               </Routes>
