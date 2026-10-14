@@ -381,7 +381,7 @@ it happens:
 1. Roll Call (**Everyone is here** marks all present and records the roll in one tap)
 2. Reading Time (10 minutes by default)
 3. Presentation of the Resolution: the Main Submitter, then Points of
-   Clarification and Information, then the floor yields back to the Chair
+   Information, then the floor yields back to the Chair
 4. Speeches in Favour, each followed by Points of Information
 5. Speeches Against, each followed by Points of Information
 6. Unmoderated Caucus for Amendments (15 minutes by default; **Extend by 5

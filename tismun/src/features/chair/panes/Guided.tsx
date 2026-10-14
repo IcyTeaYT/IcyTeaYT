@@ -499,7 +499,7 @@ function NowPanel({ screen, state }: { screen: GuidedScreen; state: ChairState }
       if (presentation.phase === 'questions') {
         return (
           <div className="space-y-5">
-            <Heading stage={briefing ? 'Questions' : 'Points of Clarification and Information'} title={briefing ? 'The chairs take questions' : presenter} />
+            <Heading stage={briefing ? 'Questions' : 'Points of Information'} title={briefing ? 'The chairs take questions' : presenter} />
             <Clock timerKey="present" timer={presentation.timer} label="Questions" />
             <Big icon={Check} onClick={state.presentEnd}>
               {briefing ? 'Finish the briefing' : `Done — ${presenter} yields the floor back to the Chair`}
@@ -513,7 +513,7 @@ function NowPanel({ screen, state }: { screen: GuidedScreen; state: ChairState }
           <Clock timerKey="present" timer={presentation.timer} label={briefing ? 'Briefing time' : 'Presentation time'} />
           <div className="space-y-2.5">
             <Big icon={Hand} onClick={() => state.presentOpenQuestions(PRESENTATION.qaSec)}>
-              {briefing ? 'Open questions' : 'Presentation over — open POCs and POIs'} ({formatClock(PRESENTATION.qaSec * 1000)})
+              {briefing ? 'Open questions' : 'Presentation over — open Points of Information'} ({formatClock(PRESENTATION.qaSec * 1000)})
             </Big>
             <Small icon={SkipForward} onClick={state.presentEnd}>
               {briefing ? 'Finish the briefing' : 'No questions — yield the floor back to the Chair'}
@@ -652,7 +652,7 @@ function NowPanel({ screen, state }: { screen: GuidedScreen; state: ChairState }
             {replaced?.length
               ? `${main} is the Main Submitter in place of ${replaced.join(', ')}, who is not in this committee. `
               : ''}
-            Then Points of Clarification and Information, then they yield the floor back to you.
+            Then Points of Information, then they yield the floor back to you.
           </Heading>
           <DurationPresets label="Presentation time" valueSec={presentSec} onChange={setPresentSec} presetsSec={PRESENTATION.draftPresetsSec} />
           <ExpectedSpeaker

@@ -53,7 +53,7 @@ const DEBATE_STEPS: FlowStep[] = [
   {
     id: 'present-draft',
     label: 'Presentation of the Resolution',
-    hint: 'The Main Submitter presents it, then takes Points of Clarification and Points of Information, then yields the floor back to the Chair.',
+    hint: 'The Main Submitter presents it, then takes Points of Information, then yields the floor back to the Chair.',
   },
   {
     id: 'speeches-for',

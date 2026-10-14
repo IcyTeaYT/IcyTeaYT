@@ -647,7 +647,7 @@ function createChairState(committeeId: string) {
         });
         log(
           'presentation',
-          current.kind === 'briefing' ? 'Questions opened' : 'Points of Clarification and Information opened',
+          current.kind === 'briefing' ? 'Questions opened' : 'Points of Information opened',
           `${formatClock(durationSec * 1000)}.`,
         );
       },
@@ -671,7 +671,7 @@ function createChairState(committeeId: string) {
               ? 'Crisis briefing questions closed'
               : 'Crisis briefing finished'
             : current.phase === 'questions'
-            ? 'Points of Clarification and Information closed — the floor yields back to the Chair'
+            ? 'Points of Information closed — the floor yields back to the Chair'
             : 'Presentation finished — the floor yields back to the Chair',
         );
       },
@@ -1127,7 +1127,7 @@ export function sessionStatusOf(state: ChairData): SessionStatus {
   if (state.reading?.active) return 'Reading Time';
   if (state.presentation?.active) {
     if (state.presentation.phase === 'questions') {
-      return state.presentation.kind === 'briefing' ? 'Crisis Briefing' : 'Points of Clarification and Information';
+      return state.presentation.kind === 'briefing' ? 'Crisis Briefing' : 'Points of Information';
     }
     return state.presentation.kind === 'briefing'
       ? 'Crisis Briefing'

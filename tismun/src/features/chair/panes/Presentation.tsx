@@ -73,7 +73,7 @@ export function Presentation() {
           questions
             ? isBriefing
               ? 'Questions'
-              : 'Points of Clarification and Information'
+              : 'Points of Information'
             : isBriefing
               ? 'Crisis Briefing'
               : 'Presentation of the Resolution'
@@ -111,7 +111,7 @@ export function Presentation() {
             ) : (
               <>
                 <DurationInput
-                  label={isBriefing ? 'Questions' : 'Points of Clarification and Information'}
+                  label={isBriefing ? 'Questions' : 'Points of Information'}
                   valueSec={questionsSec}
                   onChange={setQuestionsSec}
                 />
@@ -123,7 +123,7 @@ export function Presentation() {
                     onClick={() => openQuestions(questionsSec)}
                   >
                     <MessageCircleQuestion size={17} strokeWidth={1.5} />
-                    {isBriefing ? 'Open questions' : 'Open POCs and POIs'} ({formatClock(questionsSec * 1000)})
+                    {isBriefing ? 'Open questions' : 'Open Points of Information'} ({formatClock(questionsSec * 1000)})
                   </Button>
                   <Button variant="secondary" className="h-12" onClick={finish}>
                     <SkipForward size={17} strokeWidth={1.5} />
@@ -144,7 +144,7 @@ export function Presentation() {
       description={
         kind === 'briefing'
           ? 'The chairs present the Emergency Session topic to the committee, followed by optional questions.'
-          : 'The Main Submitter presents the resolution, then Points of Clarification and Information.'
+          : 'The Main Submitter presents the resolution, then Points of Information.'
       }
       actions={
         held > 0 || briefingsHeld > 0 ? (

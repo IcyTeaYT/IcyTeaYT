@@ -25,7 +25,6 @@ const STATUS_TONE: Record<string, 'neutral' | 'teal' | 'warning'> = {
   'Crisis Briefing': 'teal',
   'Reading Time': 'teal',
   'Presentation of the Resolution': 'teal',
-  'Points of Clarification and Information': 'teal',
   'Speech in favour': 'teal',
   'Speech against': 'teal',
   'Submitter’s speech': 'teal',
