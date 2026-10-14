@@ -618,34 +618,36 @@ function ShareDialog({
         </>
       }
     >
-      {error ? <p className="mb-3 text-sm text-danger">{error}</p> : null}
-      {countries.length === 0 ? (
-        <p className="text-sm text-muted">No other countries found in this committee.</p>
-      ) : (
-        <ul className="max-h-[50vh] space-y-1 overflow-y-auto">
-          {countries.map((entry) => {
-            const checked = chosen.some((member) => sameCountry(member, entry.name));
-            return (
-              <li key={entry.name}>
-                <label className="flex cursor-pointer items-center gap-3 rounded-control px-2 py-2 hover:bg-ink-50">
-                  <input
-                    type="checkbox"
-                    checked={checked}
-                    onChange={() =>
-                      setChosen((list) =>
-                        checked ? list.filter((member) => !sameCountry(member, entry.name)) : [...list, entry.name],
-                      )
-                    }
-                    className="h-4 w-4 accent-teal-600"
-                  />
-                  <Flag code={entry.code} country={entry.name} size="sm" />
-                  <span className="text-sm text-ink-900">{entry.name}</span>
-                </label>
-              </li>
-            );
-          })}
-        </ul>
-      )}
+      <div className="px-3 py-3 sm:px-4">
+        {error ? <p className="mb-3 px-2 text-sm text-danger">{error}</p> : null}
+        {countries.length === 0 ? (
+          <p className="px-2 text-sm text-muted">No other countries found in this committee.</p>
+        ) : (
+          <ul className="max-h-[50vh] space-y-1 overflow-y-auto">
+            {countries.map((entry) => {
+              const checked = chosen.some((member) => sameCountry(member, entry.name));
+              return (
+                <li key={entry.name}>
+                  <label className="flex cursor-pointer items-center gap-3 rounded-control px-2 py-2 hover:bg-ink-50">
+                    <input
+                      type="checkbox"
+                      checked={checked}
+                      onChange={() =>
+                        setChosen((list) =>
+                          checked ? list.filter((member) => !sameCountry(member, entry.name)) : [...list, entry.name],
+                        )
+                      }
+                      className="h-4 w-4 accent-teal-600"
+                    />
+                    <Flag code={entry.code} country={entry.name} size="sm" />
+                    <span className="text-sm text-ink-900">{entry.name}</span>
+                  </label>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </div>
     </Modal>
   );
 }
@@ -720,7 +722,7 @@ function SubmitDialog({
         </>
       }
     >
-      <div className="space-y-4 text-sm">
+      <div className="space-y-4 px-5 py-4 text-sm">
         {problem ? <p className="text-danger">{problem}</p> : null}
         {error ? <p className="text-danger">{error}</p> : null}
         {preview.length ? (
