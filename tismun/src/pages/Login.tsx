@@ -1,7 +1,7 @@
 import { motion } from 'framer-motion';
 import { Gavel, Info, Landmark, Loader2, Users } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Link, Navigate, useNavigate } from 'react-router-dom';
+import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { GlobeLines } from '@/components/GlobeLines';
 import { HostedBy } from '@/components/HostedBy';
 import { PoweredBy } from '@/components/PoweredBy';
@@ -21,6 +21,11 @@ export function Login() {
   const restore = useAuth((state) => state.restore);
   const signInAs = useAuth((state) => state.signInAs);
   const navigate = useNavigate();
+  const location = useLocation();
+  const notice = useAuth((state) => state.notice);
+  // Back to where they were — a chair to their dashboard — not always the home page.
+  const from = (location.state as { from?: unknown } | null)?.from;
+  const returnTo = typeof from === 'string' && from.startsWith('/') && !from.startsWith('/login') ? from : '/';
   const committees = useConference((state) => state.committees);
 
   const [demoUsers, setDemoUsers] = useState<User[]>([]);
@@ -54,7 +59,7 @@ export function Login() {
       const result = await exchangeCredential(idToken);
       if (result.ok) {
         await restore();
-        navigate('/', { replace: true });
+        navigate(returnTo, { replace: true });
       } else {
         setError(result.error ?? COPY.login.wrongDomain);
         setSigningIn(false);
@@ -103,7 +108,7 @@ export function Login() {
     };
   }, [demoUsers]);
 
-  if (status === 'authenticated') return <Navigate to="/" replace />;
+  if (status === 'authenticated') return <Navigate to={returnTo} replace />;
 
   const signIn = async (email: string | undefined) => {
     if (!email) return;
@@ -223,6 +228,15 @@ export function Login() {
               </span>
             )}
           </p>
+
+          {notice && !error ? (
+            <p
+              role="status"
+              className="mt-4 rounded-control border border-warning-border bg-warning-soft px-3 py-2.5 text-sm text-warning"
+            >
+              {notice}
+            </p>
+          ) : null}
 
           {error ? (
             <p

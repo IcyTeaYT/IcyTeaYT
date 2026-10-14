@@ -1,4 +1,5 @@
 import type { ConferenceStatus } from '@/config/emergency';
+import { signedOut } from '@/lib/signedOut';
 import { delegationId, mergeDelegations, rowToCommittee, rowToUser } from './normalise';
 import type {
   ActivityLog,
@@ -45,9 +46,15 @@ async function api<T>(path: string): Promise<T> {
     headers: { Accept: 'application/json' },
   });
 
-  if (response.status === 401) throw new ApiError('Not signed in', 401);
+  if (response.status === 401) {
+    signedOut();
+    throw new ApiError('Not signed in', 401);
+  }
   if (response.status === 403) throw new ApiError('Not allowed', 403);
-  if (!response.ok) throw new ApiError(`Request failed: ${path}`, response.status);
+  if (!response.ok) {
+    const body = (await response.json().catch(() => null)) as { error?: string } | null;
+    throw new ApiError(body?.error ?? `Request failed: ${path}`, response.status);
+  }
 
   return (await response.json()) as T;
 }
@@ -114,6 +121,7 @@ export const liveSource: DataSource = {
       headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
       body: JSON.stringify({ action }),
     });
+    if (response.status === 401) signedOut();
     if (!response.ok) {
       const body = (await response.json().catch(() => null)) as { error?: string } | null;
       throw new ApiError(body?.error ?? 'The override could not be saved.', response.status);
@@ -133,6 +141,7 @@ export const liveSource: DataSource = {
       headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
       body: JSON.stringify({ confirm: 'RESET' }),
     });
+    if (response.status === 401) signedOut();
     if (!response.ok) {
       const body = (await response.json().catch(() => null)) as { error?: string } | null;
       throw new ApiError(body?.error ?? 'The sessions could not be reset.', response.status);
@@ -152,6 +161,7 @@ export const liveSource: DataSource = {
       credentials: 'same-origin',
       headers: { Accept: 'application/json' },
     });
+    if (response.status === 401) signedOut();
     const body = (await response.json().catch(() => null)) as (ResWorkspace & { error?: string }) | null;
     if (!response.ok) throw new ApiError(body?.error ?? 'The resolution could not be loaded.', response.status);
     return body ?? { available: false, serverNow: Date.now() };
@@ -164,6 +174,7 @@ export const liveSource: DataSource = {
       headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
       body: JSON.stringify(action),
     });
+    if (response.status === 401) signedOut();
     const body = (await response.json().catch(() => null)) as (ResActionResult & { error?: string }) | null;
     if (!response.ok) throw new ApiError(body?.error ?? 'That did not save. Try again.', response.status);
     return body ?? { serverNow: Date.now() };
@@ -181,6 +192,7 @@ export const liveSource: DataSource = {
       headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
       body: JSON.stringify(seat),
     });
+    if (response.status === 401) signedOut();
     if (!response.ok) {
       const body = (await response.json().catch(() => null)) as { error?: string } | null;
       throw new ApiError(body?.error ?? 'Testing could not start.', response.status);
@@ -198,12 +210,14 @@ export const liveSource: DataSource = {
       headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
       body: JSON.stringify({ action: 'clear-practice' }),
     });
+    if (response.status === 401) signedOut();
     if (!response.ok) throw new ApiError('The practice copies could not be cleared.', response.status);
   },
 
   async ping(): Promise<void> {
     try {
-      await fetch('/api/ping', { method: 'POST', credentials: 'same-origin' });
+      const response = await fetch('/api/ping', { method: 'POST', credentials: 'same-origin' });
+      if (response.status === 401) signedOut();
     } catch {
       /* offline — the next beat will catch up */
     }

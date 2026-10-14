@@ -1,3 +1,4 @@
+import { signedOut } from '@/lib/signedOut';
 import { noteServerNow } from './serverClock';
 import type {
   ControlClaim,
@@ -51,6 +52,8 @@ async function call<T extends { configured: boolean; serverNow: number }>(
     // this caller. That is a permission problem, not an availability one.
     if (response.status === 401 || response.status === 403) {
       reachable = true;
+      // Signed out — the sign-in expired. Say so, rather than fail quietly.
+      if (response.status === 401) signedOut();
       return null;
     }
     if (!response.ok) {
@@ -104,6 +107,8 @@ export async function pushLive(committeeId: string, push: LivePush): Promise<Pus
     }
     if (response.status === 401 || response.status === 403) {
       reachable = true;
+      // Signed out — the sign-in expired. Say so, rather than fail quietly.
+      if (response.status === 401) signedOut();
       return { kind: 'unavailable' };
     }
     if (!response.ok) {

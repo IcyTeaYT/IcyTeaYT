@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { DATA_MODE } from '@/config/conference';
 import { dataSource } from '@/data/source';
 import type { User } from '@/data/source/types';
+import { onSignedOut } from '@/lib/signedOut';
 import { readJson, removeKey, writeJson } from '@/lib/storage';
 
 /**
@@ -21,6 +22,8 @@ interface AuthState {
   status: Status;
   user: User | null;
   error: string | null;
+  /** Why this person is back at the sign-in page, when it was not their choice. */
+  notice: string | null;
   /** Resolve the session on app boot. Resolves once the status is settled. */
   restore: () => Promise<void>;
   /** Demo mode only: adopt a known mock account. */
@@ -33,12 +36,13 @@ export const useAuth = create<AuthState>((set) => ({
   status: 'booting',
   user: null,
   error: null,
+  notice: null,
 
   async restore() {
     try {
       if (DATA_MODE === 'live') {
         const user = await dataSource.getMe('');
-        set(user ? { status: 'authenticated', user } : { status: 'unauthenticated', user: null });
+        set(user ? { status: 'authenticated', user, notice: null } : { status: 'unauthenticated', user: null });
         return;
       }
 
@@ -88,7 +92,7 @@ export const useAuth = create<AuthState>((set) => ({
         /* offline — the cookie expires on its own */
       }
     }
-    set({ status: 'unauthenticated', user: null, error: null });
+    set({ status: 'unauthenticated', user: null, error: null, notice: null });
   },
 
   clearError() {
@@ -122,3 +126,15 @@ export const emergencyOnly = (user: User | null, day2: boolean): boolean =>
       !user.access.secretariat &&
       (user.emergency?.role === 'DELEGATE' || user.emergency?.role === 'CHAIR'),
   );
+
+// A request came back "not signed in" while this tab thought someone was: the
+// sign-in expired. Back to the sign-in page, saying why. Nothing is lost — a
+// chair's session is kept on the device and carries on after signing in.
+onSignedOut(() => {
+  if (DATA_MODE !== 'live' || useAuth.getState().status !== 'authenticated') return;
+  useAuth.setState({
+    status: 'unauthenticated',
+    user: null,
+    notice: 'Your sign-in expired. Sign in again to carry on — nothing is lost.',
+  });
+});

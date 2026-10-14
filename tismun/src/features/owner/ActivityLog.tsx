@@ -83,10 +83,12 @@ export function ActivityLog({ embedded = false }: { embedded?: boolean }) {
       setLog(await dataSource.getActivity());
       setFailed(null);
     } catch (error) {
+      const status = (error as { status?: number }).status;
+      const reason = error instanceof Error && error.message && !/^Request failed/.test(error.message) ? ` (${error.message})` : '';
       setFailed(
-        (error as { status?: number }).status === 403
+        status === 403
           ? 'The sign-in log is only for the site owner.'
-          : 'The sign-in log could not be loaded. It will try again shortly.',
+          : `The sign-in log could not be loaded${reason}. It will try again shortly.`,
       );
     } finally {
       setRefreshing(false);
