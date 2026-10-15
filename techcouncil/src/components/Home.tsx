@@ -9,6 +9,7 @@ import { AnnouncementBar, BAR_HEIGHT } from './AnnouncementBar';
 import { Marquee } from './sections/Marquee';
 import { About } from './sections/About';
 import { Projects } from './sections/Projects';
+import { TismunFeedback } from './sections/TismunFeedback';
 import { Founders } from './sections/Founders';
 import { SuggestionBox } from './sections/SuggestionBox';
 import { Footer } from './sections/Footer';
@@ -88,6 +89,7 @@ export function Home() {
             <Statement />
             <About />
             <Projects />
+            <TismunFeedback />
             <Founders />
             <SuggestionBox />
             <Faq />

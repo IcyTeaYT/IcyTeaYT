@@ -22,3 +22,16 @@ CREATE TABLE IF NOT EXISTS rate_limits (
 );
 
 CREATE INDEX IF NOT EXISTS idx_rate_limits_ip ON rate_limits (ip_hash, created_at);
+
+-- TISMUN feedback: a 1–5 rating, who left it, and an optional comment.
+-- (The function also creates this table on first use.)
+CREATE TABLE IF NOT EXISTS tismun_feedback (
+  id          INTEGER PRIMARY KEY AUTOINCREMENT,
+  rating      INTEGER NOT NULL CHECK (rating BETWEEN 1 AND 5),
+  name        TEXT    NOT NULL CHECK (length(name) BETWEEN 1 AND 80),
+  role        TEXT    NOT NULL CHECK (role IN ('delegate', 'chair', 'staff', 'guest')),
+  comment     TEXT             CHECK (comment IS NULL OR length(comment) <= 1000),
+  created_at  TEXT    NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
+);
+
+CREATE INDEX IF NOT EXISTS idx_tismun_feedback_created ON tismun_feedback (created_at DESC);
