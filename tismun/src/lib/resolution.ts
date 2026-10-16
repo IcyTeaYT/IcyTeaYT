@@ -818,6 +818,25 @@ export function addDraft(
   return { state: { ...state, drafts: [...state.drafts, draft] }, number };
 }
 
+/**
+ * Sharing a copy after submitting a draft from it changes who submitted that
+ * draft too, until the chairs choose a draft — then the list is fixed.
+ */
+export function draftSubmittersFollow(state: CommitteeResState, copy: Copy): CommitteeResState {
+  const last = copy.lastSubmitted;
+  if (!last?.draft) return state;
+  const submitters = [copy.owner, ...copy.members];
+  let changed = false;
+  const drafts = state.drafts.map((draft) => {
+    if (draft.status !== 'submitted' || !last.numbers.includes(draft.number)) return draft;
+    if (!sameCountry(draft.submitters[0] ?? '', copy.owner)) return draft;
+    if (draft.submitters.join('\n') === submitters.join('\n')) return draft;
+    changed = true;
+    return { ...draft, submitters };
+  });
+  return changed ? { ...state, drafts } : state;
+}
+
 /* ── The chair's decisions ───────────────────────────────────────────────── */
 
 export function decideAmendment(

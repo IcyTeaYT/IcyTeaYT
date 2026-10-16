@@ -762,13 +762,21 @@ function ShareDialog({
     if (open) setChosen(saved ? saved.split('\n') : []);
   }, [open, saved]);
   const countries = ws.countries.filter((entry) => !sameCountry(entry.name, country));
+  // A draft already submitted from this copy takes the new list too, until the chairs choose one.
+  const last = copy.lastSubmitted;
+  const follows =
+    ws.drafting && last?.draft
+      ? last.numbers.filter((number) => ws.state?.drafts.some((draft) => draft.number === number && draft.status === 'submitted'))
+      : [];
 
   return (
     <Modal
       open={open}
       onClose={onClose}
       title="Share your copy"
-      description="Countries you share with can edit it with you, live. You are all listed as its submitters."
+      description={`Countries you share with can edit it with you, live. You are all listed as its submitters.${
+        follows.length ? ` This also updates who submitted Draft Resolution ${listNumbers(follows)}.` : ''
+      }`}
       footer={
         <>
           <Button variant="ghost" onClick={onClose}>

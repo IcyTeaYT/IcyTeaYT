@@ -13,6 +13,7 @@ import {
   decideAmendment,
   decideResolution,
   draftFromCopy,
+  draftSubmittersFollow,
   freshCopy,
   newCopy,
   ResolutionError,
@@ -328,7 +329,14 @@ export const onRequestPost: PagesFunction<Env, 'committeeId'> = async ({ request
             return { copy: applied.copy, result: applied.refused };
           },
         );
-        return json({ serverNow: now, copy, refused: result });
+        // Shared after submitting a draft: the draft's submitters follow.
+        const reshared =
+          ops.some((op) => op.op === 'share') && writesOwnResolution(committeeId) && !topicState.base && copy.lastSubmitted?.draft;
+        const followed = reshared
+          ? (await mutateCommitteeState(db, storeId, (latest) => ({ state: draftSubmittersFollow(latest, copy), result: null })))
+              .state
+          : null;
+        return json({ serverNow: now, copy, refused: result, ...(followed ? { state: followed } : {}) });
       }
 
       case 'submit': {

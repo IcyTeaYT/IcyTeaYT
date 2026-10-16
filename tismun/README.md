@@ -446,8 +446,9 @@ example "Now: Speeches against — Amendment 3".
 caucus, delegates write draft resolutions in the same editor, with teammates
 of the same country on one copy, and submit them. The chairs read the drafts
 and press **Choose this one**. From then on it is debated and amended like
-any other. If the chairs later choose a different draft, amendments to the
-first are set aside, not deleted.
+any other. Sharing a copy after submitting a draft from it updates that
+draft's submitters too, until the chairs choose one. If the chairs later
+choose a different draft, amendments to the first are set aside, not deleted.
 
 **What the Secretariat sees.** Chairs and the Secretariat see everything
 submitted, read-only: every amendment with its result and votes, and, in the

@@ -13,6 +13,7 @@ import {
   decideAmendment,
   decideResolution,
   draftFromCopy,
+  draftSubmittersFollow,
   freshCopy,
   newCopy,
   normaliseCommitteeState,
@@ -554,8 +555,12 @@ export const mockSource: DataSource = {
           now,
           (clauseId) => current.clauses.find((clause) => clause.id === clauseId) ?? null,
         );
-        save({ copies: [...data.copies.filter((entry) => entry.id !== applied.copy.id), applied.copy] });
-        return { serverNow: now, copy: applied.copy, refused: applied.refused };
+        // Shared after submitting a draft: the draft's submitters follow.
+        const reshared =
+          action.ops.some((op) => op.op === 'share') && writesOwnResolution(committeeId) && !topicState.base;
+        const state = reshared ? draftSubmittersFollow(data.state, applied.copy) : data.state;
+        save({ state, copies: [...data.copies.filter((entry) => entry.id !== applied.copy.id), applied.copy] });
+        return { serverNow: now, copy: applied.copy, refused: applied.refused, ...(reshared ? { state } : {}) };
       }
 
       case 'submit': {
