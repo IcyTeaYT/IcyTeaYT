@@ -1,6 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import type { ResAction } from '@/data/source/types';
-import { topicsOf } from '@/config/resolutions';
+import { topicsOf, writesOwnResolution } from '@/config/resolutions';
 import { pendingAmendments, type ResolutionText } from '@/lib/resolution';
 import { useResolutions, type Workspace } from '@/features/resolutions/useResolutions';
 import { useChair, useChairContext } from './context';
@@ -27,9 +27,22 @@ interface ChairRes {
 const ChairResContext = createContext<ChairRes | null>(null);
 
 export function ChairResProvider({ children }: { children: ReactNode }) {
-  const { committee } = useChairContext();
+  const { committee, store } = useChairContext();
   const topic = useChair((state) => state.topic);
   const ws = useResolutions(committee.id, topic, { fast: false, withCountries: true });
+
+  // The Emergency Session: when the chairs move on to another draft, every
+  // chair's device starts the order of business again for it. A device that
+  // has not seen a draft yet only starts again if an earlier one was already
+  // voted on (its steps then belong to that one).
+  const onFloor = ws.state?.drafts.find((draft) => draft.status === 'adopted')?.id ?? null;
+  const anyDebated = ws.state?.drafts.some((draft) => draft.status === 'debated') ?? false;
+  useEffect(() => {
+    if (!onFloor || !writesOwnResolution(committee.id)) return;
+    const seen = store.getState().debating?.[topic];
+    if (seen === onFloor) return;
+    store.getState().debateDraft(topic, onFloor, seen !== undefined || anyDebated);
+  }, [onFloor, anyDebated, topic, committee.id, store]);
 
   const res = useMemo<ResContext>(() => {
     if (!ws.state) return { ...emptyResContext(topic), topics: topicsOf(committee.id) };

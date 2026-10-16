@@ -301,8 +301,11 @@ export interface ResWorkspace {
 }
 
 export type ResAction =
-  /** With draftId: change that submitted draft, in its own copy. */
-  | { action: 'edit'; topic: TopicNo; copyId: string | null; ops: CopyOp[]; draftId?: string }
+  /**
+   * With draftId: change that submitted draft, in its own copy. With newDraft:
+   * write a new draft, once the chairs have chosen one.
+   */
+  | { action: 'edit'; topic: TopicNo; copyId: string | null; ops: CopyOp[]; draftId?: string; newDraft?: boolean }
   | { action: 'submit'; topic: TopicNo; copyId: string }
   | { action: 'withdraw'; amendmentId: string }
   | { action: 'decide'; amendmentId: string; status: AmendmentStatus; votes: Votes | null }

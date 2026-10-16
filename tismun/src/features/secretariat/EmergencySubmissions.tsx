@@ -27,6 +27,7 @@ export function EmergencySubmissions() {
   const ws = useResolutions(emergencySession.committeeId, 1);
   const drafts = ws.state?.drafts ?? [];
   const chosen = drafts.find((draft) => draft.status === 'adopted') ?? null;
+  const debated = drafts.filter((draft) => draft.status === 'debated');
   const writing = ws.writing.filter((copy) => copy.topic === 1).sort((a, b) => b.updatedAt - a.updatedAt);
   const amendments = ws.state ? amendmentsFor(ws.state, 1) : [];
   const setAside = (ws.state?.setAside ?? []).reduce((count, group) => count + group.amendments.length, 0);
@@ -57,7 +58,8 @@ export function EmergencySubmissions() {
             {[
               `${drafts.length} ${drafts.length === 1 ? 'draft' : 'drafts'} submitted`,
               `${writing.length} being written`,
-              ...(chosen ? [`Draft Resolution ${chosen.number} chosen for debate`] : []),
+              ...(debated.length ? [`${debated.length} voted on`] : []),
+              ...(chosen ? [`Draft Resolution ${chosen.number} being debated`] : []),
               ...(chosen || amendments.length ? [`${amendments.length} ${amendments.length === 1 ? 'amendment' : 'amendments'}`] : []),
             ].join(' · ')}
           </p>
@@ -72,11 +74,15 @@ export function EmergencySubmissions() {
                   countries={draft.submitters}
                   badge={
                     draft.status === 'adopted' ? (
-                      <Badge tone="success">Chosen for debate</Badge>
+                      <Badge tone="teal">Being debated</Badge>
                     ) : draft.status === 'withdrawn' ? (
                       <Badge tone="outline">Withdrawn</Badge>
-                    ) : chosen ? (
-                      <Badge tone="neutral">Not chosen</Badge>
+                    ) : draft.status === 'debated' && draft.result ? (
+                      <Badge tone={draft.result.status === 'passed' ? 'success' : 'danger'}>
+                        {draft.result.status === 'passed' ? 'Passed' : 'Failed'}
+                      </Badge>
+                    ) : chosen || debated.length ? (
+                      <Badge tone="neutral">Not debated yet</Badge>
                     ) : null
                   }
                 />
@@ -90,12 +96,17 @@ export function EmergencySubmissions() {
                 const count = copyChangeCount(copy);
                 // Its writers changing a draft they already submitted.
                 const draft = copy.draftId ? drafts.find((entry) => entry.id === copy.draftId) : undefined;
-                const unit = chosen || draft ? (count === 1 ? 'change' : 'changes') : count === 1 ? 'clause' : 'clauses';
+                const unit =
+                  (chosen || draft) && !copy.newDraft ? (count === 1 ? 'change' : 'changes') : count === 1 ? 'clause' : 'clauses';
                 return (
                   <Row
                     key={copy.id}
                     time={copy.updatedAt}
-                    title={draft ? `Changes to Draft Resolution ${draft.number}` : `${copy.owner}’s ${chosen ? 'copy' : 'draft'}`}
+                    title={
+                      draft
+                        ? `Changes to Draft Resolution ${draft.number}`
+                        : `${copy.owner}’s ${copy.newDraft ? 'new draft' : chosen ? 'copy' : 'draft'}`
+                    }
                     detail={`${count} ${unit} so far`}
                     countries={[copy.owner, ...copy.members]}
                     badge={<Badge tone="warning">Not submitted</Badge>}

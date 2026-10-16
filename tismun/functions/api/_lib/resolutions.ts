@@ -121,6 +121,9 @@ export async function readCopy(db: D1Database, copyId: string): Promise<{ copy: 
 /** The copy a draft's writers change it in: one per draft, whoever is typing. */
 export const draftCopyKey = (draftId: string): string => `draft:${draftId}`;
 
+/** The copy a country writes a new draft in, once the chairs have chosen one. */
+export const newDraftKey = (country: string): string => `new:${ownerKey(country)}`;
+
 export async function readOwnCopy(
   db: D1Database,
   committeeId: string,

@@ -549,6 +549,19 @@ export const mockSource: DataSource = {
         const topic = checkTopic(committeeId, action.topic);
         const topicState = data.state.topics[topic];
         if (topicState.status !== 'open') throw new ResolutionError('The committee has already voted on this resolution.', 409);
+        // Writing a new draft after the chairs have chosen one: from nothing.
+        if (action.newDraft) {
+          if (!writesOwnResolution(committeeId) || !topicState.base) throw new ResolutionError('Write your draft in your own copy.');
+          const found = action.copyId
+            ? data.copies.find((entry) => entry.id === action.copyId)
+            : data.copies.find((entry) => entry.newDraft && sameCountry(entry.owner, delegate.country));
+          const existing = found ?? { ...newCopy(demoId(), topic, delegate.country, 0, now), newDraft: true };
+          if (!canEditCopy(existing, delegate.country)) throw new ResolutionError('This copy has not been shared with you.', 403);
+          const applied = applyCopyOps(existing, action.ops, delegate.actor, now, () => null);
+          save({ copies: [...data.copies.filter((entry) => entry.id !== applied.copy.id), applied.copy] });
+          return { serverNow: now, copy: applied.copy, refused: applied.refused };
+        }
+
         // Changing a submitted draft: its own copy, against the draft's wording.
         if (action.draftId) {
           const draft = data.state.drafts.find((entry) => entry.id === action.draftId);
@@ -594,6 +607,22 @@ export const mockSource: DataSource = {
         const topic = checkTopic(committeeId, action.topic);
         const found = data.copies.find((copy) => copy.id === action.copyId);
         if (!found) throw new ResolutionError('That copy no longer exists.', 404);
+        // A new draft, written after the chairs chose another: it joins the drafts.
+        if (found.newDraft) {
+          if (!canEditCopy(found, delegate.country)) throw new ResolutionError('This copy has not been shared with you.', 403);
+          const added = addDraft(data.state, draftFromCopy(found, blankResolution('')), [found.owner, ...found.members], now, demoId());
+          const submitted: Copy = {
+            ...found,
+            edits: {},
+            locks: {},
+            version: found.version + 1,
+            updatedAt: now,
+            lastSubmitted: { at: now, numbers: [added.number], draft: true },
+          };
+          save({ state: added.state, copies: [...data.copies.filter((entry) => entry.id !== found.id), submitted] });
+          return { serverNow: now, state: added.state, copy: submitted, numbers: [added.number] };
+        }
+
         // Saving changes to a submitted draft: the draft takes the new wording.
         const draft = found.draftId ? data.state.drafts.find((entry) => entry.id === found.draftId) : undefined;
         if (found.draftId) {

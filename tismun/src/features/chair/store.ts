@@ -80,6 +80,12 @@ export interface ChairState {
   speech: SpeechState;
   /** The order of business so far — see `stepKey`. */
   progress: Record<string, number>;
+  /**
+   * The Emergency Session: which draft this device has been taking the
+   * committee through, per topic. When the chairs move on to another draft,
+   * the order of business starts again for it.
+   */
+  debating?: Partial<Record<TopicNo, string>>;
   motions: Motion[];
   resolutions: Resolution[];
   amendments: Amendment[];
@@ -132,6 +138,12 @@ export interface ChairState {
   setTopic: (topic: TopicNo) => void;
   /** Count a step as done — or the chair moving the committee on past it. */
   markStep: (key: string) => void;
+  /**
+   * The Emergency Session: a draft is now on the floor. If it is not the one
+   * this device last took the committee through, the topic's order of
+   * business starts again — except the writing caucus, which is behind it.
+   */
+  debateDraft: (topic: TopicNo, draftId: string, restart: boolean) => void;
   readingStart: (durationSec: number) => void;
   readingEnd: () => void;
   speechStart: (input: SpeechInput) => void;
@@ -549,6 +561,23 @@ function createChairState(committeeId: string) {
 
       markStep(key) {
         set((state) => ({ progress: bump(state.progress, key) }));
+      },
+
+      debateDraft(topic, draftId, restart) {
+        const state = get();
+        if (state.debating?.[topic] === draftId) return;
+        const debating = { ...state.debating, [topic]: draftId };
+        if (!restart) {
+          set({ debating });
+          return;
+        }
+        const prefix = `t${topic}:`;
+        const keep = `t${topic}:writing-unmod`;
+        const progress = Object.fromEntries(
+          Object.entries(state.progress).filter(([key]) => !key.startsWith(prefix) || key === keep),
+        );
+        set({ debating, progress, reading: emptyReading(), speech: emptySpeech() });
+        log('session', 'A new draft resolution is on the floor', `Topic ${topic}: the order of business starts again for it.`);
       },
 
       readingStart(durationSec) {
@@ -1105,6 +1134,7 @@ export type ChairData = Pick<
   | 'reading'
   | 'speech'
   | 'progress'
+  | 'debating'
   | 'motions'
   | 'resolutions'
   | 'amendments'

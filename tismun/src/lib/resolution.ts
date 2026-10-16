@@ -114,9 +114,12 @@ export interface Draft {
   submitters: string[];
   text: ResolutionText;
   submittedAt: number;
-  status: 'submitted' | 'adopted' | 'withdrawn';
+  /** debated: the committee voted on it, and the chairs have moved on to another draft. */
+  status: 'submitted' | 'adopted' | 'withdrawn' | 'debated';
   /** Its writers last changed it, before the chairs chose a draft. */
   revisedAt?: number;
+  /** How the committee's vote on it went, kept once the chairs move on to another draft. */
+  result?: { status: 'passed' | 'failed'; votes: Votes | null; decidedAt: number | null; text: ResolutionText };
 }
 
 /** Amendments to a draft the chairs then replaced with another one. */
@@ -181,6 +184,11 @@ export interface Copy {
    * even while another draft is being debated.
    */
   draftId?: string;
+  /**
+   * The Emergency Session, once a draft has been chosen: this copy writes a
+   * new draft resolution from scratch, for the chairs to take up next.
+   */
+  newDraft?: boolean;
 }
 
 /** Who is acting: a person, known to others only by first name and country. */
@@ -466,8 +474,9 @@ export const newCopy = (id: string, topic: TopicNo, owner: string, epoch: number
 
 /** A copy as it should be read now: emptied if the topic has moved to a new base since. */
 export function freshCopy(copy: Copy, epoch: number): Copy {
-  // A draft's copy follows its draft, not the resolution being debated.
-  if (copy.draftId || copy.epoch === epoch) return copy;
+  // A draft's copy follows its draft, and a new draft starts from nothing,
+  // whatever resolution is being debated.
+  if (copy.draftId || copy.newDraft || copy.epoch === epoch) return copy;
   return { ...copy, edits: {}, locks: {}, epoch };
 }
 
@@ -934,13 +943,22 @@ export function adoptDraft(state: CommitteeResState, draftId: string, now: numbe
   const [owner, ...others] = draft.submitters;
   const replaced = state.amendments.filter((amendment) => amendment.topic === 1);
   const before = state.drafts.find((entry) => entry.status === 'adopted');
+  // The draft debated until now: if the committee voted on it, that result is
+  // kept with it; if not, it goes back to waiting its turn.
+  const topic = state.topics[1];
+  const outcome: Draft['result'] =
+    before && topic.base && topic.status !== 'open'
+      ? { status: topic.status, votes: topic.votes, decidedAt: topic.decidedAt, text: currentText(topic.base, state.amendments, 1) }
+      : undefined;
   return {
     ...state,
-    drafts: state.drafts.map((entry) =>
+    drafts: state.drafts.map((entry): Draft =>
       entry.id === draftId
         ? { ...entry, status: 'adopted' }
         : entry.status === 'adopted'
-          ? { ...entry, status: 'submitted' }
+          ? outcome
+            ? { ...entry, status: 'debated', result: outcome }
+            : { ...entry, status: 'submitted' }
           : entry,
     ),
     // A new base: amendments to any earlier one no longer apply. They are set

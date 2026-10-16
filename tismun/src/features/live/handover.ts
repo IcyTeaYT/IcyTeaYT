@@ -32,6 +32,7 @@ const CHAIR_DATA_KEYS = [
   'reading',
   'speech',
   'progress',
+  'debating',
   'motions',
   'resolutions',
   'amendments',
@@ -115,6 +116,8 @@ export function fromHandover(raw: unknown, offsetToServer: number): ChairData | 
       reading: { ...emptyReading(), ...data.reading },
       speech: { ...emptySpeech(), ...data.speech },
       progress: data.progress ?? {},
+      // Which draft those steps belong to, in the Emergency Session.
+      debating: data.debating ?? {},
       // Sent by a device on an older version, the session may still hold
       // motion types that have since been removed from the rules.
       motions: knownMotions(data.motions ?? []),

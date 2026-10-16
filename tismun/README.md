@@ -450,7 +450,14 @@ any other. Sharing a copy after submitting a draft from it updates that
 draft's submitters too, until the chairs choose one. A draft's writers can
 keep changing it until the chairs choose it, even while another draft is
 being debated: under **My copy** it has its own tab, **Our Draft Resolution
-N**, and **Save** updates the draft for everyone. If the chairs later
+N**, and **Save** updates the draft for everyone. Once a draft is on the
+floor, anyone can still **Write a new draft** there and submit it; a draft
+someone was still writing when the chairs chose one comes back there too, so
+nothing is lost. When the committee has voted on a draft, Guided Mode's
+Result step (and **Resolution & Amendments**) offers the drafts still waiting:
+**Choose this one** puts the next on the floor, keeps the last one's result
+and wording, and starts the order of business again for the new draft on
+every chair's device. If the chairs later
 choose a different draft, amendments to the first are set aside, not deleted.
 
 **What the Secretariat sees.** Chairs and the Secretariat see everything

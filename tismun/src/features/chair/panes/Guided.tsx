@@ -43,6 +43,7 @@ import { VotePanel } from '../components/VotePanel';
 import { useChair, useChairContext, useChairStoreApi } from '../context';
 import {
   amendmentUnmodKey,
+  chooseDraftQuestion,
   closingDoneKey,
   closingStartedKey,
   count,
@@ -50,6 +51,7 @@ import {
   guidedScreen,
   sessionChecklist,
   skipKey,
+  waitingDrafts,
   writingUnmodKey,
   type GuidedScreen,
 } from '../guide';
@@ -796,6 +798,8 @@ function NowPanel({ screen, state }: { screen: GuidedScreen; state: ChairState }
 
     case 'result': {
       const next = res.topics.find((t) => t > topic);
+      // The Emergency Session: other drafts may still be waiting their turn.
+      const moreDrafts = res.status !== 'open' && waitingDrafts(res).length > 0;
       return (
         <div className="space-y-5">
           <Heading
@@ -804,7 +808,9 @@ function NowPanel({ screen, state }: { screen: GuidedScreen; state: ChairState }
           >
             {res.votes ? `${res.votes.for} for, ${res.votes.against} against, ${res.votes.abstain} abstaining.` : null}
           </Heading>
-          {next ? (
+          {moreDrafts ? (
+            <ChooseDraft next unmodSec={unmodSec} onUnmod={() => openUnmod(writingUnmodKey(topic))} />
+          ) : next ? (
             <Big icon={ArrowRight} onClick={() => state.setTopic(next)}>
               Move on to Topic {next}
             </Big>
@@ -946,19 +952,28 @@ function AmendmentDebate({
   );
 }
 
-/** The Emergency Session: pick the draft the committee debates. */
-function ChooseDraft({ unmodSec, onUnmod }: { unmodSec: number; onUnmod: () => void }) {
+/**
+ * The Emergency Session: pick the draft the committee debates — the first one,
+ * or (with `next`) the next one, once the last has been voted on.
+ */
+function ChooseDraft({ unmodSec, onUnmod, next = false }: { unmodSec: number; onUnmod: () => void; next?: boolean }) {
   const { res, report } = useChairRes();
   const [open, setOpen] = useState<string | null>(null);
+  const drafts = waitingDrafts(res);
   return (
     <div className="space-y-5">
-      <Heading stage="Draft Resolutions" title={res.drafts.length ? 'Choose the draft to debate' : 'No drafts submitted yet'}>
-        {res.drafts.length
-          ? 'Read them, then choose one. The committee debates and amends it like any other resolution.'
+      <Heading
+        stage="Draft Resolutions"
+        title={drafts.length ? (next ? 'Debate the next draft' : 'Choose the draft to debate') : 'No drafts submitted yet'}
+      >
+        {drafts.length
+          ? next
+            ? 'More drafts were submitted. Choose the next one: the committee reads, debates and amends it, then votes on it.'
+            : 'Read them, then choose one. The committee debates and amends it like any other resolution.'
           : 'Delegates submit drafts from their phones: Resolution → Our draft → Submit.'}
       </Heading>
       <div className="space-y-3">
-        {res.drafts.map((draft) => (
+        {drafts.map((draft) => (
           <div key={draft.id} className="rounded-card border border-hairline bg-surface px-4 py-4">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <p className="font-serif text-[17px] text-ink-900">Draft Resolution {draft.number}</p>
@@ -970,7 +985,7 @@ function ChooseDraft({ unmodSec, onUnmod }: { unmodSec: number; onUnmod: () => v
                   size="sm"
                   variant="primary"
                   onClick={() => {
-                    if (window.confirm(`Debate Draft Resolution ${draft.number}?`)) report({ action: 'adopt', draftId: draft.id });
+                    if (window.confirm(chooseDraftQuestion(res, draft.number))) report({ action: 'adopt', draftId: draft.id });
                   }}
                 >
                   Choose this one

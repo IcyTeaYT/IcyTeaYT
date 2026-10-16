@@ -43,6 +43,18 @@ export const emptyResContext = (topic: TopicNo): ResContext => ({
   coSubmitters: [],
 });
 
+/** The Emergency Session's drafts still waiting for the floor. */
+export const waitingDrafts = (res: ResContext): Draft[] => res.drafts.filter((draft) => draft.status === 'submitted');
+
+/** What choosing a draft does right now, asked before the chair confirms it. */
+export function chooseDraftQuestion(res: ResContext, number: number): string {
+  const onFloor = res.drafting ? undefined : res.drafts.find((draft) => draft.status === 'adopted');
+  if (!onFloor) return `Debate Draft Resolution ${number}?`;
+  return res.status === 'open'
+    ? `Draft Resolution ${onFloor.number} has not been voted on yet. Switch to Draft Resolution ${number} anyway? Its amendments are set aside and it goes back to waiting.`
+    : `Debate Draft Resolution ${number} next? The result of Draft Resolution ${onFloor.number} is kept.`;
+}
+
 export const skipKey = (topic: TopicNo, step: FlowStepId): string => `t${topic}:skip:${step}`;
 export const closingStartedKey = (topic: TopicNo): string => `t${topic}:closing`;
 export const closingDoneKey = (topic: TopicNo): string => `t${topic}:closing:done`;

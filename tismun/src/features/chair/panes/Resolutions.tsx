@@ -11,6 +11,7 @@ import { amendmentsFor, currentText, withSubmittersHere, type TopicNo } from '@/
 import { Pane } from '../components/Pane';
 import { VotePanel } from '../components/VotePanel';
 import { useChair, useChairContext } from '../context';
+import { chooseDraftQuestion, waitingDrafts as waitingDraftsOf } from '../guide';
 import { useChairRes } from '../resContext';
 
 /**
@@ -23,6 +24,7 @@ import { useChairRes } from '../resContext';
 export function Resolutions() {
   const { committee } = useChairContext();
   const { ws, res, report } = useChairRes();
+  const waitingDrafts = waitingDraftsOf(res);
   const chairTopic = useChair((state) => state.topic);
   const vote = useChair((state) => state.vote);
   const [viewTopic, setViewTopic] = useState<TopicNo | null>(null);
@@ -88,14 +90,17 @@ export function Resolutions() {
 
       {votePanel}
 
-      {res.drafting && topic === 1 ? (
+      {topic === 1 && (res.drafting || waitingDrafts.length > 0) ? (
         <Card>
-          <CardHeader label="Emergency Session" title="Submitted draft resolutions" />
+          <CardHeader
+            label="Emergency Session"
+            title={res.drafting ? 'Submitted draft resolutions' : 'Draft resolutions still to debate'}
+          />
           <CardBody className="space-y-3">
-            {res.drafts.length === 0 ? (
+            {waitingDrafts.length === 0 ? (
               <p className="text-sm text-muted">No drafts yet. Delegates submit them from their phones.</p>
             ) : (
-              res.drafts.map((draft) => (
+              waitingDrafts.map((draft) => (
                 <div key={draft.id} className="flex flex-wrap items-center justify-between gap-3 rounded-control border border-hairline px-4 py-3">
                   <div>
                     <p className="font-medium text-ink-900">Draft Resolution {draft.number}</p>
@@ -107,10 +112,10 @@ export function Resolutions() {
                     size="sm"
                     variant="primary"
                     onClick={() => {
-                      if (window.confirm(`Debate Draft Resolution ${draft.number}?`)) report({ action: 'adopt', draftId: draft.id });
+                      if (window.confirm(chooseDraftQuestion(res, draft.number))) report({ action: 'adopt', draftId: draft.id });
                     }}
                   >
-                    Choose this one
+                    {res.drafting ? 'Choose this one' : 'Debate this one next'}
                   </Button>
                 </div>
               ))
