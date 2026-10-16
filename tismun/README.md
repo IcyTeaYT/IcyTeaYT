@@ -452,8 +452,11 @@ first are set aside, not deleted.
 **What the Secretariat sees.** Chairs and the Secretariat see everything
 submitted, read-only: every amendment with its result and votes, and, in the
 Emergency Session, a **Drafts** tab with every draft (chosen, not chosen or
-withdrawn) and any set-aside amendments under **Amendments**. Copies still
-being written stay private to the countries on them until they are submitted.
+withdrawn) and any set-aside amendments under **Amendments**. The Secretariat
+also sees every copy still being written, live, under **Being written now**;
+to everyone else a copy stays private to the countries on it until it is
+submitted. The Secretariat's **Resolution** menu item opens the Emergency
+Session on Day 2, with a picker for any other committee.
 
 This needs the D1 binding. Its two tables (`res_committee`, `res_copy`) are
 created on first use. The Secretariat's **Reset all sessions** clears them

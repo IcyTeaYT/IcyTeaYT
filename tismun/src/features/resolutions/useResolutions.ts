@@ -30,6 +30,8 @@ export interface Workspace {
   me: ResMe | null;
   state: CommitteeResState | null;
   copies: Copy[];
+  /** The Secretariat only: what delegates are writing but have not submitted. */
+  writing: Copy[];
   countries: ResCountry[];
   /** Server time minus this browser's, for comparing hold times. */
   offset: number;
@@ -150,6 +152,7 @@ export function useResolutions(
     me: data?.me ?? null,
     state,
     copies: data?.copies ?? [],
+    writing: data?.writing ?? [],
     countries: data?.countries ?? [],
     offset,
     current: drafting ? blankResolution('') : current,

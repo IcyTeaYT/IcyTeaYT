@@ -294,6 +294,8 @@ export interface ResWorkspace {
   me?: ResMe;
   state?: CommitteeResState;
   copies?: Copy[];
+  /** The Secretariat only: every copy with something in it, not yet submitted. To read. */
+  writing?: Copy[];
   countries?: ResCountry[];
   error?: string;
 }

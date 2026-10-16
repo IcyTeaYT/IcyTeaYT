@@ -8,6 +8,7 @@ import {
   amendmentsFromCopy,
   applyCopyOps,
   canEditCopy,
+  copyChangeCount,
   currentText,
   decideAmendment,
   decideResolution,
@@ -48,6 +49,7 @@ import { readUsers, type SheetUser } from '../_lib/sheets';
  * GET  /api/res/:committeeId?topic=1[&countries=1]
  *      The committee's amendments and votes, and — for a delegate — every copy
  *      of the topic they may edit: their country's own and any shared with it.
+ *      The Secretariat also gets every copy being written (`writing`), to read.
  * POST /api/res/:committeeId  { action, … }
  *      Delegates: edit a copy, share it, submit it, withdraw an amendment.
  *      Chairs of the committee: record votes, say what is on the floor, and in
@@ -83,7 +85,7 @@ async function identify(
   request: Request,
   env: Env,
   committeeId: string,
-): Promise<{ who: Who; key: string; name: string; storeId: string } | Response> {
+): Promise<{ who: Who; key: string; name: string; storeId: string; oversight: boolean } | Response> {
   const user = await currentUser(request, env);
   if (!user) return fail('Not signed in.', 401);
   const access = await accessOf(env, user);
@@ -109,11 +111,13 @@ async function identify(
   // chair at the Chair Dashboard and that country's delegate everywhere else:
   // their browser says which with X-Seat.
   const asDelegate = Boolean(country) && request.headers.get('X-Seat') === 'delegate';
+  // The Secretariat reads everything, including what is still being written.
+  const oversight = access.secretariat;
   if (canRun(access, committeeId) && !asDelegate) {
-    return { who: { role: 'chair', country: null, actor: null }, key, name, storeId };
+    return { who: { role: 'chair', country: null, actor: null }, key, name, storeId, oversight };
   }
-  if (country) return { who: { role: 'delegate', country, actor: { key, name, country } }, key, name, storeId };
-  if (canView(access, committeeId)) return { who: { role: 'viewer', country: null, actor: null }, key, name, storeId };
+  if (country) return { who: { role: 'delegate', country, actor: { key, name, country } }, key, name, storeId, oversight };
+  if (canView(access, committeeId)) return { who: { role: 'viewer', country: null, actor: null }, key, name, storeId, oversight };
   return fail('Only this committee’s delegates and chairs can open its resolutions.', 403);
 }
 
@@ -165,7 +169,7 @@ export const onRequestGet: PagesFunction<Env, 'committeeId'> = async ({ request,
 
   const identity = await identify(request, env, committeeId);
   if (identity instanceof Response) return identity;
-  const { who, key, name, storeId } = identity;
+  const { who, key, name, storeId, oversight } = identity;
 
   const url = new URL(request.url);
   const topic = topicOf(url.searchParams.get('topic') ?? '1', committeeId) ?? 1;
@@ -174,18 +178,17 @@ export const onRequestGet: PagesFunction<Env, 'committeeId'> = async ({ request,
     await ensureResTables(env.DB);
     const { state } = await readCommitteeState(env.DB, storeId);
     const epoch = state.topics[topic].epoch;
-    const copies =
-      who.role === 'delegate' && who.country
-        ? (await readCopies(env.DB, storeId, topic))
-            .filter((copy) => canEditCopy(copy, who.country ?? ''))
-            .map((copy) => freshCopy(copy, epoch))
-        : [];
+    const delegate = who.role === 'delegate' && who.country ? who.country : null;
+    const all = delegate || oversight ? (await readCopies(env.DB, storeId, topic)).map((copy) => freshCopy(copy, epoch)) : [];
+    const copies = delegate ? all.filter((copy) => canEditCopy(copy, delegate)) : [];
+    const writing = oversight ? all.filter((copy) => copyChangeCount(copy) > 0) : [];
     return json({
       available: true,
       serverNow,
       me: { role: who.role, country: who.country, key, name },
       state,
       copies,
+      ...(oversight ? { writing } : {}),
       ...(url.searchParams.get('countries') ? { countries: await countriesOf(env, committeeId) } : {}),
     });
   } catch (error) {

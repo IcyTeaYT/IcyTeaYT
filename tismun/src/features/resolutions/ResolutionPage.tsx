@@ -9,6 +9,7 @@ import { Card, CardBody } from '@/components/ui/Card';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { Modal } from '@/components/ui/Modal';
 import { Segmented } from '@/components/ui/Segmented';
+import { emergencySession } from '@/config/emergency';
 import { hasResolutions, topicsOf, writesOwnResolution } from '@/config/resolutions';
 import type { Committee } from '@/data/source/types';
 import { cn } from '@/lib/cn';
@@ -17,7 +18,9 @@ import { formatTimeOfDay } from '@/lib/time';
 import {
   amendmentsFor,
   amendmentsFromCopy,
+  clauseLabel,
   copyChangeCount,
+  copyClauses,
   currentTopic,
   describeAmendment,
   ResolutionError,
@@ -31,7 +34,14 @@ import { useCommittee, useConference } from '@/store/conference';
 import { useConferenceStatus } from '@/store/conferenceStatus';
 import { resolutionCommitteeOf } from './committeeOf';
 import { CopyEditor, virtualCopy } from './CopyEditor';
-import { AmendmentCard, ResolutionClauses, ResolutionHeader, SubmitterList } from './ResolutionDocument';
+import {
+  AmendmentCard,
+  DiffText,
+  ResolutionClauses,
+  ResolutionHeader,
+  SubmitterList,
+  WholeClause,
+} from './ResolutionDocument';
 import { TestAsDialog } from '@/features/testing/TestAsDialog';
 import { useResolutions, type Workspace } from './useResolutions';
 
@@ -42,10 +52,17 @@ function useMyResolutionCommittee(): string | null {
   const user = useAuth((state) => state.user);
   const day2 = useConferenceStatus((state) => state.status?.day2 ?? false);
   const released = useConferenceStatus((state) => state.status?.released ?? false);
+  const committees = useConference((state) => state.committees);
   const [params] = useSearchParams();
   const asked = params.get('committee');
   if (asked) return asked;
-  return resolutionCommitteeOf(user, day2, released) ?? user?.access.chairOf ?? user?.committeeId ?? null;
+  const own = resolutionCommitteeOf(user, day2, released) ?? user?.access.chairOf ?? null;
+  if (own) return own;
+  // The Secretariat: the Emergency Session on Day 2, the first committee before.
+  if (user?.access.secretariat) {
+    return day2 ? emergencySession.committeeId : (committees.find((entry) => hasResolutions(entry.id))?.id ?? null);
+  }
+  return user?.committeeId ?? null;
 }
 
 /**
@@ -85,6 +102,7 @@ export function ResolutionPage() {
 function ResolutionWorkspace({ committee }: { committee: Committee }) {
   const topics = topicsOf(committee.id);
   const owner = useAuth((state) => state.user?.access.owner === true);
+  const secretariat = useAuth((state) => state.user?.access.secretariat === true);
   const [topicChoice, setTopicChoice] = useState<TopicNo | null>(null);
   const [tab, setTab] = useState<Tab>('read');
   const topic = topicChoice ?? 1;
@@ -117,7 +135,7 @@ function ResolutionWorkspace({ committee }: { committee: Committee }) {
           Home
         </Link>
 
-        {owner ? <OwnerBar committee={committee} /> : null}
+        {secretariat ? <OversightBar committee={committee} owner={owner} /> : null}
 
         <div className="mt-4 flex flex-wrap items-start justify-between gap-4">
           <div className="min-w-0">
@@ -213,8 +231,8 @@ function ResolutionWorkspace({ committee }: { committee: Committee }) {
   );
 }
 
-/** The owner looks at any committee's resolution, or tries it as a delegate. */
-function OwnerBar({ committee }: { committee: Committee }) {
+/** The Secretariat looks at any committee's resolution; the owner can also try it as a delegate. */
+function OversightBar({ committee, owner }: { committee: Committee; owner: boolean }) {
   const navigate = useNavigate();
   const committees = useConference((state) => state.committees).filter((entry) => hasResolutions(entry.id));
   const [testing, setTesting] = useState(false);
@@ -234,13 +252,17 @@ function OwnerBar({ committee }: { committee: Committee }) {
           ))}
         </select>
       </label>
-      <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-2">
-        <Button size="sm" variant="secondary" onClick={() => setTesting(true)}>
-          Test as a delegate
-        </Button>
-        <p className="text-xs text-warning">To edit, share and submit, see the whole site as one of the delegates.</p>
-      </div>
-      <TestAsDialog open={testing} onClose={() => setTesting(false)} />
+      {owner ? (
+        <>
+          <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-2">
+            <Button size="sm" variant="secondary" onClick={() => setTesting(true)}>
+              Test as a delegate
+            </Button>
+            <p className="text-xs text-warning">To edit, share and submit, see the whole site as one of the delegates.</p>
+          </div>
+          <TestAsDialog open={testing} onClose={() => setTesting(false)} />
+        </>
+      ) : null}
     </div>
   );
 }
@@ -317,7 +339,7 @@ function DraftsList({ ws, everything }: { ws: Workspace; everything: boolean }) 
         <Notice tone="info">
           {chosen
             ? 'Every draft resolution the delegates submitted, including the one the chairs chose.'
-            : 'No draft resolution has been chosen yet. Every draft the delegates submit shows up here.'}
+            : 'No draft resolution has been chosen yet. Submitted drafts show here; drafts still being written show under Being written now.'}
         </Notice>
       ) : (
         <Notice tone="info">
@@ -358,6 +380,82 @@ function DraftsList({ ws, everything }: { ws: Workspace; everything: boolean }) 
           ))}
         </div>
       )}
+      {everything && ws.drafting ? <BeingWritten ws={ws} topic={1} /> : null}
+    </div>
+  );
+}
+
+/**
+ * The Secretariat's live look at what delegates are writing but have not
+ * submitted: whole drafts in the Emergency Session before one is chosen,
+ * proposed changes after. Read-only; the page refreshes it by itself.
+ */
+function BeingWritten({ ws, topic }: { ws: Workspace; topic: TopicNo }) {
+  const [open, setOpen] = useState<string | null>(null);
+  const current = ws.current;
+  const copies = ws.writing.filter((copy) => copy.topic === topic).sort((a, b) => b.updatedAt - a.updatedAt);
+  if (copies.length === 0 || !current) return null;
+  return (
+    <div className="space-y-3 pt-4">
+      <div>
+        <p className="label-micro">Being written now</p>
+        <p className="mt-1 text-sm text-muted">Not submitted yet, so they can still change. Only the Secretariat sees these.</p>
+      </div>
+      {copies.map((copy) => {
+        const rows = copyClauses(copy, current).filter(
+          (row) => row.status !== 'same' && (row.status !== 'added' || (row.text ?? '').trim()),
+        );
+        const unit = ws.drafting ? (rows.length === 1 ? 'clause' : 'clauses') : rows.length === 1 ? 'change' : 'changes';
+        return (
+          <Card key={copy.id}>
+            <CardBody className="px-5 py-4">
+              <button
+                type="button"
+                className="flex w-full flex-wrap items-center justify-between gap-2 text-left"
+                onClick={() => setOpen(open === copy.id ? null : copy.id)}
+              >
+                <span className="flex flex-wrap items-center gap-2">
+                  <span className="font-serif text-[17px] text-ink-900">
+                    {copy.owner}’s {ws.drafting ? 'draft' : 'copy'}
+                  </span>
+                  <Badge tone="warning">Not submitted</Badge>
+                </span>
+                <span className="text-xs text-muted">{open === copy.id ? 'Hide' : 'Read it'}</span>
+              </button>
+              <p className="mt-1 text-xs text-muted">
+                <SubmitterList countries={[copy.owner, ...copy.members]} />
+                {` · ${rows.length} ${unit} · last edited ${formatTimeOfDay(copy.updatedAt)}`}
+              </p>
+              {open === copy.id ? (
+                <div className="mt-4 border-t border-hairline pt-4">
+                  {ws.drafting ? (
+                    <ResolutionClauses clauses={rows.map((row) => ({ id: row.id, kind: row.kind, text: row.text ?? '' }))} />
+                  ) : (
+                    <div className="space-y-4">
+                      {rows.map((row) => (
+                        <div key={row.id}>
+                          <p className="text-xs font-medium text-muted">
+                            {row.status === 'added' ? `New ${row.kind === 'operative' ? 'operative' : 'preambulatory'} clause` : clauseLabel(current.clauses, row.id)}
+                          </p>
+                          <div className="mt-1 text-[15px] text-ink-900">
+                            {row.status === 'added' ? (
+                              <WholeClause text={row.text ?? ''} mode="added" />
+                            ) : row.status === 'removed' ? (
+                              <WholeClause text={row.official ?? row.edit?.baseText ?? ''} mode="removed" />
+                            ) : (
+                              <DiffText before={row.official ?? row.edit?.baseText ?? ''} after={row.text ?? ''} />
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ) : null}
+            </CardBody>
+          </Card>
+        );
+      })}
     </div>
   );
 }
@@ -372,7 +470,12 @@ function AmendmentsTab({ ws, topic, everything }: { ws: Workspace; topic: TopicN
   const country = ws.me?.country ?? null;
   const clauseNow = (clauseId: string) => ws.current?.clauses.find((clause) => clause.id === clauseId)?.text ?? null;
 
-  const setAside = everything ? <SetAsideList ws={ws} topic={topic} /> : null;
+  const setAside = everything ? (
+    <>
+      <BeingWritten ws={ws} topic={topic} />
+      <SetAsideList ws={ws} topic={topic} />
+    </>
+  ) : null;
 
   if (amendments.length === 0) {
     return (

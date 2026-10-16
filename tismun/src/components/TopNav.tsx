@@ -156,7 +156,7 @@ export function TopNav() {
   const items: NavItem[] = [];
   // With a switcher, its two views replace the links that would repeat them.
   if (!views) items.push({ to: '/', label: 'Home', end: true });
-  if (resolutionCommitteeOf(user, day2, released) || isOwner(user)) items.push({ to: '/resolution', label: 'Resolution' });
+  if (resolutionCommitteeOf(user, day2, released) || isSecretariat(user)) items.push({ to: '/resolution', label: 'Resolution' });
   items.push({ to: '/committees', label: 'Committees' });
   if (!views && isChair(user)) {
     items.push({
