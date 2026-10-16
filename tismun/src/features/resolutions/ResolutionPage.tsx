@@ -21,6 +21,8 @@ import {
   clauseLabel,
   copyChangeCount,
   copyClauses,
+  draftCopy,
+  draftEditable,
   currentTopic,
   describeAmendment,
   ResolutionError,
@@ -402,10 +404,14 @@ function BeingWritten({ ws, topic }: { ws: Workspace; topic: TopicNo }) {
         <p className="mt-1 text-sm text-muted">Not submitted yet, so they can still change. Only the Secretariat sees these.</p>
       </div>
       {copies.map((copy) => {
-        const rows = copyClauses(copy, current).filter(
+        // Changes to a submitted draft are read against that draft.
+        const draft = copy.draftId ? ws.state?.drafts.find((entry) => entry.id === copy.draftId) : undefined;
+        const base = draft?.text ?? current;
+        const whole = ws.drafting && !draft;
+        const rows = copyClauses(copy, base).filter(
           (row) => row.status !== 'same' && (row.status !== 'added' || (row.text ?? '').trim()),
         );
-        const unit = ws.drafting ? (rows.length === 1 ? 'clause' : 'clauses') : rows.length === 1 ? 'change' : 'changes';
+        const unit = whole ? (rows.length === 1 ? 'clause' : 'clauses') : rows.length === 1 ? 'change' : 'changes';
         return (
           <Card key={copy.id}>
             <CardBody className="px-5 py-4">
@@ -416,7 +422,7 @@ function BeingWritten({ ws, topic }: { ws: Workspace; topic: TopicNo }) {
               >
                 <span className="flex flex-wrap items-center gap-2">
                   <span className="font-serif text-[17px] text-ink-900">
-                    {copy.owner}’s {ws.drafting ? 'draft' : 'copy'}
+                    {draft ? `Changes to Draft Resolution ${draft.number}` : `${copy.owner}’s ${ws.drafting ? 'draft' : 'copy'}`}
                   </span>
                   <Badge tone="warning">Not submitted</Badge>
                 </span>
@@ -428,14 +434,14 @@ function BeingWritten({ ws, topic }: { ws: Workspace; topic: TopicNo }) {
               </p>
               {open === copy.id ? (
                 <div className="mt-4 border-t border-hairline pt-4">
-                  {ws.drafting ? (
+                  {whole ? (
                     <ResolutionClauses clauses={rows.map((row) => ({ id: row.id, kind: row.kind, text: row.text ?? '' }))} />
                   ) : (
                     <div className="space-y-4">
                       {rows.map((row) => (
                         <div key={row.id}>
                           <p className="text-xs font-medium text-muted">
-                            {row.status === 'added' ? `New ${row.kind === 'operative' ? 'operative' : 'preambulatory'} clause` : clauseLabel(current.clauses, row.id)}
+                            {row.status === 'added' ? `New ${row.kind === 'operative' ? 'operative' : 'preambulatory'} clause` : clauseLabel(base.clauses, row.id)}
                           </p>
                           <div className="mt-1 text-[15px] text-ink-900">
                             {row.status === 'added' ? (
@@ -562,13 +568,20 @@ function SetAsideList({ ws, topic }: { ws: Workspace; topic: TopicNo }) {
 function CopyTab({ ws, topic, onSubmitted }: { ws: Workspace; topic: TopicNo; onSubmitted: () => void }) {
   const country = ws.me?.country ?? '';
   const epoch = ws.state?.topics[topic].epoch ?? 0;
-  const own = ws.copies.find((copy) => copy.topic === topic && sameCountry(copy.owner, country));
+  const own = ws.copies.find((copy) => !copy.draftId && copy.topic === topic && sameCountry(copy.owner, country));
   const mine = own ?? virtualCopy(topic, country, epoch);
   const others = ws.copies
-    .filter((copy) => copy.topic === topic && !sameCountry(copy.owner, country))
+    .filter((copy) => !copy.draftId && copy.topic === topic && !sameCountry(copy.owner, country))
     .sort((a, b) => a.owner.localeCompare(b.owner));
-  const [selectedOwner, setSelectedOwner] = useState<string>(country);
-  const copy = others.find((entry) => entry.owner === selectedOwner) ?? mine;
+  // Drafts this country submitted that the chairs have not chosen: still theirs
+  // to change, even while another draft is being debated.
+  const ownDrafts = (ws.state?.drafts ?? []).filter((draft) => draftEditable(draft, country));
+  // A copy's owner, or a draft's id.
+  const [selected, setSelected] = useState<string>(country);
+  const selectedDraft = ownDrafts.find((draft) => draft.id === selected) ?? null;
+  const copy = selectedDraft
+    ? (ws.copies.find((entry) => entry.draftId === selectedDraft.id) ?? draftCopy('', topic, selectedDraft, 0))
+    : (others.find((entry) => entry.owner === selected) ?? mine);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [sharing, setSharing] = useState(false);
@@ -582,34 +595,72 @@ function CopyTab({ ws, topic, onSubmitted }: { ws: Workspace; topic: TopicNo; on
   }, [error]);
 
   if (!ws.current) return <Notice tone="info">There is no resolution for this topic yet.</Notice>;
-  const current = ws.current;
+  // A draft is changed against its own wording, not the resolution being debated.
+  const current = selectedDraft ? selectedDraft.text : ws.current;
   const changes = copyChangeCount(copy);
   const owned = sameCountry(copy.owner, country);
 
   return (
     <div className="space-y-5 pb-24">
-      {others.length > 0 ? (
+      {others.length > 0 || ownDrafts.length > 0 ? (
         <div className="flex flex-wrap gap-2" role="group" aria-label="Copies you can edit">
           {[mine, ...others].map((entry) => {
-            const active = entry.owner === copy.owner;
+            const active = !selectedDraft && entry.owner === copy.owner;
             return (
               <button
                 key={entry.owner}
                 type="button"
                 aria-pressed={active}
-                onClick={() => setSelectedOwner(entry.owner)}
+                onClick={() => setSelected(entry.owner)}
                 className={cn(
                   'inline-flex h-9 items-center gap-2 rounded-full border px-3.5 text-sm font-medium transition-colors duration-150',
                   active ? 'border-teal-500 bg-teal-50 text-teal-800' : 'border-hairline bg-surface text-ink-700 hover:border-ink-300',
                 )}
               >
                 <Flag code={countryCodeFor(entry.owner)} country={entry.owner} size="xs" />
-                {sameCountry(entry.owner, country) ? 'My copy' : `${entry.owner}’s copy`}
+                {sameCountry(entry.owner, country) ? (ws.drafting ? 'New draft' : 'My copy') : `${entry.owner}’s copy`}
+              </button>
+            );
+          })}
+          {ownDrafts.map((draft) => {
+            const active = selectedDraft?.id === draft.id;
+            return (
+              <button
+                key={draft.id}
+                type="button"
+                aria-pressed={active}
+                onClick={() => setSelected(draft.id)}
+                className={cn(
+                  'inline-flex h-9 items-center gap-2 rounded-full border px-3.5 text-sm font-medium transition-colors duration-150',
+                  active ? 'border-teal-500 bg-teal-50 text-teal-800' : 'border-hairline bg-surface text-ink-700 hover:border-ink-300',
+                )}
+              >
+                <FileText size={14} strokeWidth={1.5} />
+                Our Draft Resolution {draft.number}
               </button>
             );
           })}
         </div>
       ) : null}
+
+      {selectedDraft ? (
+        <Card>
+          <CardBody className="px-5 py-4 text-sm">
+            <p className="font-medium text-ink-900">Draft Resolution {selectedDraft.number} — waiting for the chairs</p>
+            <p className="mt-1 flex gap-1.5 text-muted">
+              <Users size={13} strokeWidth={1.5} className="mt-[3px] shrink-0" />
+              <span className="min-w-0">
+                Written by <SubmitterList countries={selectedDraft.submitters} />
+              </span>
+            </p>
+            <p className="mt-2 text-muted">
+              {ws.drafting
+                ? 'You can keep improving it until the chairs choose a draft. Saved changes update it for everyone.'
+                : 'Another draft is being debated. You can keep improving this one until the chairs choose it. Saved changes update it for everyone.'}
+            </p>
+          </CardBody>
+        </Card>
+      ) : (
 
       <Card>
         <CardBody className="flex flex-col gap-3 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
@@ -639,21 +690,24 @@ function CopyTab({ ws, topic, onSubmitted }: { ws: Workspace; topic: TopicNo; on
           ) : null}
         </CardBody>
       </Card>
+      )}
 
       {copy.lastSubmitted && changes === 0 ? (
         <Notice tone="ok">
-          {copy.lastSubmitted.draft
-            ? `Submitted as Draft Resolution ${copy.lastSubmitted.numbers[0]}.`
-            : `Submitted as ${copy.lastSubmitted.numbers.length === 1 ? 'Amendment' : 'Amendments'} ${listNumbers(copy.lastSubmitted.numbers)}.`}{' '}
-          {ws.drafting ? '' : 'You can keep proposing changes here.'}
+          {selectedDraft
+            ? `Changes saved to Draft Resolution ${selectedDraft.number}. Everyone sees the new wording now.`
+            : copy.lastSubmitted.draft
+              ? `Submitted as Draft Resolution ${copy.lastSubmitted.numbers[0]}.`
+              : `Submitted as ${copy.lastSubmitted.numbers.length === 1 ? 'Amendment' : 'Amendments'} ${listNumbers(copy.lastSubmitted.numbers)}.`}{' '}
+          {ws.drafting || selectedDraft ? '' : 'You can keep proposing changes here.'}
         </Notice>
       ) : null}
       {notice ? <Notice tone="ok">{notice}</Notice> : null}
       {decided ? <Notice tone="info">The committee has voted on this resolution, so it can no longer be amended.</Notice> : null}
-      {!decided ? <HowTo drafting={ws.drafting} /> : null}
+      {!decided && !selectedDraft ? <HowTo drafting={ws.drafting} /> : null}
 
       <CopyEditor
-        key={`${topic}-${copy.owner}`}
+        key={selectedDraft ? `draft-${selectedDraft.id}` : `${topic}-${copy.owner}`}
         ws={ws}
         topic={topic}
         copy={copy}
@@ -677,7 +731,13 @@ function CopyTab({ ws, topic, onSubmitted }: { ws: Workspace; topic: TopicNo; on
             )}
             <Button variant="primary" disabled={changes === 0} onClick={() => setConfirming(true)}>
               <Send size={15} strokeWidth={1.75} />
-              {ws.drafting ? 'Submit draft' : changes ? `Submit ${changes} ${changes === 1 ? 'change' : 'changes'}` : 'Submit'}
+              {selectedDraft
+                ? `Save to Draft Resolution ${selectedDraft.number}`
+                : ws.drafting
+                  ? 'Submit draft'
+                  : changes
+                    ? `Submit ${changes} ${changes === 1 ? 'change' : 'changes'}`
+                    : 'Submit'}
             </Button>
           </div>
         </div>
@@ -698,8 +758,11 @@ function CopyTab({ ws, topic, onSubmitted }: { ws: Workspace; topic: TopicNo; on
         topic={topic}
         copy={copy}
         current={current}
+        draftNumber={selectedDraft?.number ?? null}
         onDone={(numbers) => {
           setConfirming(false);
+          // Saved to a draft: the copy's own note says so.
+          if (selectedDraft) return;
           setNotice(
             ws.drafting
               ? `Submitted as Draft Resolution ${numbers[0]}. The chairs choose which draft the committee debates.`
@@ -844,6 +907,7 @@ function SubmitDialog({
   topic,
   copy,
   current,
+  draftNumber,
   onDone,
 }: {
   open: boolean;
@@ -852,13 +916,17 @@ function SubmitDialog({
   topic: TopicNo;
   copy: Copy;
   current: ResolutionText;
+  /** Saving changes to this submitted draft, rather than submitting. */
+  draftNumber: number | null;
   onDone: (numbers: number[]) => void;
 }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   let preview: string[] = [];
   let problem: string | null = null;
-  if (open && !ws.drafting) {
+  // A whole draft, new or changed: there are no separate amendments to list.
+  const wholeDraft = ws.drafting || draftNumber !== null;
+  if (open && !wholeDraft) {
     try {
       preview = amendmentsFromCopy(copy, current).map((draft) =>
         draft.kind === 'add' ? draft.label : `${draft.kind === 'remove' ? 'Removes' : 'Changes'} ${draft.label.toLowerCase()}`,
@@ -873,11 +941,19 @@ function SubmitDialog({
     <Modal
       open={open}
       onClose={onClose}
-      title={ws.drafting ? 'Submit your draft resolution?' : `Submit ${preview.length === 1 ? 'this amendment' : `${preview.length} amendments`}?`}
+      title={
+        draftNumber !== null
+          ? `Save your changes to Draft Resolution ${draftNumber}?`
+          : ws.drafting
+            ? 'Submit your draft resolution?'
+            : `Submit ${preview.length === 1 ? 'this amendment' : `${preview.length} amendments`}?`
+      }
       description={
-        ws.drafting
-          ? 'The chairs will see it with the other drafts and choose one for the committee to debate.'
-          : 'Each one is debated and voted on separately, in the order received.'
+        draftNumber !== null
+          ? 'Everyone sees the new wording straight away. You can keep changing it until the chairs choose it.'
+          : ws.drafting
+            ? 'The chairs will see it with the other drafts and choose one for the committee to debate.'
+            : 'Each one is debated and voted on separately, in the order received.'
       }
       footer={
         <>
@@ -886,7 +962,7 @@ function SubmitDialog({
           </Button>
           <Button
             variant="primary"
-            disabled={busy || Boolean(problem) || (!ws.drafting && preview.length === 0)}
+            disabled={busy || Boolean(problem) || (!wholeDraft && preview.length === 0)}
             onClick={async () => {
               if (!copy.id) return;
               setBusy(true);
@@ -902,7 +978,7 @@ function SubmitDialog({
             }}
           >
             <Send size={15} strokeWidth={1.75} />
-            Submit
+            {draftNumber !== null ? 'Save' : 'Submit'}
           </Button>
         </>
       }
@@ -924,7 +1000,7 @@ function SubmitDialog({
           <p className="label-micro mb-1.5">Submitted by</p>
           <SubmitterList countries={submitters} className="text-ink-900" />
         </div>
-        <Badge tone="neutral">Your copy is cleared once submitted</Badge>
+        {draftNumber === null ? <Badge tone="neutral">Your copy is cleared once submitted</Badge> : null}
       </div>
     </Modal>
   );

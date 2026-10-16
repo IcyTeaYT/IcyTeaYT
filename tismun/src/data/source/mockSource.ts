@@ -8,14 +8,18 @@ import {
   adoptDraft,
   amendmentsFromCopy,
   applyCopyOps,
+  copyChangeCount,
   canEditCopy,
   currentText,
   decideAmendment,
   decideResolution,
+  draftCopy,
+  draftEditable,
   draftFromCopy,
   draftSubmittersFollow,
   freshCopy,
   newCopy,
+  reviseDraft,
   normaliseCommitteeState,
   ResolutionError,
   sameCountry,
@@ -522,7 +526,11 @@ export const mockSource: DataSource = {
       copies:
         who.me.role === 'delegate' && country
           ? copies
-              .filter((copy) => copy.topic === topic && canEditCopy(copy, country))
+              .filter((copy) =>
+                copy.topic === topic && copy.draftId
+                  ? draftEditable(state.drafts.find((draft) => draft.id === copy.draftId), country)
+                  : copy.topic === topic && canEditCopy(copy, country),
+              )
               .map((copy) => freshCopy(copy, epoch))
           : [],
       ...(withCountries ? { countries: demoCountries(committeeId) } : {}),
@@ -541,6 +549,24 @@ export const mockSource: DataSource = {
         const topic = checkTopic(committeeId, action.topic);
         const topicState = data.state.topics[topic];
         if (topicState.status !== 'open') throw new ResolutionError('The committee has already voted on this resolution.', 409);
+        // Changing a submitted draft: its own copy, against the draft's wording.
+        if (action.draftId) {
+          const draft = data.state.drafts.find((entry) => entry.id === action.draftId);
+          if (!draft) throw new ResolutionError('That draft no longer exists.', 404);
+          if (!draftEditable(draft, delegate.country)) {
+            throw new ResolutionError('Only its writers can change a draft, until the chairs choose it.', 403);
+          }
+          const existing = data.copies.find((entry) => entry.draftId === draft.id) ?? draftCopy(demoId(), topic, draft, now);
+          const applied = applyCopyOps(
+            { ...existing, owner: draft.submitters[0] ?? existing.owner, members: draft.submitters.slice(1) },
+            action.ops.filter((op) => op.op !== 'share'),
+            delegate.actor,
+            now,
+            (clauseId) => draft.text.clauses.find((clause) => clause.id === clauseId) ?? null,
+          );
+          save({ copies: [...data.copies.filter((entry) => entry.id !== applied.copy.id), applied.copy] });
+          return { serverNow: now, copy: applied.copy, refused: applied.refused };
+        }
         const current = currentText(demoBase(committeeId, topic, data.state), data.state.amendments, topic);
         const found = action.copyId
           ? data.copies.find((copy) => copy.id === action.copyId)
@@ -568,6 +594,25 @@ export const mockSource: DataSource = {
         const topic = checkTopic(committeeId, action.topic);
         const found = data.copies.find((copy) => copy.id === action.copyId);
         if (!found) throw new ResolutionError('That copy no longer exists.', 404);
+        // Saving changes to a submitted draft: the draft takes the new wording.
+        const draft = found.draftId ? data.state.drafts.find((entry) => entry.id === found.draftId) : undefined;
+        if (found.draftId) {
+          if (!draft || !draftEditable(draft, delegate.country)) {
+            throw new ResolutionError('Only its writers can change a draft, until the chairs choose it.', 403);
+          }
+          if (copyChangeCount(found) === 0) throw new ResolutionError('There are no changes to save yet.');
+          const state = reviseDraft(data.state, draft.id, draftFromCopy(found, draft.text), now);
+          const saved: Copy = {
+            ...found,
+            edits: {},
+            locks: {},
+            version: found.version + 1,
+            updatedAt: now,
+            lastSubmitted: { at: now, numbers: [draft.number], draft: true },
+          };
+          save({ state, copies: [...data.copies.filter((entry) => entry.id !== found.id), saved] });
+          return { serverNow: now, state, copy: saved, numbers: [draft.number] };
+        }
         if (!canEditCopy(found, delegate.country)) throw new ResolutionError('This copy has not been shared with you.', 403);
         const epoch = data.state.topics[topic].epoch;
         const copy = freshCopy(found, epoch);

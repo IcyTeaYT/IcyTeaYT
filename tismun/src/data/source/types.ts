@@ -301,7 +301,8 @@ export interface ResWorkspace {
 }
 
 export type ResAction =
-  | { action: 'edit'; topic: TopicNo; copyId: string | null; ops: CopyOp[] }
+  /** With draftId: change that submitted draft, in its own copy. */
+  | { action: 'edit'; topic: TopicNo; copyId: string | null; ops: CopyOp[]; draftId?: string }
   | { action: 'submit'; topic: TopicNo; copyId: string }
   | { action: 'withdraw'; amendmentId: string }
   | { action: 'decide'; amendmentId: string; status: AmendmentStatus; votes: Votes | null }

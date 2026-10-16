@@ -88,12 +88,14 @@ export function EmergencySubmissions() {
             <Group title="Being written now — not submitted yet">
               {writing.map((copy) => {
                 const count = copyChangeCount(copy);
-                const unit = chosen ? (count === 1 ? 'change' : 'changes') : count === 1 ? 'clause' : 'clauses';
+                // Its writers changing a draft they already submitted.
+                const draft = copy.draftId ? drafts.find((entry) => entry.id === copy.draftId) : undefined;
+                const unit = chosen || draft ? (count === 1 ? 'change' : 'changes') : count === 1 ? 'clause' : 'clauses';
                 return (
                   <Row
                     key={copy.id}
                     time={copy.updatedAt}
-                    title={`${copy.owner}’s ${chosen ? 'copy' : 'draft'}`}
+                    title={draft ? `Changes to Draft Resolution ${draft.number}` : `${copy.owner}’s ${chosen ? 'copy' : 'draft'}`}
                     detail={`${count} ${unit} so far`}
                     countries={[copy.owner, ...copy.members]}
                     badge={<Badge tone="warning">Not submitted</Badge>}

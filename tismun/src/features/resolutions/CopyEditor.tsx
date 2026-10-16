@@ -33,16 +33,24 @@ const newClauseId = (): string =>
 
 export function useCopyActions(ws: Workspace, topic: TopicNo, copy: Copy) {
   const copyId = useRef<string | null>(copy.id || null);
+  const draftId = useRef<string | undefined>(copy.draftId);
   const queue = useRef<Promise<unknown>>(Promise.resolve());
   useEffect(() => {
     copyId.current = copy.id || null;
-  }, [copy.id]);
+    draftId.current = copy.draftId;
+  }, [copy.id, copy.draftId]);
 
   /** Changes go out one after another, so the first one can create the copy. */
   const send = useCallback(
     (ops: CopyOp[]) => {
       const run = queue.current.then(async () => {
-        const result = await ws.act({ action: 'edit', topic, copyId: copyId.current, ops });
+        const result = await ws.act({
+          action: 'edit',
+          topic,
+          copyId: copyId.current,
+          ops,
+          ...(draftId.current ? { draftId: draftId.current } : {}),
+        });
         if (result.copy) copyId.current = result.copy.id;
         return result;
       });

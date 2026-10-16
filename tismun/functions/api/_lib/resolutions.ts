@@ -118,33 +118,37 @@ export async function readCopy(db: D1Database, copyId: string): Promise<{ copy: 
   return row ? { copy: parseCopy(row.data, row.version), committeeId: row.committee_id } : null;
 }
 
+/** The copy a draft's writers change it in: one per draft, whoever is typing. */
+export const draftCopyKey = (draftId: string): string => `draft:${draftId}`;
+
 export async function readOwnCopy(
   db: D1Database,
   committeeId: string,
   topic: TopicNo,
-  country: string,
+  key: string,
 ): Promise<Copy | null> {
   const row = await db
     .prepare('SELECT version, data FROM res_copy WHERE committee_id = ?1 AND topic = ?2 AND owner_key = ?3')
-    .bind(committeeId, topic, ownerKey(country))
+    .bind(committeeId, topic, key)
     .first<{ version: number; data: string }>();
   return row ? parseCopy(row.data, row.version) : null;
 }
 
 /**
  * Change a copy, retrying if someone else saved it in between. With no copy
- * id, it is the caller's own country's copy — created on its first edit.
+ * id, it is the caller's own country's copy — or, with a key, the copy that
+ * key names (a draft's) — created on its first edit.
  */
 export async function mutateCopy<T>(
   db: D1Database,
-  where: { committeeId: string; topic: TopicNo; copyId: string | null; country: string },
+  where: { committeeId: string; topic: TopicNo; copyId: string | null; country: string; key?: string },
   create: () => Copy,
   change: (copy: Copy) => { copy: Copy; result: T },
 ): Promise<{ copy: Copy; result: T }> {
   for (let attempt = 0; attempt < ATTEMPTS; attempt += 1) {
     const found = where.copyId
       ? await readCopy(db, where.copyId)
-      : await readOwnCopy(db, where.committeeId, where.topic, where.country).then((copy) =>
+      : await readOwnCopy(db, where.committeeId, where.topic, where.key ?? ownerKey(where.country)).then((copy) =>
           copy ? { copy, committeeId: where.committeeId } : null,
         );
     if (where.copyId && (!found || found.committeeId !== where.committeeId)) {
@@ -166,7 +170,7 @@ export async function mutateCopy<T>(
              VALUES (?1, ?2, ?3, ?4, 1, ?5, ?6)
              ON CONFLICT DO NOTHING`,
           )
-          .bind(base.id, where.committeeId, where.topic, ownerKey(base.owner), data, now)
+          .bind(base.id, where.committeeId, where.topic, where.key ?? ownerKey(base.owner), data, now)
           .run();
     if (written.meta.changes) return { copy: { ...next.copy, version: (existing?.version ?? 0) + 1 }, result: next.result };
   }

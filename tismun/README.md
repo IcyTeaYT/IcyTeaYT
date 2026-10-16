@@ -447,7 +447,10 @@ caucus, delegates write draft resolutions in the same editor, with teammates
 of the same country on one copy, and submit them. The chairs read the drafts
 and press **Choose this one**. From then on it is debated and amended like
 any other. Sharing a copy after submitting a draft from it updates that
-draft's submitters too, until the chairs choose one. If the chairs later
+draft's submitters too, until the chairs choose one. A draft's writers can
+keep changing it until the chairs choose it, even while another draft is
+being debated: under **My copy** it has its own tab, **Our Draft Resolution
+N**, and **Save** updates the draft for everyone. If the chairs later
 choose a different draft, amendments to the first are set aside, not deleted.
 
 **What the Secretariat sees.** Chairs and the Secretariat see everything

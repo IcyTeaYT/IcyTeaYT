@@ -12,16 +12,20 @@ import {
   currentText,
   decideAmendment,
   decideResolution,
+  draftCopy,
+  draftEditable,
   draftFromCopy,
   draftSubmittersFollow,
   freshCopy,
   newCopy,
   ResolutionError,
+  reviseDraft,
   setFloor,
   withdrawAmendment,
   type Actor,
   type AmendmentStatus,
   type CommitteeResState,
+  type Copy,
   type CopyOp,
   type Floor,
   type ResolutionText,
@@ -36,6 +40,7 @@ import { EMERGENCY_ID, emergencyCountryOf } from '../_lib/emergency';
 import { fail, isLiveMode, json, type Env } from '../_lib/env';
 import { describeDbError } from '../_lib/live';
 import {
+  draftCopyKey,
   ensureResTables,
   mutateCommitteeState,
   mutateCopy,
@@ -51,6 +56,8 @@ import { readUsers, type SheetUser } from '../_lib/sheets';
  *      The committee's amendments and votes, and — for a delegate — every copy
  *      of the topic they may edit: their country's own and any shared with it.
  *      The Secretariat also gets every copy being written (`writing`), to read.
+ *      A delegate's copies include the copy of any draft their country
+ *      submitted that the chairs have not chosen yet, to keep changing it.
  * POST /api/res/:committeeId  { action, … }
  *      Delegates: edit a copy, share it, submit it, withdraw an amendment.
  *      Chairs of the committee: record votes, say what is on the floor, and in
@@ -181,8 +188,15 @@ export const onRequestGet: PagesFunction<Env, 'committeeId'> = async ({ request,
     const epoch = state.topics[topic].epoch;
     const delegate = who.role === 'delegate' && who.country ? who.country : null;
     const all = delegate || oversight ? (await readCopies(env.DB, storeId, topic)).map((copy) => freshCopy(copy, epoch)) : [];
-    const copies = delegate ? all.filter((copy) => canEditCopy(copy, delegate)) : [];
-    const writing = oversight ? all.filter((copy) => copyChangeCount(copy) > 0) : [];
+    // A draft's copy is for its writers, while the draft can still change.
+    const draftOf = (copy: Copy) => state.drafts.find((draft) => draft.id === copy.draftId);
+    const copies = delegate
+      ? all.filter((copy) => (copy.draftId ? draftEditable(draftOf(copy), delegate) : canEditCopy(copy, delegate)))
+      : [];
+    // A chosen draft's copy is finished with, whatever was left in it.
+    const writing = oversight
+      ? all.filter((copy) => copyChangeCount(copy) > 0 && (!copy.draftId || draftOf(copy)?.status === 'submitted'))
+      : [];
     return json({
       available: true,
       serverNow,
@@ -309,6 +323,40 @@ export const onRequestPost: PagesFunction<Env, 'committeeId'> = async ({ request
         const { state } = await readCommitteeState(db, storeId);
         const topicState = state.topics[topic];
         if (topicState.status !== 'open') return fail('The committee has already voted on this resolution.', 409);
+
+        // Changing a submitted draft: its own copy, against the draft's wording.
+        if (typeof body.draftId === 'string' && body.draftId) {
+          const draft = state.drafts.find((entry) => entry.id === body.draftId);
+          if (!draft) return fail('That draft no longer exists.', 404);
+          if (!draftEditable(draft, delegate.country)) {
+            return fail(
+              draft.status === 'submitted'
+                ? 'Only the countries that submitted this draft can change it.'
+                : 'The chairs have already chosen this draft, so it now changes only by amendments.',
+              draft.status === 'submitted' ? 403 : 409,
+            );
+          }
+          const now = Date.now();
+          const { copy, result } = await mutateCopy(
+            db,
+            { committeeId: storeId, topic, copyId: null, country: delegate.country, key: draftCopyKey(draft.id) },
+            () => draftCopy(crypto.randomUUID(), topic, draft, now),
+            (found) => {
+              // Everyone who submitted the draft can edit it, however that list has changed.
+              const writers = { ...found, owner: draft.submitters[0] ?? found.owner, members: draft.submitters.slice(1) };
+              const applied = applyCopyOps(
+                writers,
+                ops.filter((op) => op.op !== 'share'),
+                delegate.actor,
+                now,
+                (clauseId) => draft.text.clauses.find((clause) => clause.id === clauseId) ?? null,
+              );
+              return { copy: applied.copy, result: applied.refused };
+            },
+          );
+          return json({ serverNow: now, copy, refused: result });
+        }
+
         const current = currentText(baseOf(committeeId, topic, state), state.amendments, topic);
         const copyId = typeof body.copyId === 'string' && body.copyId ? body.copyId : null;
         const now = Date.now();
@@ -347,6 +395,34 @@ export const onRequestPost: PagesFunction<Env, 'committeeId'> = async ({ request
         if (typeof body.copyId !== 'string') return fail('Which copy?', 400);
         const found = await readCopy(db, body.copyId);
         if (!found || found.committeeId !== storeId) return fail('That copy no longer exists.', 404);
+
+        // Saving changes to a submitted draft: the draft takes the new wording.
+        const draftId = found.copy.draftId;
+        if (draftId) {
+          const { state: current } = await readCommitteeState(db, storeId);
+          if (!draftEditable(current.drafts.find((entry) => entry.id === draftId), delegate.country)) {
+            return fail('Only the countries that submitted this draft can change it, until the chairs choose it.', 403);
+          }
+          const now = Date.now();
+          const { state, result: numbers } = await mutateCommitteeState(db, storeId, (latest) => {
+            const draft = latest.drafts.find((entry) => entry.id === draftId);
+            if (!draft) throw new ResolutionError('That draft no longer exists.', 404);
+            if (copyChangeCount(found.copy) === 0) throw new ResolutionError('There are no changes to save yet.');
+            const writers = { ...found.copy, owner: draft.submitters[0] ?? found.copy.owner, members: draft.submitters.slice(1) };
+            return { state: reviseDraft(latest, draftId, draftFromCopy(writers, draft.text), now), result: [draft.number] };
+          });
+          const cleared = await mutateCopy(
+            db,
+            { committeeId: storeId, topic, copyId: found.copy.id, country: delegate.country },
+            () => found.copy,
+            (latest) => ({
+              copy: { ...latest, edits: {}, locks: {}, updatedAt: now, lastSubmitted: { at: now, numbers, draft: true } },
+              result: null,
+            }),
+          );
+          return json({ serverNow: now, state, copy: cleared.copy, numbers });
+        }
+
         if (!canEditCopy(found.copy, delegate.country)) return fail('This copy has not been shared with you.', 403);
 
         const { state: before } = await readCommitteeState(db, storeId);

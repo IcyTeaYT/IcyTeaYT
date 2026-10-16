@@ -115,6 +115,8 @@ export interface Draft {
   text: ResolutionText;
   submittedAt: number;
   status: 'submitted' | 'adopted' | 'withdrawn';
+  /** Its writers last changed it, before the chairs chose a draft. */
+  revisedAt?: number;
 }
 
 /** Amendments to a draft the chairs then replaced with another one. */
@@ -173,6 +175,12 @@ export interface Copy {
   updatedAt: number;
   /** The amendment (or draft) numbers its last submission became. */
   lastSubmitted: { at: number; numbers: number[]; draft: boolean } | null;
+  /**
+   * The Emergency Session: this copy changes a submitted draft, not the
+   * resolution. Its writers keep working on it until the chairs choose it,
+   * even while another draft is being debated.
+   */
+  draftId?: string;
 }
 
 /** Who is acting: a person, known to others only by first name and country. */
@@ -458,7 +466,8 @@ export const newCopy = (id: string, topic: TopicNo, owner: string, epoch: number
 
 /** A copy as it should be read now: emptied if the topic has moved to a new base since. */
 export function freshCopy(copy: Copy, epoch: number): Copy {
-  if (copy.epoch === epoch) return copy;
+  // A draft's copy follows its draft, not the resolution being debated.
+  if (copy.draftId || copy.epoch === epoch) return copy;
   return { ...copy, edits: {}, locks: {}, epoch };
 }
 
@@ -816,6 +825,31 @@ export function addDraft(
   const number = Math.max(0, ...state.drafts.map((draft) => draft.number)) + 1;
   const draft: Draft = { id, number, submitters, text, submittedAt: now, status: 'submitted' };
   return { state: { ...state, drafts: [...state.drafts, draft] }, number };
+}
+
+/** The copy a draft's writers change it in: every country that submitted it can edit it. */
+export const draftCopy = (id: string, topic: TopicNo, draft: Draft, now: number): Copy => ({
+  ...newCopy(id, topic, draft.submitters[0] ?? '', 0, now),
+  members: draft.submitters.slice(1),
+  draftId: draft.id,
+});
+
+/** May this country change this draft? Only its writers, and only until the chairs choose it. */
+export function draftEditable(draft: Draft | undefined, country: string): boolean {
+  return Boolean(draft && draft.status === 'submitted' && draft.submitters.some((entry) => sameCountry(entry, country)));
+}
+
+/** A submitted draft's writers change its wording, before the chairs choose it. */
+export function reviseDraft(state: CommitteeResState, draftId: string, text: ResolutionText, now: number): CommitteeResState {
+  const draft = state.drafts.find((entry) => entry.id === draftId);
+  if (!draft) throw new ResolutionError('That draft no longer exists.', 404);
+  if (draft.status !== 'submitted') {
+    throw new ResolutionError('The chairs have already chosen this draft, so it now changes only by amendments.', 409);
+  }
+  return {
+    ...state,
+    drafts: state.drafts.map((entry) => (entry.id === draftId ? { ...entry, text, revisedAt: now } : entry)),
+  };
 }
 
 /**
