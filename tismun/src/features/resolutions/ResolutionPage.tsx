@@ -9,10 +9,11 @@ import { Card, CardBody } from '@/components/ui/Card';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { Modal } from '@/components/ui/Modal';
 import { Segmented } from '@/components/ui/Segmented';
-import { hasResolutions, topicsOf } from '@/config/resolutions';
+import { hasResolutions, topicsOf, writesOwnResolution } from '@/config/resolutions';
 import type { Committee } from '@/data/source/types';
 import { cn } from '@/lib/cn';
 import { countryCodeFor } from '@/lib/countryCodes';
+import { formatTimeOfDay } from '@/lib/time';
 import {
   amendmentsFor,
   amendmentsFromCopy,
@@ -34,7 +35,7 @@ import { AmendmentCard, ResolutionClauses, ResolutionHeader, SubmitterList } fro
 import { TestAsDialog } from '@/features/testing/TestAsDialog';
 import { useResolutions, type Workspace } from './useResolutions';
 
-type Tab = 'read' | 'copy' | 'amendments';
+type Tab = 'read' | 'copy' | 'amendments' | 'drafts';
 
 /** Which committee's resolution a person works on today. */
 function useMyResolutionCommittee(): string | null {
@@ -98,6 +99,10 @@ function ResolutionWorkspace({ committee }: { committee: Committee }) {
   }, [ws.state, ws.me, topicChoice, topics]);
 
   const isDelegate = ws.me?.role === 'delegate';
+  // Chairs and the Secretariat see everything submitted: every draft, withdrawn
+  // or not, and amendments to a draft the chairs later replaced.
+  const oversees = ws.me?.role === 'chair' || ws.me?.role === 'viewer';
+  const allDrafts = ws.state?.drafts.length ?? 0;
   const topicState = ws.state?.topics[topic];
   const amendments = ws.state ? amendmentsFor(ws.state, topic) : [];
   const floor = ws.state?.floor && ws.state.floor.topic === topic ? ws.state.floor : null;
@@ -173,6 +178,9 @@ function ResolutionWorkspace({ committee }: { committee: Committee }) {
               { value: 'read', label: ws.drafting ? 'Drafts' : 'Resolution' },
               ...(isDelegate ? [{ value: 'copy' as const, label: ws.drafting ? 'Our draft' : 'My copy' }] : []),
               ...(ws.drafting ? [] : [{ value: 'amendments' as const, label: `Amendments${amendments.length ? ` (${amendments.length})` : ''}` }]),
+              ...(oversees && !ws.drafting && writesOwnResolution(committee.id)
+                ? [{ value: 'drafts' as const, label: `Drafts${allDrafts ? ` (${allDrafts})` : ''}` }]
+                : []),
             ]}
           />
         </div>
@@ -190,12 +198,14 @@ function ResolutionWorkspace({ committee }: { committee: Committee }) {
                   {ws.drafting ? 'Write your draft' : 'Suggest a change to this resolution'}
                 </Button>
               ) : null}
-              <ReadTab ws={ws} committee={committee} topic={topic} />
+              <ReadTab ws={ws} committee={committee} topic={topic} everything={oversees} />
             </>
           ) : tab === 'copy' && isDelegate ? (
             <CopyTab ws={ws} topic={topic} onSubmitted={() => setTab(ws.drafting ? 'read' : 'amendments')} />
+          ) : tab === 'drafts' && !ws.drafting ? (
+            <DraftsList ws={ws} everything />
           ) : (
-            <AmendmentsTab ws={ws} topic={topic} />
+            <AmendmentsTab ws={ws} topic={topic} everything={oversees} />
           )}
         </div>
       </div>
@@ -253,7 +263,17 @@ function Notice({ tone, children }: { tone: 'error' | 'ok' | 'info'; children: R
 
 /* ── The resolution as it stands ─────────────────────────────────────────── */
 
-function ReadTab({ ws, committee, topic }: { ws: Workspace; committee: Committee; topic: TopicNo }) {
+function ReadTab({
+  ws,
+  committee,
+  topic,
+  everything,
+}: {
+  ws: Workspace;
+  committee: Committee;
+  topic: TopicNo;
+  everything: boolean;
+}) {
   const marks = useMemo(() => {
     const map = new Map<string, string>();
     for (const amendment of ws.state ? amendmentsFor(ws.state, topic) : []) {
@@ -263,7 +283,7 @@ function ReadTab({ ws, committee, topic }: { ws: Workspace; committee: Committee
     return map;
   }, [ws.state, topic]);
 
-  if (ws.drafting) return <DraftsList ws={ws} />;
+  if (ws.drafting) return <DraftsList ws={ws} everything={everything} />;
   if (!ws.current) return <Notice tone="info">There is no resolution for this topic yet.</Notice>;
 
   return (
@@ -282,16 +302,29 @@ function ReadTab({ ws, committee, topic }: { ws: Workspace; committee: Committee
   );
 }
 
-/** The Emergency Session before the chairs adopt a draft. */
-function DraftsList({ ws }: { ws: Workspace }) {
-  const drafts = ws.state?.drafts.filter((draft) => draft.status !== 'withdrawn') ?? [];
+/**
+ * The Emergency Session's drafts. Delegates see them until the chairs choose
+ * one; chairs and the Secretariat see every draft ever submitted, all along.
+ */
+function DraftsList({ ws, everything }: { ws: Workspace; everything: boolean }) {
+  const all = ws.state?.drafts ?? [];
+  const drafts = everything ? all : all.filter((draft) => draft.status !== 'withdrawn');
+  const chosen = all.some((draft) => draft.status === 'adopted');
   const [open, setOpen] = useState<string | null>(null);
   return (
     <div className="space-y-4">
-      <Notice tone="info">
-        No draft resolution has been chosen yet. Write one with your bloc under <strong>Our draft</strong>, share it with
-        the countries writing it with you, and submit it. The chairs then choose the draft the committee debates.
-      </Notice>
+      {everything ? (
+        <Notice tone="info">
+          {chosen
+            ? 'Every draft resolution the delegates submitted, including the one the chairs chose.'
+            : 'No draft resolution has been chosen yet. Every draft the delegates submit shows up here.'}
+        </Notice>
+      ) : (
+        <Notice tone="info">
+          No draft resolution has been chosen yet. Write one with your bloc under <strong>Our draft</strong>, share it
+          with the countries writing it with you, and submit it. The chairs then choose the draft the committee debates.
+        </Notice>
+      )}
       {drafts.length === 0 ? null : (
         <div className="space-y-3">
           <p className="label-micro">Submitted drafts</p>
@@ -303,11 +336,17 @@ function DraftsList({ ws }: { ws: Workspace }) {
                   className="flex w-full flex-wrap items-center justify-between gap-2 text-left"
                   onClick={() => setOpen(open === draft.id ? null : draft.id)}
                 >
-                  <span className="font-serif text-[17px] text-ink-900">Draft Resolution {draft.number}</span>
+                  <span className="flex flex-wrap items-center gap-2">
+                    <span className="font-serif text-[17px] text-ink-900">Draft Resolution {draft.number}</span>
+                    {everything && draft.status === 'adopted' ? <Badge tone="success">Chosen for debate</Badge> : null}
+                    {everything && draft.status === 'withdrawn' ? <Badge tone="outline">Withdrawn</Badge> : null}
+                    {everything && draft.status === 'submitted' && chosen ? <Badge tone="neutral">Not chosen</Badge> : null}
+                  </span>
                   <span className="text-xs text-muted">{open === draft.id ? 'Hide' : 'Read it'}</span>
                 </button>
                 <p className="mt-1 text-xs text-muted">
                   <SubmitterList countries={draft.submitters} />
+                  {everything ? ` · submitted ${formatTimeOfDay(draft.submittedAt)}` : null}
                 </p>
                 {open === draft.id ? (
                   <div className="mt-4 border-t border-hairline pt-4">
@@ -325,7 +364,7 @@ function DraftsList({ ws }: { ws: Workspace }) {
 
 /* ── Amendments ──────────────────────────────────────────────────────────── */
 
-function AmendmentsTab({ ws, topic }: { ws: Workspace; topic: TopicNo }) {
+function AmendmentsTab({ ws, topic, everything }: { ws: Workspace; topic: TopicNo; everything: boolean }) {
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const amendments = ws.state ? amendmentsFor(ws.state, topic) : [];
@@ -333,12 +372,17 @@ function AmendmentsTab({ ws, topic }: { ws: Workspace; topic: TopicNo }) {
   const country = ws.me?.country ?? null;
   const clauseNow = (clauseId: string) => ws.current?.clauses.find((clause) => clause.id === clauseId)?.text ?? null;
 
+  const setAside = everything ? <SetAsideList ws={ws} topic={topic} /> : null;
+
   if (amendments.length === 0) {
     return (
-      <Notice tone="info">
-        No amendments yet. Propose one from {ws.me?.role === 'delegate' ? <strong>My copy</strong> : 'a delegate’s copy'}: change
-        the words of any clause, strike one, or add a new one, then press Submit.
-      </Notice>
+      <div className="space-y-3">
+        <Notice tone="info">
+          No amendments yet. Propose one from {ws.me?.role === 'delegate' ? <strong>My copy</strong> : 'a delegate’s copy'}:
+          change the words of any clause, strike one, or add a new one, then press Submit.
+        </Notice>
+        {setAside}
+      </div>
     );
   }
 
@@ -380,6 +424,32 @@ function AmendmentsTab({ ws, topic }: { ws: Workspace; topic: TopicNo }) {
           />
         );
       })}
+      {setAside}
+    </div>
+  );
+}
+
+/** Amendments to a draft the chairs then replaced: they no longer apply, but were submitted. */
+function SetAsideList({ ws, topic }: { ws: Workspace; topic: TopicNo }) {
+  const groups = topic === 1 ? (ws.state?.setAside ?? []) : [];
+  if (groups.length === 0) return null;
+  return (
+    <div className="space-y-6 pt-4">
+      {groups.map((group) => (
+        <div key={group.replacedAt} className="space-y-3">
+          <div>
+            <p className="label-micro">
+              Amendments to {group.draftNumber ? `Draft Resolution ${group.draftNumber}` : 'an earlier draft'}
+            </p>
+            <p className="mt-1 text-sm text-muted">
+              Set aside at {formatTimeOfDay(group.replacedAt)}, when the chairs chose another draft. They no longer apply.
+            </p>
+          </div>
+          {group.amendments.map((amendment) => (
+            <AmendmentCard key={amendment.id} amendment={amendment} setAside className="opacity-75" />
+          ))}
+        </div>
+      ))}
     </div>
   );
 }
@@ -581,9 +651,13 @@ function ShareDialog({
   const [chosen, setChosen] = useState<string[]>(copy.members);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Start from who it is shared with when the dialog opens. Compared by value:
+  // the page refreshes every few seconds with a new list each time, and that
+  // must not untick the countries being chosen.
+  const saved = copy.members.join('\n');
   useEffect(() => {
-    if (open) setChosen(copy.members);
-  }, [open, copy.members]);
+    if (open) setChosen(saved ? saved.split('\n') : []);
+  }, [open, saved]);
   const countries = ws.countries.filter((entry) => !sameCountry(entry.name, country));
 
   return (

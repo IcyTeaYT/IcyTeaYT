@@ -117,11 +117,25 @@ export interface Draft {
   status: 'submitted' | 'adopted' | 'withdrawn';
 }
 
+/** Amendments to a draft the chairs then replaced with another one. */
+export interface SetAsideAmendments {
+  /** The draft they amended; null if it is not known. */
+  draftNumber: number | null;
+  replacedAt: number;
+  amendments: Amendment[];
+}
+
 export interface CommitteeResState {
   topics: Record<TopicNo, TopicState>;
   amendments: Amendment[];
   floor: Floor | null;
   drafts: Draft[];
+  /**
+   * The Emergency Session: amendments to a draft the chairs later replaced.
+   * They no longer apply, but are kept so the Secretariat still sees
+   * everything that was submitted.
+   */
+  setAside: SetAsideAmendments[];
 }
 
 export interface CopyEdit {
@@ -395,6 +409,7 @@ export const emptyCommitteeState = (): CommitteeResState => ({
   amendments: [],
   floor: null,
   drafts: [],
+  setAside: [],
 });
 
 /** Fill in anything an older stored state is missing. */
@@ -409,6 +424,7 @@ export function normaliseCommitteeState(value: unknown): CommitteeResState {
     amendments: Array.isArray(state.amendments) ? state.amendments : [],
     floor: state.floor ?? null,
     drafts: Array.isArray(state.drafts) ? state.drafts : [],
+    setAside: Array.isArray(state.setAside) ? state.setAside : [],
   };
 }
 
@@ -863,6 +879,8 @@ export function adoptDraft(state: CommitteeResState, draftId: string, now: numbe
   const draft = state.drafts.find((entry) => entry.id === draftId);
   if (!draft) throw new ResolutionError('That draft no longer exists.', 404);
   const [owner, ...others] = draft.submitters;
+  const replaced = state.amendments.filter((amendment) => amendment.topic === 1);
+  const before = state.drafts.find((entry) => entry.status === 'adopted');
   return {
     ...state,
     drafts: state.drafts.map((entry) =>
@@ -872,8 +890,12 @@ export function adoptDraft(state: CommitteeResState, draftId: string, now: numbe
           ? { ...entry, status: 'submitted' }
           : entry,
     ),
-    // A new base: amendments to any earlier one no longer apply.
+    // A new base: amendments to any earlier one no longer apply. They are set
+    // aside rather than deleted, so nothing submitted ever disappears.
     amendments: state.amendments.filter((amendment) => amendment.topic !== 1),
+    setAside: replaced.length
+      ? [...state.setAside, { draftNumber: before?.number ?? null, replacedAt: now, amendments: replaced }]
+      : state.setAside,
     topics: {
       ...state.topics,
       1: {

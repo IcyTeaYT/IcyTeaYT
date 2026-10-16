@@ -425,7 +425,7 @@ home page. They can read them before the conference too.
 the same page under **My copy**. A delegate taps **Change this** on a clause
 and types; it saves as they type. They can remove a clause, or add a new one
 after any clause. Changes show in red and green against the resolution as it
-stands. **Share with other countries** lets any countries in the committee
+stands. **Share with other countries** lets any number of countries in the committee
 edit the copy with them, live: whoever is typing in a clause holds it for a
 few seconds, and the others see "Ali (Brazil) is editing". **Submit** turns
 each changed clause into its own amendment, numbered in the order received,
@@ -446,7 +446,14 @@ example "Now: Speeches against — Amendment 3".
 caucus, delegates write draft resolutions in the same editor, with teammates
 of the same country on one copy, and submit them. The chairs read the drafts
 and press **Choose this one**. From then on it is debated and amended like
-any other.
+any other. If the chairs later choose a different draft, amendments to the
+first are set aside, not deleted.
+
+**What the Secretariat sees.** Chairs and the Secretariat see everything
+submitted, read-only: every amendment with its result and votes, and, in the
+Emergency Session, a **Drafts** tab with every draft (chosen, not chosen or
+withdrawn) and any set-aside amendments under **Amendments**. Copies still
+being written stay private to the countries on them until they are submitted.
 
 This needs the D1 binding. Its two tables (`res_committee`, `res_copy`) are
 created on first use. The Secretariat's **Reset all sessions** clears them

@@ -206,6 +206,8 @@ const STATUS: Record<Amendment['status'], { label: string; tone: 'neutral' | 'te
   withdrawn: { label: 'Withdrawn', tone: 'outline' },
 };
 
+const SET_ASIDE = { label: 'Set aside', tone: 'outline' } as const;
+
 /** What an amendment does, shown as the change itself. */
 export function AmendmentChange({ amendment, current }: { amendment: Amendment; current?: string | null }) {
   if (amendment.kind === 'add') return <WholeClause text={amendment.newText ?? ''} mode="added" />;
@@ -228,6 +230,7 @@ export function AmendmentCard({
   amendment,
   current,
   debating,
+  setAside,
   action,
   className,
 }: {
@@ -235,10 +238,12 @@ export function AmendmentCard({
   /** The clause as it stands now (null: removed), to warn when it has moved on. */
   current?: string | null;
   debating?: boolean;
+  /** Its draft was replaced before it was voted on: it will never be debated. */
+  setAside?: boolean;
   action?: ReactNode;
   className?: string;
 }) {
-  const status = STATUS[amendment.status];
+  const status = setAside && amendment.status === 'pending' ? SET_ASIDE : STATUS[amendment.status];
   return (
     <div
       className={cn(
