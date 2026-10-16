@@ -14,6 +14,7 @@ import { formatDateTimeWithZone, formatTimeOfDay } from '@/lib/time';
 import { isOwner, useAuth } from '@/store/auth';
 import { useConferenceStatus } from '@/store/conferenceStatus';
 import { TestAsDialog } from '@/features/testing/TestAsDialog';
+import { EmergencySubmissions } from './EmergencySubmissions';
 
 interface Confirm {
   title: string;
@@ -280,6 +281,13 @@ export function EmergencyPanel() {
               >
                 {error}
               </p>
+            ) : null}
+
+            {/* What the delegates have written, once there is a topic to write about */}
+            {status.released ? (
+              <div className="md:col-span-2">
+                <EmergencySubmissions />
+              </div>
             ) : null}
 
             {/* Who changed what, and when */}

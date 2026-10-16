@@ -457,7 +457,10 @@ withdrawn) and any set-aside amendments under **Amendments**. The Secretariat
 also sees every copy still being written, live, under **Being written now**;
 to everyone else a copy stays private to the countries on it until it is
 submitted. The Secretariat's **Resolution** menu item opens the Emergency
-Session on Day 2, with a picker for any other committee.
+Session on Day 2, with a picker for any other committee. The Emergency
+Session panel on the Secretariat dashboard also lists every submitted draft,
+every draft being written and every amendment, refreshed by itself, with a
+link to the full text.
 
 This needs the D1 binding. Its two tables (`res_committee`, `res_copy`) are
 created on first use. The Secretariat's **Reset all sessions** clears them
