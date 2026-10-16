@@ -1,4 +1,5 @@
 import { categoryLabel } from '../../src/data/categories';
+import { roleLabel } from '../../src/data/feedback';
 import type { Env } from './util';
 
 const escape = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
@@ -41,5 +42,34 @@ export async function notifyTelegram(
     else console.log('telegram sent to chat', chatId);
   } catch (err) {
     console.error('telegram sendMessage failed', err);
+  }
+}
+
+/** Sends new TISMUN feedback to the council's Telegram chat (same setup as suggestions). */
+export async function notifyFeedback(
+  env: Env,
+  f: { id: number | null; rating: number; name: string; role: string; comment: string },
+) {
+  const token = (env.TELEGRAM_TOKEN ?? env.TELEGRAM_BOT_TOKEN ?? '')
+    .trim()
+    .replace(/^["']|["']$/g, '')
+    .replace(/^bot/i, '');
+  const chatId = (env.TELEGRAM_CHAT_ID ?? '').trim();
+  if (!token || !chatId) return;
+  const message = [
+    `🌐 <b>TISMUN feedback</b>${f.id ? ` #${f.id}` : ''}`,
+    `<b>Rating:</b> ${'★'.repeat(f.rating)}${'☆'.repeat(5 - f.rating)} (${f.rating}/5)`,
+    `<b>From:</b> ${escape(f.name)} · ${escape(roleLabel(f.role))}`,
+    ...(f.comment ? ['', escape(f.comment)] : []),
+  ].join('\n');
+  try {
+    const res = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ chat_id: chatId, text: message, parse_mode: 'HTML', disable_web_page_preview: true }),
+    });
+    if (!res.ok) console.error('telegram feedback failed', res.status, await res.text());
+  } catch (err) {
+    console.error('telegram feedback failed', err);
   }
 }
