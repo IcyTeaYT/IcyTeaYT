@@ -6,3 +6,4 @@ dist
 .impeccable/live/
 .impeccable/config.local.json
 .impeccable/review/
+.ig/

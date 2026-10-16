@@ -10,7 +10,7 @@ function Word({ children, progress, range }: { children: string; progress: Motio
 }
 
 /** Pinned while you scroll past it; the sentence lights up word by word. */
-export function Statement() {
+export function Statement({ id }: { id?: string }) {
   const ref = useRef<HTMLElement>(null);
   const reduce = useReducedMotion();
   const { scrollYProgress } = useScroll({ target: ref, offset: ['start start', 'end end'] });
@@ -18,14 +18,14 @@ export function Statement() {
 
   if (reduce) {
     return (
-      <section data-surface="dark" aria-label="What we believe" className="bg-obsidian py-28 text-paper">
+      <section id={id} data-surface="dark" aria-label="What we believe" className="bg-obsidian py-28 text-paper">
         <p className="container-x type-heading text-[clamp(2rem,4.4vw,3.5rem)]">{TEXT}</p>
       </section>
     );
   }
 
   return (
-    <section ref={ref} data-surface="dark" aria-label="What we believe" className="relative h-[220vh] bg-obsidian text-paper">
+    <section id={id} ref={ref} data-surface="dark" aria-label="What we believe" className="relative h-[220vh] bg-obsidian text-paper">
       <div className="sticky top-0 flex h-[100svh] items-center">
         <p className="container-x type-heading text-[clamp(2rem,4.4vw,3.5rem)]">
           <span className="sr-only">{TEXT}</span>

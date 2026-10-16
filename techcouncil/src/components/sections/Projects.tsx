@@ -1,10 +1,11 @@
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { featuredProject, pipelineProjects, STATUS_LABEL, type Project } from '@/data/projects';
 import { SectionIntro } from '../ui/SectionIntro';
 import { Arrow } from '../ui/Arrow';
 import { Ripple } from '../ui/Ripple';
+import { WhipPan } from '../ui/WhipPan';
 import { TismunLogo } from '../brand/TismunLogo';
 import { Countdown } from './Countdown';
 import { useSmoothScroll } from '@/lib/smoothScroll';
@@ -57,7 +58,9 @@ function VisitButton({ project, solid }: { project: Project; solid: 'dark' | 'li
 
 /* ---------- Featured project ---------- */
 
-function Featured({ project, onOpen }: { project: Project; onOpen: () => void }) {
+type EventView = (e: NonNullable<Project['event']>) => ReactNode;
+
+function Featured({ project, onOpen, eventView }: { project: Project; onOpen: () => void; eventView?: EventView }) {
   return (
     <motion.article layoutId={`project-${project.id}`} className="grid gap-10 md:grid-cols-2 md:gap-16" transition={SPRING_SOFT}>
       <button
@@ -86,7 +89,7 @@ function Featured({ project, onOpen }: { project: Project; onOpen: () => void })
         {project.event && (
           <div className="mt-10">
             <p className="mb-4 text-caption text-fog">Conference starts in ({project.event.timezoneLabel})</p>
-            <Countdown {...project.event} />
+            {eventView ? eventView(project.event) : <Countdown {...project.event} />}
           </div>
         )}
 
@@ -202,7 +205,8 @@ function PipelineCard({ project, index }: { project: Project; index: number }) {
 
 /* ---------- Section ---------- */
 
-export function Projects() {
+/** `eventView` swaps the countdown for another view of the same dates (used by a redesign option). */
+export function Projects({ eventView }: { eventView?: EventView } = {}) {
   const [open, setOpen] = useState(false);
   const [holdHeight, setHoldHeight] = useState<number>();
   const slotRef = useRef<HTMLDivElement>(null);
@@ -218,8 +222,8 @@ export function Projects() {
   if (!featuredProject) return null;
 
   return (
-    <section id="projects" data-surface="dark" aria-labelledby="projects-title" className="bg-obsidian py-20 text-paper sm:py-28">
-      <div className="container-x">
+    <section id="projects" data-surface="dark" aria-labelledby="projects-title" className="overflow-hidden bg-obsidian py-20 text-paper sm:py-28">
+      <WhipPan className="container-x">
         <SectionIntro id="projects-title" title="Things we’ve shipped.">
           <p className="text-fog">Real platforms, used by real people at TIS.</p>
         </SectionIntro>
@@ -228,6 +232,7 @@ export function Projects() {
         <div ref={slotRef} className="mt-16 sm:mt-20" style={{ minHeight: open ? holdHeight : undefined }}>
           {!open && (
             <Featured
+              eventView={eventView}
               project={featuredProject}
               onOpen={() => {
                 setHoldHeight(slotRef.current?.offsetHeight);
@@ -247,7 +252,7 @@ export function Projects() {
             </ul>
           </div>
         )}
-      </div>
+      </WhipPan>
 
       {createPortal(<AnimatePresence>{open && <ProjectDetail project={featuredProject} onClose={close} />}</AnimatePresence>, document.body)}
     </section>

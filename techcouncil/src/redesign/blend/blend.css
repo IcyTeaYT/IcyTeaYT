@@ -1,0 +1,14 @@
+/* Blend option: the page is black end to end, so overscroll matches. */
+html[data-world='blend'],
+html[data-world='blend'] body {
+  background: #000;
+}
+
+
+/* Every section sits on the same faint wall of dark glass (see night.ts wallUrl). */
+.bl-wall,
+html[data-world='blend'] #suggestions {
+  background-color: #000;
+  background-image: var(--bl-wall);
+  background-size: 288px 288px;
+}

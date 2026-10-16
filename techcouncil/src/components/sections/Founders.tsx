@@ -1,12 +1,14 @@
-import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
+import { AnimatePresence, motion, useReducedMotion, useScroll, useTransform } from 'motion/react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { founders, initials, isPlaceholder, type Founder } from '@/data/founders';
 import { SectionIntro } from '../ui/SectionIntro';
+import { WhipPan } from '../ui/WhipPan';
+import { useMediaQuery } from '@/lib/media';
 import { Arrow } from '../ui/Arrow';
 import { useSmoothScroll } from '@/lib/smoothScroll';
 import { useFocusTrap } from '@/lib/useFocusTrap';
-import { EASE_OUT, SPRING_SOFT } from '@/lib/motion';
+import { EASE_OUT, SPRING_SOFT, span } from '@/lib/motion';
 
 /**
  * Photo with the petal-gradient wash over it. Until a photo exists the wash
@@ -43,16 +45,23 @@ function Portrait({ founder, index, large = false }: { founder: Founder; index: 
   );
 }
 
-function FounderCard({ founder, index, onOpen, revealed }: { founder: Founder; index: number; onOpen: () => void; revealed: boolean }) {
+function FounderCard({ founder, index, onOpen }: { founder: Founder; index: number; onOpen: () => void }) {
+  const ref = useRef<HTMLLIElement>(null);
   const reduce = useReducedMotion();
+  const two = useMediaQuery('(min-width: 640px)');
+  const three = useMediaQuery('(min-width: 768px)');
+  // Each card flies in from deep in the frame as it scrolls up; side by side,
+  // they leave one after another, like a dolly passing a row.
+  const { scrollYProgress: p } = useScroll({ target: ref, offset: ['start end', 'start 0.4'] });
+  const lag = (index % (three ? 3 : two ? 2 : 1)) * 0.14;
+  const settle = { ease: (t: number) => 1 - Math.pow(1 - t, 3) };
+  const z = useTransform(p, ...span([lag, 1], reduce ? [0, 0] : [-560, 0]), settle);
+  const y = useTransform(p, ...span([lag, 1], reduce ? [0, 0] : [110, 0]), settle);
+  const rotateX = useTransform(p, ...span([lag, 1], reduce ? [0, 0] : [12, 0]), settle);
+  const opacity = useTransform(p, ...span([lag, lag + (1 - lag) * 0.5], reduce ? [1, 1] : [0, 1]));
+
   return (
-    <motion.li
-      // A card coming back from the bio dialog must not replay its entrance.
-      initial={revealed || reduce ? false : { y: 40 }}
-      whileInView={{ y: 0 }}
-      viewport={{ once: true, amount: 0 }}
-      transition={{ duration: 1, ease: EASE_OUT, delay: index * 0.1 }}
-    >
+    <motion.li ref={ref} style={{ z, y, rotateX, opacity, transformPerspective: 1200 }}>
       <motion.button
         type="button"
         layoutId={`founder-${founder.id}`}
@@ -148,7 +157,6 @@ function FounderModal({ founder, index, onClose }: { founder: Founder; index: nu
 
 export function Founders() {
   const [openId, setOpenId] = useState<string | null>(null);
-  const [revealed, setRevealed] = useState(false);
   const { lock, unlock } = useSmoothScroll();
   const close = useCallback(() => setOpenId(null), []);
   const openIndex = founders.findIndex((f) => f.id === openId);
@@ -161,11 +169,13 @@ export function Founders() {
   }, [openId, lock, unlock]);
 
   return (
-    <section id="founders" data-surface="light" aria-labelledby="founders-title" className="bg-paper py-20 text-obsidian sm:py-28">
+    <section id="founders" data-surface="light" aria-labelledby="founders-title" className="overflow-hidden bg-paper py-20 text-obsidian sm:py-28">
       <div className="container-x">
-        <SectionIntro id="founders-title" title="Three students. One campus to upgrade.">
-          <p className="text-graphite">The Tech Council was started by three TIS students who wanted to fix things, not just talk about them.</p>
-        </SectionIntro>
+        <WhipPan from="left">
+          <SectionIntro id="founders-title" title="Three students. One campus to upgrade.">
+            <p className="text-graphite">The Tech Council was started by three TIS students who wanted to fix things, not just talk about them.</p>
+          </SectionIntro>
+        </WhipPan>
         <ul className="mt-16 grid gap-5 sm:grid-cols-2 md:grid-cols-3">
           {founders.map((f, i) =>
             f.id === openId ? (
@@ -175,11 +185,7 @@ export function Founders() {
                 key={f.id}
                 founder={f}
                 index={i}
-                revealed={revealed}
-                onOpen={() => {
-                  setRevealed(true);
-                  setOpenId(f.id);
-                }}
+                onOpen={() => setOpenId(f.id)}
               />
             ),
           )}
