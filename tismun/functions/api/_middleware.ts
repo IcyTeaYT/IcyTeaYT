@@ -1,4 +1,7 @@
-import { fail, type Env } from './_lib/env';
+import { SITE_CLOSED } from '../../src/config/closed';
+import { fail, json, type Env } from './_lib/env';
+import { isOwner } from './_lib/owners';
+import { readSession } from './_lib/session';
 
 /**
  * Every /api request runs through here.
@@ -64,8 +67,27 @@ function explain(error: unknown): { message: string; status: number } {
   return { status: 500, message: `The server hit an error: ${text}` };
 }
 
-export const onRequest: PagesFunction<Env> = async ({ next }) => {
+/** Open even while the site is closed: signing in and out, and the health check. */
+const OPEN_WHILE_CLOSED = new Set(['/api/session', '/api/ping']);
+
+/**
+ * The conference is over (src/config/closed.ts): a signed-in account that is
+ * not one of the site's owners gets nothing — not even with a sign-in left
+ * open from before. Signed-out requests fall through to each endpoint's own
+ * "Not signed in".
+ */
+async function refuseWhileClosed(request: Request, env: Env): Promise<Response | null> {
+  if (!SITE_CLOSED.closed || !env.SESSION_SECRET) return null;
+  if (OPEN_WHILE_CLOSED.has(new URL(request.url).pathname)) return null;
+  const email = await readSession(request, env);
+  if (!email || isOwner(env, email)) return null;
+  return json({ error: SITE_CLOSED.refusal, closed: true }, 403);
+}
+
+export const onRequest: PagesFunction<Env> = async ({ request, env, next }) => {
   try {
+    const refused = await refuseWhileClosed(request, env);
+    if (refused) return refused;
     return await next();
   } catch (error) {
     const { message, status } = explain(error);

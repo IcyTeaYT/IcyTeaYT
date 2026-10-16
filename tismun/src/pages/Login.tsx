@@ -8,11 +8,13 @@ import { PoweredBy } from '@/components/PoweredBy';
 import { Logo, Wordmark } from '@/components/Logo';
 import { Button } from '@/components/ui/Button';
 import { Select } from '@/components/ui/Field';
+import { SITE_CLOSED } from '@/config/closed';
 import { CONFERENCE, COPY, SCHOOL_DOMAIN } from '@/config/conference';
 import { dataSource, isDemoMode } from '@/data/source';
 import type { User } from '@/data/source/types';
 import { formatDateRange } from '@/lib/conferenceDates';
 import { exchangeCredential, isGoogleConfigured, renderGoogleButton } from '@/lib/googleAuth';
+import { cn } from '@/lib/cn';
 import { useAuth } from '@/store/auth';
 import { useConference } from '@/store/conference';
 
@@ -110,6 +112,9 @@ export function Login() {
 
   if (status === 'authenticated') return <Navigate to={returnTo} replace />;
 
+  // The conference is over: the page says so, and only the site's owner can sign in.
+  const closed = SITE_CLOSED.closed && !isDemoMode;
+
   const signIn = async (email: string | undefined) => {
     if (!email) return;
     setSigningIn(true);
@@ -165,7 +170,7 @@ export function Login() {
         </motion.div>
 
         <p className="mt-12 hidden text-sm text-muted lg:block">
-          Delegates, chairs and the Secretariat sign in with their school Google account.
+          {closed ? SITE_CLOSED.title : 'Delegates, chairs and the Secretariat sign in with their school Google account.'}
         </p>
       </div>
 
@@ -177,10 +182,20 @@ export function Login() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.45, delay: 0.14, ease: [0.22, 1, 0.36, 1] }}
         >
-          <h2 className="font-serif text-2xl text-ink-900 sm:text-[32px] sm:leading-tight">{COPY.login.heading}</h2>
-          <p className="mt-2 text-sm text-muted sm:text-base">{COPY.login.subtext}</p>
+          {closed ? (
+            <>
+              <h2 className="font-serif text-2xl text-ink-900 sm:text-[32px] sm:leading-tight">{SITE_CLOSED.title}</h2>
+              <p className="mt-2 text-sm text-muted sm:text-base">{SITE_CLOSED.message}</p>
+              <p className="label-micro mt-8">Site owner only</p>
+            </>
+          ) : (
+            <>
+              <h2 className="font-serif text-2xl text-ink-900 sm:text-[32px] sm:leading-tight">{COPY.login.heading}</h2>
+              <p className="mt-2 text-sm text-muted sm:text-base">{COPY.login.subtext}</p>
+            </>
+          )}
 
-          <div className="mt-7">
+          <div className={closed ? 'mt-3' : 'mt-7'}>
             {isGoogleConfigured() ? (
               <>
                 <div ref={googleSlot} className="min-h-[44px] [color-scheme:light]" />
@@ -214,7 +229,7 @@ export function Login() {
             )}
           </div>
 
-          <p className="mt-3 flex items-start gap-1.5 text-xs leading-relaxed text-muted sm:text-sm">
+          <p className={cn('mt-3 flex items-start gap-1.5 text-xs leading-relaxed text-muted sm:text-sm', closed && 'hidden')}>
             <Info size={13} strokeWidth={1.5} className="mt-0.5 shrink-0" />
             {SCHOOL_DOMAIN ? (
               <span>

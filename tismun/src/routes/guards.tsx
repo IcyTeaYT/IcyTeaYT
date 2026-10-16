@@ -1,15 +1,56 @@
-import type { ReactNode } from 'react';
-import { Navigate, useLocation } from 'react-router-dom';
+import { useState, type ReactNode } from 'react';
+import { Navigate, useLocation, useNavigate } from 'react-router-dom';
+import { ClosedScreen } from '@/components/ClosedScreen';
+import { SITE_CLOSED } from '@/config/closed';
+import { isDemoMode } from '@/data/source';
 import { isChair, isOwner, isSecretariat, useAuth } from '@/store/auth';
 
-/** Logged-out visitors are sent to the login page, remembering where they were. */
+/** Answered once per tab: the owner said yes, go into the closed site. */
+const PROCEED_KEY = 'tismun.closedProceed';
+
+const proceededHere = (): boolean => {
+  try {
+    return window.sessionStorage.getItem(PROCEED_KEY) === '1';
+  } catch {
+    return false;
+  }
+};
+
+/**
+ * Logged-out visitors are sent to the login page, remembering where they were.
+ *
+ * While the site is closed (src/config/closed.ts) a signed-in account sees
+ * that the conference is over instead; the site's owner can choose to go on.
+ */
 export function RequireAuth({ children }: { children: ReactNode }) {
   const status = useAuth((state) => state.status);
+  const user = useAuth((state) => state.user);
+  const signOut = useAuth((state) => state.signOut);
   const location = useLocation();
+  const navigate = useNavigate();
+  const [proceeded, setProceeded] = useState(proceededHere);
 
   if (status === 'booting') return null;
   if (status !== 'authenticated') {
     return <Navigate to="/login" replace state={{ from: location.pathname }} />;
+  }
+  if (SITE_CLOSED.closed && !isDemoMode && !(isOwner(user) && proceeded)) {
+    return (
+      <ClosedScreen
+        owner={isOwner(user)}
+        onProceed={() => {
+          try {
+            window.sessionStorage.setItem(PROCEED_KEY, '1');
+          } catch {
+            /* storage blocked — asked again next time */
+          }
+          setProceeded(true);
+        }}
+        onSignOut={() => {
+          void signOut().then(() => navigate('/login', { replace: true }));
+        }}
+      />
+    );
   }
   return <>{children}</>;
 }

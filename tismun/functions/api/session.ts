@@ -2,6 +2,8 @@ import { fail, json, requireEnv, type Env } from './_lib/env';
 import { verifyGoogleIdToken } from './_lib/google';
 import { recordDenied, recordSignIn, recordSignOut } from './_lib/activity';
 import { clearSessionCookie, createSessionCookie, readSession } from './_lib/session';
+import { SITE_CLOSED } from '../../src/config/closed';
+import { isOwner } from './_lib/owners';
 import { findUser } from './_lib/sheets';
 import { clearTestCookie } from './_lib/testing';
 
@@ -24,6 +26,12 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env, waitUnti
 
   const result = await verifyGoogleIdToken(credential, env.GOOGLE_CLIENT_ID, env.SCHOOL_DOMAIN ?? '');
   if (!result.ok) return fail(result.error, result.status);
+
+  // The conference is over: only the site's owners can still sign in.
+  if (SITE_CLOSED.closed && !isOwner(env, result.identity.email)) {
+    waitUntil(recordDenied(env, result.identity.email, result.identity.name ?? null, request));
+    return json({ error: SITE_CLOSED.refusal, closed: true }, 403);
+  }
 
   // The Users sheet is the list of who may enter. A genuine Google account is
   // not enough on its own — the email has to be on the roster.
