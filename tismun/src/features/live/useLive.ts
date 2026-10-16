@@ -8,7 +8,7 @@ import { toHandover } from './handover';
 import { localOverview, localSnapshot } from './localSource';
 import { clockOffset } from './serverClock';
 import { buildLiveSnapshot, buildLiveSummary, shiftTimer } from './snapshot';
-import type { ControlHolder, LiveOverview, LiveSnapshot } from './types';
+import type { LiveOverview, LiveSnapshot } from './types';
 
 /** Wait this long after the last change before reporting, to batch typing. */
 const PUSH_DEBOUNCE_MS = 600;
@@ -32,18 +32,13 @@ export function useLivePush(
   store: ChairStore,
   {
     enabled,
-    onLocked,
   }: {
-    /** Only the device running the committee reports it. */
+    /** Reports once the tab has picked up the committee. */
     enabled: boolean;
-    /** Another device has taken the committee over. */
-    onLocked: (holder: ControlHolder | null) => void;
   },
 ): void {
   const lastPushAt = useRef(0);
   const pending = useRef<number | null>(null);
-  const onLockedRef = useRef(onLocked);
-  onLockedRef.current = onLocked;
 
   useEffect(() => {
     if (!enabled) return;
@@ -63,7 +58,6 @@ export function useLivePush(
         resetEpoch: state.resetEpoch,
       });
       if (cancelled) return;
-      if (result.kind === 'locked') onLockedRef.current(result.holder);
       // The Secretariat reset every session: wipe this copy, then report the fresh one.
       if (result.kind === 'reset') {
         store.getState().applySecretariatReset(result.sessionsResetAt);
@@ -88,8 +82,7 @@ export function useLivePush(
     const unsubscribe = store.subscribe(schedule);
     const heartbeat = window.setInterval(() => void send(), HEARTBEAT_MS);
     // Report the moment the tab is back in view, so a laptop waking from sleep
-    // (or a tab brought back to the front) learns straight away if another
-    // device took the committee over in the meantime.
+    // (or a tab brought back to the front) shows up as live straight away.
     const onVisible = () => {
       if (!document.hidden) void send();
     };

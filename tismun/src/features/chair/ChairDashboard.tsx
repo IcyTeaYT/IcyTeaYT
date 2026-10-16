@@ -51,7 +51,6 @@ import { SpeakersList } from './panes/SpeakersList';
 import { UnmoderatedCaucus } from './panes/UnmoderatedCaucus';
 import { sessionStatusOf, type ChairState } from './store';
 import { SHORTCUTS, useChairShortcuts } from './useChairShortcuts';
-import { WatchPanel } from './WatchPanel';
 
 interface Section {
   to: string;
@@ -175,13 +174,12 @@ function DashboardChrome() {
   const sections = givesAwards(committee.id) ? SECTIONS : SECTIONS.filter((section) => section.to !== '/chair/awards');
 
   useProjectorBroadcast();
-  // One device runs the committee at a time; any other chair's device watches
-  // until its chair presses Take over.
+  // Every tab and device can run the committee at once.
   const control = useCommitteeControl(committee.id, store);
-  const running = control.mode === 'control' || control.mode === 'solo';
+  const running = control.mode !== 'checking';
   // Report this committee's session so the Secretariat can watch it live.
   // No-ops harmlessly when there is no API behind the site.
-  useLivePush(committee.id, store, { enabled: running, onLocked: control.lostControl });
+  useLivePush(committee.id, store, { enabled: running });
   useSecretariatReset(store);
 
   const openProjector = useCallback(() => {
@@ -216,7 +214,7 @@ function DashboardChrome() {
           {control.mode === 'control' ? (
             <p className="mt-1.5 flex items-center gap-1.5 text-xs text-muted">
               <MonitorCheck size={13} strokeWidth={1.5} className="text-teal-600" />
-              Running on this device. Other chairs can watch, or take over.
+              Running on this device. Other chairs can run it on theirs at the same time.
             </p>
           ) : null}
         </div>
@@ -253,13 +251,9 @@ function DashboardChrome() {
         <Card className="mt-6">
           <div className="flex items-center gap-3 px-5 py-10 text-sm text-muted">
             <Loader2 size={16} strokeWidth={1.5} className="animate-spin" />
-            Checking whether another chair is running this committee…
+            Loading the committee…
           </div>
         </Card>
-      ) : control.mode === 'watching' ? (
-        <div className="mt-6">
-          <WatchPanel control={control} abbreviation={committee.abbreviation} />
-        </div>
       ) : (
         <div className="mt-6 grid gap-6 lg:grid-cols-[236px_minmax(0,1fr)]">
           {/* Sidebar on desktop, a scrolling tab strip on smaller screens. */}

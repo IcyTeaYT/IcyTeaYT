@@ -14,10 +14,12 @@ import { describeDbError, guardRead, guardWrite } from '../_lib/live';
  *      what it looks like right now, for a chair's device that is watching.
  *      With `&state=1`, also the full session as last reported — for a Day 1
  *      chair reading their committee back on Day 2, or the Secretariat.
- * POST /api/control/:committeeId — claim the committee for this device.
- *      `{ deviceId, force }`: without force the claim only succeeds when nobody
- *      holds it, the claim has lapsed, or this device already holds it. With
- *      force it always succeeds — that is Take over.
+ * POST /api/control/:committeeId — a tab opening the Chair Dashboard.
+ *      `{ deviceId, force }`: records this device and hands back the session
+ *      another device last reported, to carry on from. Without force it only
+ *      does so when nobody holds it, the claim has lapsed, or this device
+ *      already holds it; the dashboard always sends force, since any number
+ *      of devices may run a committee at once.
  *
  * Only the committee's own chairs may ask either question.
  */

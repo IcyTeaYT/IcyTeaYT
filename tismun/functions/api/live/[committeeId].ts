@@ -1,6 +1,6 @@
 import { fail, json, type Env } from '../_lib/env';
 import { readStatus } from '../_lib/conference';
-import { ensureControlTable, holderOf, readControl, validDeviceId } from '../_lib/control';
+import { ensureControlTable, validDeviceId } from '../_lib/control';
 import { storeIdFor } from '../_lib/testing';
 import { describeDbError, guardRead, guardWrite, LOG_RETENTION_MS } from '../_lib/live';
 
@@ -46,9 +46,9 @@ export const onRequestGet: PagesFunction<Env, 'committeeId'> = async ({ request,
 };
 
 interface PushBody {
-  /** The reporting device. Only the device holding the committee may report. */
+  /** The reporting tab or device. Any number of them may run a committee. */
   deviceId?: unknown;
-  /** The full session, in server time, so another device can take over. */
+  /** The full session, in server time, for a device that opens it next. */
   chairState?: unknown;
   /** The last Secretariat reset this device's session has taken in (server time). */
   resetEpoch?: unknown;
@@ -88,23 +88,23 @@ export const onRequestPost: PagesFunction<Env, 'committeeId'> = async ({ request
     return json({ configured: true, serverNow, reset: true, sessionsResetAt }, 409);
   }
 
-  // Report only while this device holds the committee. The claim is refreshed
-  // and the full session stored in the same statement; if another device has
-  // taken over, nothing changes and this one is told to stand down.
+  // Any tab or device running the committee may report: whichever reported
+  // last is what the Secretariat and the room see, and its full session is
+  // what the next device to open the dashboard starts from.
   try {
     await ensureControlTable(env.DB);
-    const claim = await env.DB.prepare(
+    await env.DB.prepare(
       `INSERT INTO committee_control
          (committee_id, device_id, holder_name, holder_email, heartbeat_at, state, state_device_id)
        VALUES (?1, ?2, ?3, ?6, ?4, ?5, ?2)
        ON CONFLICT(committee_id) DO UPDATE SET
+         device_id = excluded.device_id,
          holder_name = excluded.holder_name,
          holder_email = excluded.holder_email,
          heartbeat_at = excluded.heartbeat_at,
          state = COALESCE(excluded.state, committee_control.state),
          state_device_id = CASE WHEN excluded.state IS NULL
-           THEN committee_control.state_device_id ELSE excluded.device_id END
-       WHERE committee_control.device_id = excluded.device_id`,
+           THEN committee_control.state_device_id ELSE excluded.device_id END`,
     )
       .bind(
         storeId,
@@ -115,19 +115,6 @@ export const onRequestPost: PagesFunction<Env, 'committeeId'> = async ({ request
         guard.user?.Email?.trim() || null,
       )
       .run();
-
-    if (!claim.meta.changes) {
-      const row = await readControl(env.DB, storeId);
-      return json(
-        {
-          configured: true,
-          serverNow,
-          locked: true,
-          holder: holderOf(row, serverNow, guard.user?.Email),
-        },
-        409,
-      );
-    }
   } catch (error) {
     return json({ configured: false, serverNow, error: describeDbError(error) });
   }

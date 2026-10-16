@@ -499,15 +499,11 @@ award until the closing ceremony; every change is logged. Awards survive
 
 ### Several chairs, one committee
 
-One device runs a committee at a time — and every browser tab counts as its
-own device, so a second tab or window on the same laptop watches too. The first
-chair to open the Chair Dashboard runs it; any other chair of that committee who opens it sees a
-watch-only view — who is running it, who has the floor, the timer — and a
-**Take over** button. Taking over carries the whole session across (timers
-keep running with the right time left) and switches the other device to
-watching. If the device running a committee goes quiet for 90 seconds — a
-closed laptop, a dead battery — the next chair to open the dashboard picks it
-up automatically, from where it stopped.
+Any number of chairs can run a committee at once, each from their own tab or
+device — there is no lock and no Take over. Each device keeps its own timers
+and steps; the Secretariat and the projector show whichever device reported
+last. A device that opens the Chair Dashboard starts from the session another
+device last reported, so it picks up where the others are.
 
 This needs the D1 binding. The `committee_control` table is created on first
 use, so there is no extra migration to run. Without D1 each device simply runs

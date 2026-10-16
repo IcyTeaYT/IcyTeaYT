@@ -3,7 +3,6 @@ import { noteServerNow } from './serverClock';
 import type {
   ControlClaim,
   ControlStatus,
-  ControlHolder,
   LiveDetail,
   LiveOverview,
   LivePush,
@@ -74,8 +73,6 @@ async function call<T extends { configured: boolean; serverNow: number }>(
 
 export type PushResult =
   | { kind: 'ok' }
-  /** Another device holds the committee now; this one must stand down. */
-  | { kind: 'locked'; holder: ControlHolder | null }
   /** The Secretariat has reset every session since this device last heard. */
   | { kind: 'reset'; sessionsResetAt: number }
   | { kind: 'unavailable' };
@@ -90,11 +87,10 @@ export async function pushLive(committeeId: string, push: LivePush): Promise<Pus
       headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
       body: JSON.stringify(push),
     });
-    // Not an outage: the server is answering, it is just not this device's turn.
+    // Not an outage: the server is answering, it wants this copy wiped first.
     if (response.status === 409) {
       const body = (await response.json()) as {
         serverNow: number;
-        holder?: ControlHolder | null;
         reset?: boolean;
         sessionsResetAt?: number;
       };
@@ -103,7 +99,7 @@ export async function pushLive(committeeId: string, push: LivePush): Promise<Pus
       if (body.reset && typeof body.sessionsResetAt === 'number') {
         return { kind: 'reset', sessionsResetAt: body.sessionsResetAt };
       }
-      return { kind: 'locked', holder: body.holder ?? null };
+      return { kind: 'unavailable' };
     }
     if (response.status === 401 || response.status === 403) {
       reachable = true;
@@ -125,7 +121,7 @@ export async function pushLive(committeeId: string, push: LivePush): Promise<Pus
   }
 }
 
-/** Claim a committee for this device. `force` is Take over. */
+/** Register this device as the committee's latest, and pick up its session. */
 export const claimControl = (
   committeeId: string,
   deviceId: string,

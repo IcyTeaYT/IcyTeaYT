@@ -1,15 +1,10 @@
 /**
- * Which device is running each committee.
+ * Which device last reported each committee.
  *
- * One device at a time holds a committee: it alone reports the session, and
- * every other chair's device shows a watch-only view with a Take over button.
- * The holder refreshes its claim with every report (at least every ten seconds
- * while the dashboard is open), and a claim that has gone quiet for longer than
- * CONTROL_TTL_MS — a closed laptop, a dead battery — lapses, so the next chair
- * to open the dashboard picks the committee up without having to ask.
- *
- * The holder's full session travels with the claim, so taking over (or picking
- * up a lapsed committee) carries on exactly where the last device stopped.
+ * Any number of tabs and devices can run a committee at once; each report
+ * (at least every ten seconds while a dashboard is open) records the device
+ * and its full session here. A device opening the dashboard starts from that
+ * session, so it carries on where the others are.
  */
 
 /**

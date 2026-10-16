@@ -158,11 +158,11 @@ export async function lastSessionsReset(db: D1Database): Promise<ConferenceEvent
 /**
  * Wipe every committee's session, conference-wide, in one transaction: what the
  * Secretariat watches (state and log), and the copy a chair's device would pick
- * up on Take over. Chairs' devices then wipe their own copy when they next hear
- * from the server — see `sessionsResetAt` — and until they do, the server
- * refuses their reports, so an old session can never come back.
+ * up when it opens the dashboard. Chairs' devices then wipe their own copy when
+ * they next hear from the server — see `sessionsResetAt` — and until they do,
+ * the server refuses their reports, so an old session can never come back.
  *
- * Who holds each committee is kept, so nobody has to press Take over again.
+ * Which device last reported each committee is kept.
  */
 export async function resetAllSessions(
   db: D1Database,
