@@ -20,6 +20,14 @@ import type {
 } from './types';
 
 /**
+ * Which seat the resolution API should answer as, for someone who both chairs
+ * a committee and sits in it for a country: the chair at the Chair Dashboard,
+ * the delegate everywhere else. Ignored for everyone else.
+ */
+const seatHere = (): 'chair' | 'delegate' =>
+  /^\/(chair|secretariat|owner)(\/|$)/.test(window.location.pathname) ? 'chair' : 'delegate';
+
+/**
  * Phase 2 data source. Every call hits a Cloudflare Pages Function in
  * /functions/api, which reads the Google Sheet with a service account and
  * scopes the response to what the session cookie is allowed to see.
@@ -159,7 +167,7 @@ export const liveSource: DataSource = {
     const query = `topic=${topic}${withCountries ? '&countries=1' : ''}`;
     const response = await fetch(`/api/res/${encodeURIComponent(committeeId)}?${query}`, {
       credentials: 'same-origin',
-      headers: { Accept: 'application/json' },
+      headers: { Accept: 'application/json', 'X-Seat': seatHere() },
     });
     if (response.status === 401) signedOut();
     const body = (await response.json().catch(() => null)) as (ResWorkspace & { error?: string }) | null;
@@ -171,7 +179,7 @@ export const liveSource: DataSource = {
     const response = await fetch(`/api/res/${encodeURIComponent(committeeId)}`, {
       method: 'POST',
       credentials: 'same-origin',
-      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+      headers: { 'Content-Type': 'application/json', Accept: 'application/json', 'X-Seat': seatHere() },
       body: JSON.stringify(action),
     });
     if (response.status === 401) signedOut();

@@ -15,6 +15,7 @@ import type { Committee } from '@/data/source/types';
 import { emergencyOnly, useAuth } from '@/store/auth';
 import { useConference } from '@/store/conference';
 import { useConferenceStatus } from '@/store/conferenceStatus';
+import { isEmergencyDelegate } from '@/lib/emergencySeat';
 
 export function Committees() {
   const committees = useConference((state) => state.committees);
@@ -24,7 +25,7 @@ export function Committees() {
 
   // An Emergency Session delegate's committee today is the Emergency Session:
   // from Day 2 it leads the list; before that it is marked for Day 2.
-  const inEmergency = user?.emergency?.role === 'DELEGATE';
+  const inEmergency = isEmergencyDelegate(user?.emergency);
   const badgeFor = (committee: Committee): string | null => {
     if (isEmergency(committee.id) && inEmergency) {
       return day2 ? 'Your committee today' : 'Your Day 2 committee';

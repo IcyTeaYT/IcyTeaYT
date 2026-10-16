@@ -206,7 +206,9 @@ Notes:
 - `Emergency Role` and `Emergency Country` are Day 2. `DELEGATE` plus a
   country puts someone in that country's Emergency Session team (a country with
   the role left blank counts as `DELEGATE`); `CHAIR` makes them an Emergency
-  Session chair. Both blank: not in the Emergency Session. `Role`, `Committee
+  Session chair. `CHAIR` plus a country does both: they run the committee at
+  the Chair Dashboard and write that country's draft on the Resolution page,
+  with a switcher in the nav. Both blank: not in the Emergency Session. `Role`, `Committee
   ID` and `Country` stay the Day 1 assignment — see
   [Roles by day](#roles-by-day).
 - Headers may carry a note in brackets — `Country (as on the placard)` is read

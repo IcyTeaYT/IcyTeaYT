@@ -31,6 +31,7 @@ import { useCommittee, useConference } from '@/store/conference';
 import { useConferenceStatus } from '@/store/conferenceStatus';
 import { ResolutionCard } from '@/features/resolutions/ResolutionCard';
 import { resolutionCommitteeOf } from '@/features/resolutions/committeeOf';
+import { isEmergencyDelegate } from '@/lib/emergencySeat';
 
 const enter = (delay: number) => ({
   initial: { opacity: 0, y: 10 },
@@ -51,9 +52,10 @@ export function Home() {
   // A member of the Secretariat who chairs the Emergency Session starts Day 2
   // in the chair; the switcher in the nav takes them to the conference floor.
   const chairsEmergencyToday = user.access.chairOf === emergencySession.committeeId;
-  if (chairsEmergencyToday && user.access.secretariat) return <Navigate to="/chair" replace />;
+  const emergencyDelegate = isEmergencyDelegate(user.emergency) && emergency !== null;
+  // A chair who also sits for a country keeps this page: it is their delegate home.
+  if (chairsEmergencyToday && user.access.secretariat && !emergencyDelegate) return <Navigate to="/chair" replace />;
 
-  const emergencyDelegate = user.emergency?.role === 'DELEGATE' && emergency !== null;
   // From Day 2, an Emergency Session delegate's — or chair's — day is the
   // Emergency Session, and it is all they see: their Day 1 committee is hidden.
   const focus =
@@ -92,11 +94,12 @@ export function Home() {
         {focus && emergency ? (
           <>
             <motion.div {...enter(0.14)}>
-              {chairsEmergencyToday ? (
-                <EmergencyChairCard committee={emergency} />
-              ) : (
-                <EmergencyCard committee={emergency} user={user} primary />
-              )}
+              {chairsEmergencyToday ? <EmergencyChairCard committee={emergency} /> : null}
+              {!chairsEmergencyToday || emergencyDelegate ? (
+                <div className={chairsEmergencyToday ? 'mt-5' : undefined}>
+                  <EmergencyCard committee={emergency} user={user} primary={!chairsEmergencyToday} />
+                </div>
+              ) : null}
             </motion.div>
             {resolutionCommittee === emergency.id ? (
               <motion.div className="mt-5" {...enter(0.2)}>

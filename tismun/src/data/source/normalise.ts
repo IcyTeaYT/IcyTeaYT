@@ -49,7 +49,8 @@ export function rowToUser(row: UserRow): User {
 export function emergencyOf(row: Pick<UserRow, 'Emergency Role' | 'Emergency Country'>): EmergencyAssignment | null {
   const role = clean(row['Emergency Role']).toUpperCase();
   const country = clean(row['Emergency Country']);
-  if (role === 'CHAIR') return { role: 'CHAIR', country: null, countryCode: null };
+  // A chair may also sit in the committee for a country.
+  if (role === 'CHAIR') return { role: 'CHAIR', country: country || null, countryCode: country ? countryCodeFor(country) : null };
   // A country on its own is enough to make someone an Emergency Session delegate.
   if (role === 'DELEGATE' || (!role && country)) {
     if (!country) return null;

@@ -1,6 +1,6 @@
 import type { ConferenceStatus } from '../../../src/config/emergency';
 import { sameCountry } from '../../../src/lib/resolution';
-import { EMERGENCY_ID, emergencyCountryOf, emergencyRoleOf } from './emergency';
+import { EMERGENCY_ID, emergencyCountryOf, isEmergencyDelegate } from './emergency';
 import type { Env } from './env';
 import { isOwner } from './owners';
 import { readUsers, type SheetUser } from './sheets';
@@ -84,7 +84,7 @@ export function seatsOf(users: SheetUser[]): Map<string, string[]> {
     if ((user.Role ?? '').trim().toUpperCase() === 'DELEGATE') {
       add((user['Committee ID'] ?? '').trim(), (user.Country ?? '').trim());
     }
-    if (emergencyRoleOf(user) === 'DELEGATE') add(EMERGENCY_ID, emergencyCountryOf(user));
+    if (isEmergencyDelegate(user)) add(EMERGENCY_ID, emergencyCountryOf(user));
   }
   return new Map(
     [...seats].map(([committeeId, countries]) => [
@@ -103,7 +103,7 @@ const isDelegate = (user: SheetUser): boolean => (user.Role ?? '').trim().toUppe
 function seatHolder(users: SheetUser[], seat: TestSeat): SheetUser | null {
   if (seat.committeeId === EMERGENCY_ID) {
     const holders = users.filter(
-      (user) => emergencyRoleOf(user) === 'DELEGATE' && sameCountry(emergencyCountryOf(user), seat.country),
+      (user) => isEmergencyDelegate(user) && sameCountry(emergencyCountryOf(user), seat.country),
     );
     return holders.find(isDelegate) ?? holders[0] ?? null;
   }

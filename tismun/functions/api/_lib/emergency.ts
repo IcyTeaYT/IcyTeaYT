@@ -53,8 +53,16 @@ export function emergencyRoleOf(user: SheetUser): EmergencyRole {
   return null;
 }
 
+/**
+ * The country this person represents in the Emergency Session. A delegate's,
+ * and also a chair's when the sheet gives the chair a country too: they chair
+ * the committee and sit in it for that country.
+ */
 export const emergencyCountryOf = (user: SheetUser): string =>
-  emergencyRoleOf(user) === 'DELEGATE' ? clean(user['Emergency Country']) : '';
+  emergencyRoleOf(user) ? clean(user['Emergency Country']) : '';
+
+/** Sits in the Emergency Session for a country: a delegate, or a chair who is one too. */
+export const isEmergencyDelegate = (user: SheetUser): boolean => emergencyCountryOf(user) !== '';
 
 export interface DelegationMember {
   fullName: string;
@@ -88,7 +96,7 @@ export function delegationOf(
 ): EmergencyDelegation {
   const asker = (askerEmail ?? '').toLowerCase();
   const members = users
-    .filter((user) => emergencyRoleOf(user) === 'DELEGATE' && sameCountry(emergencyCountryOf(user), country))
+    .filter((user) => isEmergencyDelegate(user) && sameCountry(emergencyCountryOf(user), country))
     .map<DelegationMember>((user) => ({
       fullName: clean(user['Full Name']),
       day1CommitteeId: clean(user['Committee ID']) || null,
@@ -118,6 +126,6 @@ export function allDelegations(users: SheetUser[]): EmergencyDelegation[] {
  */
 export function emergencyRoster(users: SheetUser[]): SheetUser[] {
   return users
-    .filter((user) => emergencyRoleOf(user) === 'DELEGATE')
+    .filter(isEmergencyDelegate)
     .map((user) => ({ ...user, 'Committee ID': EMERGENCY_ID, Country: emergencyCountryOf(user), 'Country Code': '' }));
 }

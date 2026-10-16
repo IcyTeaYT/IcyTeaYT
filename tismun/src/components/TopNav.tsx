@@ -7,6 +7,7 @@ import { isChair, isOwner, isSecretariat, useAuth } from '@/store/auth';
 import { useConference } from '@/store/conference';
 import { useConferenceStatus } from '@/store/conferenceStatus';
 import { resolutionCommitteeOf } from '@/features/resolutions/committeeOf';
+import { isEmergencyDelegate } from '@/lib/emergencySeat';
 import { Logo } from './Logo';
 import { Badge } from './ui/Badge';
 import { Button } from './ui/Button';
@@ -33,7 +34,9 @@ function subtitleFor(user: SignedInUser, abbreviationOf: (id: string) => string)
   if (user.access.day === 2 && user.emergency?.role === 'DELEGATE' && user.emergency.country) {
     return user.emergency.country;
   }
-  if (user.access.chairOf === 'emergency') return 'Emergency Session';
+  if (user.access.chairOf === 'emergency') {
+    return isEmergencyDelegate(user.emergency) ? `Chair · ${user.emergency?.country}` : 'Emergency Session';
+  }
   if (user.country) return user.country;
   if (user.committeeId) return user.committeeId.toUpperCase();
   return 'Unassigned';
@@ -55,6 +58,20 @@ interface ViewOption {
  */
 function viewsFor(user: SignedInUser | null): ViewOption[] | null {
   if (!user || user.access.day !== 2) return null;
+  if (user.access.chairOf === 'emergency' && isEmergencyDelegate(user.emergency)) {
+    const views: ViewOption[] = [
+      { to: '/chair', label: 'Emergency Session (Chair)', match: (path) => path.startsWith('/chair') },
+      {
+        to: '/',
+        label: `${user.emergency?.country} (Delegate)`,
+        match: (path) => path === '/' || path.startsWith('/resolution'),
+      },
+    ];
+    if (user.access.secretariat) {
+      views.push({ to: '/secretariat', label: 'Secretariat', match: (path) => path.startsWith('/secretariat') });
+    }
+    return views;
+  }
   if (user.access.secretariat && user.access.chairOf) {
     return [
       {

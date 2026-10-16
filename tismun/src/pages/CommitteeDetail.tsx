@@ -20,6 +20,7 @@ import { papersOf } from '@/lib/papers';
 import { emergencyOnly, isSecretariat, useAuth } from '@/store/auth';
 import { useCommittee, useConference } from '@/store/conference';
 import { useConferenceStatus } from '@/store/conferenceStatus';
+import { isEmergencyDelegate } from '@/lib/emergencySeat';
 
 export function CommitteeDetail() {
   const { id } = useParams<{ id: string }>();
@@ -28,7 +29,7 @@ export function CommitteeDetail() {
   const user = useAuth((state) => state.user);
   const day2 = useConferenceStatus((state) => state.status?.day2 ?? false);
   const emergency = isEmergency(id);
-  const emergencyDelegate = emergency && user?.emergency?.role === 'DELEGATE';
+  const emergencyDelegate = emergency && isEmergencyDelegate(user?.emergency);
   // The Emergency Session's chairs and the Secretariat see every delegation.
   const seesAllDelegations =
     emergency && (user?.emergency?.role === 'CHAIR' || isSecretariat(user));

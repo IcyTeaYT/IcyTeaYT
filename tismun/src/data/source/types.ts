@@ -60,7 +60,7 @@ export interface TestOptions {
 
 export interface EmergencyAssignment {
   role: 'DELEGATE' | 'CHAIR';
-  /** The country this person represents in the Emergency Session. Delegates only. */
+  /** The country this person represents in the Emergency Session: a delegate's, or a chair's who is one too. */
   country: string | null;
   countryCode: string | null;
 }

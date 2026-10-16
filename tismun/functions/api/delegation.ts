@@ -1,5 +1,5 @@
 import { fail, json, requireEnv, type Env } from './_lib/env';
-import { delegationOf, emergencyCountryOf, emergencyRoleOf } from './_lib/emergency';
+import { delegationOf, emergencyCountryOf, isEmergencyDelegate } from './_lib/emergency';
 import { currentUser } from './_lib/session';
 import { readUsers } from './_lib/sheets';
 
@@ -20,7 +20,7 @@ export const onRequestGet: PagesFunction<Env> = async ({ request, env }) => {
   const user = await currentUser(request, env);
   if (!user) return fail('Not signed in.', 401);
 
-  if (emergencyRoleOf(user) !== 'DELEGATE') return json(null);
+  if (!isEmergencyDelegate(user)) return json(null);
   const users = await readUsers(env);
   // Testing a seat: "you" is the seat's delegate.
   return json(delegationOf(users, emergencyCountryOf(user), user['Test Seat']?.seatEmail ?? user.Email));

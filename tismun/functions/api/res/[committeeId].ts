@@ -105,7 +105,13 @@ async function identify(
     country = (user.Country ?? '').trim() || null;
   }
 
-  if (canRun(access, committeeId)) return { who: { role: 'chair', country: null, actor: null }, key, name, storeId };
+  // Someone who chairs the committee and also sits in it for a country is the
+  // chair at the Chair Dashboard and that country's delegate everywhere else:
+  // their browser says which with X-Seat.
+  const asDelegate = Boolean(country) && request.headers.get('X-Seat') === 'delegate';
+  if (canRun(access, committeeId) && !asDelegate) {
+    return { who: { role: 'chair', country: null, actor: null }, key, name, storeId };
+  }
   if (country) return { who: { role: 'delegate', country, actor: { key, name, country } }, key, name, storeId };
   if (canView(access, committeeId)) return { who: { role: 'viewer', country: null, actor: null }, key, name, storeId };
   return fail('Only this committee’s delegates and chairs can open its resolutions.', 403);

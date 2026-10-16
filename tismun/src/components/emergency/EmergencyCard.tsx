@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { Flag } from '@/components/Flag';
 import { PaperActions } from '@/components/PaperActions';
 import { Badge } from '@/components/ui/Badge';
+import { isEmergencyDelegate } from '@/lib/emergencySeat';
 import { Card, CardBody } from '@/components/ui/Card';
 import type { Committee, User } from '@/data/source/types';
 import { cn } from '@/lib/cn';
@@ -26,7 +27,7 @@ export function EmergencyCard({
   primary: boolean;
 }) {
   const newlyReleased = useConferenceStatus((state) => state.newlyReleased);
-  const delegate = user.emergency?.role === 'DELEGATE';
+  const delegate = isEmergencyDelegate(user.emergency);
   const { delegation } = useMyDelegation(delegate);
   const topics = committee.topics.filter(Boolean);
 
