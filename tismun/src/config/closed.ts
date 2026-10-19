@@ -2,8 +2,9 @@
  * The conference is over, and the site is closed.
  *
  * While `closed` is true, everyone who opens the site is told so, and nobody
- * can sign in — except the site's owners (OWNER_EMAILS on the server), who see
- * the same message and are asked whether to go in anyway. The server enforces
+ * can sign in — except the site's owners (OWNER_EMAILS on the server). The
+ * page shows no way in; an owner signs in at /login?owner, sees the same
+ * message, and is asked whether to go in anyway. The server enforces
  * it on every request, so an old sign-in left open on someone's laptop stops
  * working too. Nothing is deleted: the Google Sheet, the database and every
  * setting stay exactly as they are.

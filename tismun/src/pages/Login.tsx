@@ -2,6 +2,7 @@ import { motion } from 'framer-motion';
 import { Gavel, Info, Landmark, Loader2, Users } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom';
+import { ClosedLayout } from '@/components/ClosedScreen';
 import { GlobeLines } from '@/components/GlobeLines';
 import { HostedBy } from '@/components/HostedBy';
 import { PoweredBy } from '@/components/PoweredBy';
@@ -112,8 +113,11 @@ export function Login() {
 
   if (status === 'authenticated') return <Navigate to={returnTo} replace />;
 
-  // The conference is over: the page says so, and only the site's owner can sign in.
+  // The conference is over: the page says so and nothing else. The site's
+  // owner signs in at /login?owner — a link only they are given. (Anyone else
+  // who finds it is still refused by the server.)
   const closed = SITE_CLOSED.closed && !isDemoMode;
+  if (closed && !new URLSearchParams(location.search).has('owner')) return <ClosedLayout />;
 
   const signIn = async (email: string | undefined) => {
     if (!email) return;

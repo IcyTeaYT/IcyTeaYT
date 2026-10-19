@@ -753,8 +753,9 @@ in this browser only.
 
 While `SITE_CLOSED.closed` in `src/config/closed.ts` is `true`, the site is
 closed. Everyone who opens it sees "TISMUN 2026 is over", and nobody can sign
-in except the accounts in `OWNER_EMAILS`. An owner signs in, sees the same
-page, and is asked **Do you want to still proceed?** — once per browser tab.
+in except the accounts in `OWNER_EMAILS`. The page shows no sign-in at all:
+an owner signs in at **/login?owner**, sees the same page, and is asked
+**Do you want to still proceed?** — once per browser tab.
 The server enforces it on every request, so a sign-in left open on someone's
 laptop stops working too.
 
