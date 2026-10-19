@@ -1,0 +1,28 @@
+/* Option C: keynote stage. */
+html[data-world='keynote'],
+html[data-world='keynote'] body {
+  background: #050505;
+  color: #f5f5f7;
+  scrollbar-color: #3a3a3c #050505;
+}
+html[data-world='keynote'] ::selection {
+  background: #2997ff;
+  color: #fff;
+}
+html[data-world='keynote'] :focus-visible {
+  outline: 2px solid #2997ff;
+  outline-offset: 3px;
+  border-radius: 10px;
+}
+html[data-world='keynote'] textarea {
+  caret-color: #2997ff;
+}
+
+/* The object breathes: a slow sway, compositor-only. */
+.kn-sway {
+  animation: kn-sway 9s cubic-bezier(0.45, 0, 0.55, 1) infinite alternate;
+}
+@keyframes kn-sway {
+  from { transform: rotateY(-6deg) rotateX(1deg); }
+  to { transform: rotateY(6deg) rotateX(-1deg); }
+}

@@ -1,34 +1,9 @@
 import { AnimatePresence, motion } from 'motion/react';
 import { useId, useState } from 'react';
 import { EASE_OUT } from '@/lib/motion';
-import { featuredProject } from '@/data/projects';
+import { FAQ } from '@/data/copy';
 
-const QUESTIONS = [
-  {
-    q: 'Who can send a suggestion?',
-    a: 'Anyone at Tashkent International School: students, teachers and staff. Pick a category, write your idea, and send it.',
-  },
-  {
-    q: 'Is my suggestion anonymous?',
-    a: 'Yes, by default. Your name and grade are only attached if you switch anonymous off and choose to add them.',
-  },
-  {
-    q: 'Who reads the suggestions?',
-    a: 'Only the Tech Council. Suggestions are never posted publicly. We store a scrambled (hashed) version of your connection address only to stop spam, never the address itself.',
-  },
-  {
-    q: 'What happens after I send one?',
-    a: 'The council reads every suggestion. The most popular and doable ideas become projects that a team plans, builds and launches.',
-  },
-  ...(featuredProject
-    ? [
-        {
-          q: `What is ${featuredProject.name}?`,
-          a: `${featuredProject.tagline} ${featuredProject.description}`,
-        },
-      ]
-    : []),
-];
+const QUESTIONS = FAQ;
 
 function Item({ q, a }: { q: string; a: string }) {
   const [open, setOpen] = useState(false);
