@@ -2,6 +2,7 @@ import { AnimatePresence, motion, useAnimationControls, useReducedMotion, useSpr
 import { useEffect, useId, useState, type FormEvent } from 'react';
 import { CATEGORIES, GRADE_MAX, NAME_MAX, SUGGESTION_MAX, SUGGESTION_MIN, type CategoryId } from '@/data/categories';
 import { Arrow } from '../ui/Arrow';
+import { Eyebrow } from '../brand/Shapes';
 import { EASE_OUT, SPRING_SNAPPY } from '@/lib/motion';
 
 type Status = 'idle' | 'sending' | 'sent' | 'error';
@@ -22,9 +23,9 @@ function CharRing({ count }: { count: number }) {
     <span className="flex items-center gap-2 text-caption text-fog">
       <svg viewBox="0 0 24 24" className="h-5 w-5 -rotate-90" aria-hidden>
         <circle cx="12" cy="12" r={r} fill="none" stroke="rgba(255,255,255,0.16)" strokeWidth="2" />
-        <motion.circle cx="12" cy="12" r={r} fill="none" stroke={over ? '#FF8A8A' : '#FFFFFF'} strokeWidth="2" strokeLinecap="round" strokeDasharray={c} style={{ strokeDashoffset: offset }} />
+        <motion.circle cx="12" cy="12" r={r} fill="none" stroke={over ? '#F2942C' : '#FFFFFF'} strokeWidth="2" strokeLinecap="round" strokeDasharray={c} style={{ strokeDashoffset: offset }} />
       </svg>
-      <span className="tabular" style={{ color: over ? '#FF8A8A' : undefined }}>
+      <span className="tabular" style={{ color: over ? '#FFD9B0' : undefined }}>
         {count}/{SUGGESTION_MAX}
       </span>
     </span>
@@ -150,9 +151,14 @@ export function SuggestionBox() {
   const sending = status === 'sending';
 
   return (
-    <section id="suggestions" data-surface="dark" aria-labelledby="suggest-title" className="bg-obsidian py-20 text-paper sm:py-28">
+    <section id="suggestions" data-surface="dark" data-tone="teal" aria-labelledby="suggest-title" className="bg-tis-teal py-20 text-paper sm:py-28">
       <div className="container-x grid gap-14 md:grid-cols-2 md:gap-16">
         <div className="md:sticky md:top-28 md:self-start">
+          <div className="mb-5">
+            <Eyebrow tone="dark" color="#A0C13B">
+              Suggestions
+            </Eyebrow>
+          </div>
           <h2 id="suggest-title" className="type-heading text-[clamp(2.25rem,4.4vw,3.25rem)]">
             What tech does TIS need?
           </h2>

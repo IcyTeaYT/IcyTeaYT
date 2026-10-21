@@ -1,6 +1,6 @@
 import { StrictMode, Suspense, lazy } from 'react';
 import { createRoot } from 'react-dom/client';
-import '@fontsource-variable/inter';
+import '@fontsource-variable/nunito-sans';
 import './index.css';
 import { Home } from './components/Home';
 

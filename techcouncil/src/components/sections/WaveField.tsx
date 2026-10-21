@@ -51,7 +51,9 @@ void main(){
   float glow = uMouseOn * exp(-d * d * 10.0) * 0.45;
   float a = line * (0.16 + 0.4 * mask * shimmer + glow);
 
-  gl_FragColor = vec4(vec3(1.0), a);
+  // Uzbekistan turquoise, warming to white where the light catches (and under the pointer).
+  vec3 col = mix(vec3(0.0, 0.612, 0.725), vec3(1.0), clamp(0.15 + 0.35 * mask * shimmer + glow * 1.4, 0.0, 1.0));
+  gl_FragColor = vec4(col, a * 1.15);
 }
 `;
 

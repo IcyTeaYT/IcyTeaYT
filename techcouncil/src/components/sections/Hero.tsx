@@ -9,7 +9,7 @@ import { EASE_OUT } from '@/lib/motion';
 
 const WaveField = lazy(() => import('./WaveField'));
 
-/** Full-bleed black hero: a WebGL wave field, light display type lower-left. */
+/** Full-bleed dark-blue hero: a turquoise WebGL wave field, light display type lower-left. */
 export function Hero() {
   const introDone = useIntroDone();
   const reduce = !!useReducedMotion();
@@ -43,7 +43,7 @@ export function Hero() {
 
       <motion.div className="container-x relative pb-20 pt-40 sm:pb-28" style={{ y, opacity }}>
         <h1 id="hero-title" className="type-display max-w-[14ch] text-[clamp(3rem,7.4vw,6rem)]">
-          <SplitText text="Student-built tech for a smarter TIS." play={introDone} delay={d} stagger={0.07} />
+          <SplitText text="Student-built tech for a smarter TIS." play={introDone} delay={d} stagger={0.07} wordClass={(w) => (w === 'TIS.' ? 'text-tis-turquoise' : undefined)} />
         </h1>
 
         <motion.p

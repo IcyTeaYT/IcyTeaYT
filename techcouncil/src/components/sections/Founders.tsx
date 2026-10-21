@@ -7,20 +7,30 @@ import { Arrow } from '../ui/Arrow';
 import { useSmoothScroll } from '@/lib/smoothScroll';
 import { useFocusTrap } from '@/lib/useFocusTrap';
 import { EASE_OUT, SPRING_SOFT } from '@/lib/motion';
+import { archPath, shapeMask, TIS } from '../brand/Shapes';
+
+/** Each founder sits on one of the brand's colour blocks, in turn. */
+const BLOCKS = [TIS.turquoise, TIS.apricot, TIS.teal];
+
+// The arch window in a card: 82% of its width, from 7% below its top (the card is 4:5).
+const ARCH_W = 328;
+const ARCH_H = 465;
+const ARCH_MASK = shapeMask(archPath(ARCH_W, ARCH_H), ARCH_W, ARCH_H);
 
 /**
- * Photo with the petal-gradient wash over it. Until a photo exists the wash
- * sits on black with large initials; the photo fades in once it has loaded,
- * so a missing file never shifts anything.
+ * The portrait on its colour block. In the cards the photo is set in a lancet
+ * arch, the petal shape (manual 6.1); in the bio it fills the panel. Until a
+ * photo exists the initials stand in, and the photo fades in once loaded, so
+ * a missing file never shifts anything.
  */
 function Portrait({ founder, index, large = false }: { founder: Founder; index: number; large?: boolean }) {
   const [loaded, setLoaded] = useState(false);
   const [failed, setFailed] = useState(false);
-  return (
-    <div className="absolute inset-0 overflow-hidden bg-obsidian">
+  const photo = (
+    <>
       <span
         aria-hidden
-        className={`absolute inset-0 flex items-center justify-center pb-[20%] font-light tracking-[-0.06em] text-paper ${large ? 'text-[7rem]' : 'text-[5.5rem]'}`}
+        className={`absolute inset-0 flex items-center justify-center pb-[10%] font-light tracking-[-0.04em] text-paper ${large ? 'text-[7rem]' : 'text-[5.5rem]'}`}
       >
         {initials(founder.name)}
       </span>
@@ -32,13 +42,21 @@ function Portrait({ founder, index, large = false }: { founder: Founder; index: 
           decoding="async"
           onLoad={() => setLoaded(true)}
           onError={() => setFailed(true)}
-          className="absolute inset-0 h-full w-full object-cover object-[50%_20%] transition-[opacity,transform] duration-700 ease-out-expo group-hover:scale-[1.03]"
+          className="absolute inset-0 h-full w-full object-cover object-[50%_20%] transition-[opacity,transform] duration-700 ease-out-expo group-hover:scale-[1.04]"
           style={{ opacity: loaded ? 1 : 0 }}
         />
       )}
-      {/* The wash: the one place the petal gradient appears besides the top bar. */}
-      <div aria-hidden className="absolute inset-0 bg-petal opacity-40 mix-blend-screen" style={{ backgroundPosition: `${index * 50}% 0`, backgroundSize: '200% 100%' }} />
-      <div aria-hidden className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-obsidian/80 to-transparent" />
+    </>
+  );
+  return (
+    <div className="absolute inset-0 overflow-hidden" style={{ background: BLOCKS[index % BLOCKS.length] }}>
+      {large ? (
+        <div className="absolute inset-0 bg-obsidian">{photo}</div>
+      ) : (
+        <div className="absolute inset-x-[9%] bottom-0 top-[7%] bg-obsidian" style={ARCH_MASK}>
+          {photo}
+        </div>
+      )}
     </div>
   );
 }
@@ -60,19 +78,23 @@ function FounderCard({ founder, index, onOpen, revealed }: { founder: Founder; i
         data-open-founder={founder.id}
         aria-haspopup="dialog"
         aria-label={`${founder.name}, ${founder.role}. Read bio`}
-        className="group relative block aspect-[3/4] w-full overflow-hidden rounded-card text-left text-paper"
+        className="group block w-full text-left text-obsidian"
         transition={SPRING_SOFT}
       >
-        <motion.div layoutId={`founder-photo-${founder.id}`} className="absolute inset-0" transition={SPRING_SOFT}>
+        <motion.div layoutId={`founder-photo-${founder.id}`} className="relative aspect-[4/5] overflow-hidden rounded-card" transition={SPRING_SOFT}>
           <Portrait founder={founder} index={index} />
         </motion.div>
-        <div className="absolute inset-x-0 bottom-0 p-6">
-          <motion.h3 layoutId={`founder-name-${founder.id}`} className="text-subheading font-medium">
-            {founder.name}
-          </motion.h3>
-          <p className="mt-1 text-body text-paper/80">{founder.role}</p>
-          <span className="pill-ghost mt-5 min-h-[40px] px-5 group-hover:bg-paper group-hover:text-obsidian">
-            Read bio
+        <div className="mt-5 flex items-end justify-between gap-4">
+          <div>
+            <motion.h3 layoutId={`founder-name-${founder.id}`} className="text-subheading font-semibold">
+              {founder.name}
+            </motion.h3>
+            <p className="mt-1 text-body text-graphite">{founder.role}</p>
+          </div>
+          <span
+            aria-hidden
+            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-line-light transition-colors duration-300 group-hover:border-tis-turquoise group-hover:bg-tis-turquoise group-hover:text-paper"
+          >
             <Arrow />
           </span>
         </div>
@@ -163,13 +185,16 @@ export function Founders() {
   return (
     <section id="founders" data-surface="light" aria-labelledby="founders-title" className="bg-paper py-20 text-obsidian sm:py-28">
       <div className="container-x">
-        <SectionIntro id="founders-title" title="Three students. One campus to upgrade.">
+        <SectionIntro id="founders-title" eyebrow="Founders" title="Three students. One campus to upgrade.">
           <p className="text-graphite">The Tech Council was started by three TIS students who wanted to fix things, not just talk about them.</p>
         </SectionIntro>
         <ul className="mt-16 grid gap-5 sm:grid-cols-2 md:grid-cols-3">
           {founders.map((f, i) =>
             f.id === openId ? (
-              <li key={f.id} aria-hidden className="aspect-[3/4]" />
+              <li key={f.id} aria-hidden>
+                <div className="aspect-[4/5]" />
+                <div className="h-[76px]" />
+              </li>
             ) : (
               <FounderCard
                 key={f.id}

@@ -20,14 +20,14 @@ export function Footer() {
   const reduce = useReducedMotion();
   const { scrollTo } = useSmoothScroll();
   return (
-    <footer data-surface="light" className="sticky bottom-0 z-0 bg-ash text-obsidian">
+    <footer data-surface="dark" className="sticky bottom-0 z-0 bg-obsidian text-paper">
       <div className="container-x pb-8 pt-20">
         <div className="flex flex-col gap-12 md:flex-row md:items-start md:justify-between">
           <div className="flex items-center gap-3">
-            <LogoMark className="h-10 w-10 text-obsidian" />
+            <LogoMark className="h-10 w-10 text-paper" />
             <div>
               <p className="text-body font-medium">TIS Tech Council</p>
-              <p className="text-body-sm text-graphite">Tashkent International School</p>
+              <p className="text-body-sm text-fog">Tashkent International School</p>
             </div>
           </div>
           <nav aria-label="Footer">
@@ -40,7 +40,7 @@ export function Footer() {
                       e.preventDefault();
                       scrollTo(href);
                     }}
-                    className="inline-flex min-h-[40px] items-center text-body text-graphite transition-colors hover:text-obsidian"
+                    className="inline-flex min-h-[40px] items-center text-body text-fog transition-colors hover:text-paper"
                   >
                     {label}
                   </a>
@@ -67,10 +67,10 @@ export function Footer() {
         </p>
         <div className="mt-6 h-1 w-full rounded-full bg-petal" />
 
-        <div className="mt-8 flex flex-col gap-2 text-body-sm text-graphite sm:flex-row sm:items-center sm:justify-between">
+        <div className="mt-8 flex flex-col gap-2 text-body-sm text-fog sm:flex-row sm:items-center sm:justify-between">
           <p>© 2026 TIS Tech Council · Tashkent International School</p>
           <p className="flex items-center gap-3">
-            <Owl className="h-6 w-6 text-obsidian" />
+            <Owl className="h-6 w-6 text-paper" eye="#2B3744" />
             Challenge | Explore | Connect
           </p>
         </div>

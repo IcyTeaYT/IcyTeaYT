@@ -48,7 +48,7 @@ export function About() {
   return (
     <section id="about" data-surface="light" aria-labelledby="about-title" className="bg-paper py-20 text-obsidian sm:py-28">
       <div className="container-x">
-        <SectionIntro id="about-title" title="We build the tech our campus is missing.">
+        <SectionIntro id="about-title" eyebrow="About" title="We build the tech our campus is missing.">
           <p>
             The TIS Tech Council is a group of students at Tashkent International School who think our school deserves better tools, so we
             make them.
@@ -66,7 +66,7 @@ export function About() {
           {stats.map((s) => (
             <div key={s.label} className="flex flex-col">
               <dt className="order-2 mt-2 text-body-sm text-graphite">{s.label}</dt>
-              <dd className="type-display text-[clamp(3.5rem,7vw,5.5rem)]">
+              <dd className="type-display text-[clamp(3.5rem,7vw,5.5rem)] text-tis-turquoise">
                 <Counter to={s.n} />
               </dd>
             </div>

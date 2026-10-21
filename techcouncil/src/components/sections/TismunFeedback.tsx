@@ -2,6 +2,7 @@ import { AnimatePresence, motion, useAnimationControls, useReducedMotion } from 
 import { useId, useState, type FormEvent } from 'react';
 import { FEEDBACK_COMMENT_MAX, FEEDBACK_NAME_MAX, FEEDBACK_ROLES, type FeedbackRole } from '@/data/feedback';
 import { Arrow } from '../ui/Arrow';
+import { Eyebrow } from '../brand/Shapes';
 import { EASE_OUT, SPRING_SNAPPY } from '@/lib/motion';
 
 type Status = 'idle' | 'sending' | 'sent' | 'error';
@@ -16,8 +17,8 @@ function Star({ on }: { on: boolean }) {
     <svg viewBox="0 0 24 24" className="h-9 w-9" aria-hidden>
       <path
         d="M12 2.8l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 16.8l-5.4 2.9 1-6.1-4.4-4.3 6.1-.9z"
-        fill={on ? '#E89A3C' : 'none'}
-        stroke={on ? '#E89A3C' : 'rgba(255,255,255,0.4)'}
+        fill={on ? '#F2942C' : 'none'}
+        stroke={on ? '#F2942C' : 'rgba(255,255,255,0.4)'}
         strokeWidth="1.4"
         strokeLinejoin="round"
       />
@@ -100,7 +101,7 @@ export function TismunFeedback() {
     <section id="tismun-feedback" data-surface="dark" aria-labelledby="feedback-title" className="border-t border-line-dark bg-obsidian py-20 text-paper sm:py-28">
       <div className="container-x grid gap-14 md:grid-cols-2 md:gap-16">
         <div className="md:sticky md:top-28 md:self-start">
-          <p className="text-caption uppercase tracking-[0.14em] text-fog">TISMUN 2026</p>
+          <Eyebrow tone="dark">TISMUN 2026</Eyebrow>
           <h2 id="feedback-title" className="type-heading mt-4 text-[clamp(2.25rem,4.4vw,3.25rem)]">
             How was TISMUN?
           </h2>

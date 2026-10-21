@@ -35,12 +35,12 @@ function Row({ item }: { item: Item }) {
         <h3 className="type-heading text-[clamp(1.9rem,3.6vw,3rem)]">{item.title}</h3>
         <p className="text-body text-graphite">{item.body}</p>
       </div>
-      <motion.div aria-hidden className="pointer-events-none absolute inset-0 flex items-center overflow-hidden bg-obsidian text-paper" initial={{ y: '101%' }} animate={band}>
+      <motion.div aria-hidden className="pointer-events-none absolute inset-0 flex items-center overflow-hidden bg-tis-turquoise text-paper" initial={{ y: '101%' }} animate={band}>
         <div className="flex w-max animate-marquee" style={{ ['--marquee-duration' as string]: '18s' }}>
           {[...repeat, ...repeat].map((t, i) => (
             <span key={i} className="type-heading flex items-center whitespace-nowrap px-8 text-[clamp(1.9rem,3.6vw,3rem)]">
               {t}
-              <span className="ml-16 h-2 w-2 rounded-full bg-petal" />
+              <span className="ml-16 h-2.5 w-2.5 rotate-45 bg-paper" />
             </span>
           ))}
         </div>

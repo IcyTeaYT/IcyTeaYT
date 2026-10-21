@@ -4,12 +4,11 @@
 
 @layer base {
   html {
-    background: #000;
+    background: #2b3744;
     color: #fff;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     -webkit-tap-highlight-color: transparent;
-    font-feature-settings: 'cv11', 'ss01';
   }
 
   body {
@@ -18,11 +17,7 @@
   }
 
   ::selection {
-    background: #fff;
-    color: #000;
-  }
-  [data-surface='light'] ::selection {
-    background: #000;
+    background: #009cb9;
     color: #fff;
   }
 
@@ -59,16 +54,23 @@ html.lenis body {
     @apply mx-auto w-full max-w-[1200px] px-5 sm:px-8;
   }
 
-  /* Whisper-light display type: weight 300, tight tracking. */
+  /* Light display type, as the manual's Ultra Light lines; headings a touch heavier. */
   .type-display {
     font-weight: 300;
-    line-height: 1;
-    letter-spacing: -0.06em;
+    line-height: 1.02;
+    letter-spacing: -0.035em;
   }
   .type-heading {
-    font-weight: 300;
-    line-height: 1.12;
-    letter-spacing: -0.055em;
+    font-weight: 350;
+    line-height: 1.14;
+    letter-spacing: -0.03em;
+  }
+  /* Small all-caps labels (the manual allows caps for titles and subtitles). */
+  .eyebrow {
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
   }
 
   /* Pill buttons. Colour follows the surface via currentColor. */
@@ -93,6 +95,17 @@ html.lenis body {
   .pill-solid-light {
     @apply pill border-obsidian bg-obsidian font-medium text-paper hover:bg-graphite hover:border-graphite;
   }
+}
+
+/* On the deep-teal block, muted and error text are lifted so small type stays readable (4.5:1+). */
+[data-tone='teal'] .text-fog {
+  color: #dcebeb;
+}
+[data-tone='teal'] .text-danger-dark {
+  color: #ffd9b0;
+}
+[data-tone='teal'] ::placeholder {
+  color: rgba(255, 255, 255, 0.7);
 }
 
 @layer utilities {

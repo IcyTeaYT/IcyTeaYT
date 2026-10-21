@@ -220,7 +220,7 @@ export function Projects() {
   return (
     <section id="projects" data-surface="dark" aria-labelledby="projects-title" className="bg-obsidian py-20 text-paper sm:py-28">
       <div className="container-x">
-        <SectionIntro id="projects-title" title="Things we’ve shipped.">
+        <SectionIntro id="projects-title" eyebrow="Projects" tone="dark" title="Things we’ve shipped.">
           <p className="text-fog">Real platforms, used by real people at TIS.</p>
         </SectionIntro>
 

@@ -2,6 +2,7 @@ import { AnimatePresence, motion } from 'motion/react';
 import { useId, useState } from 'react';
 import { EASE_OUT } from '@/lib/motion';
 import { featuredProject } from '@/data/projects';
+import { Eyebrow } from '../brand/Shapes';
 
 const QUESTIONS = [
   {
@@ -44,7 +45,10 @@ function Item({ q, a }: { q: string; a: string }) {
           className="flex w-full items-center justify-between gap-6 py-6 text-left text-subheading font-normal"
         >
           {q}
-          <span className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-line-light" aria-hidden>
+          <span
+            className={`relative flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-tis-turquoise transition-colors duration-300 ${open ? 'bg-tis-turquoise text-paper' : 'text-tis-turquoise'}`}
+            aria-hidden
+          >
             <span className="absolute h-px w-3.5 bg-current" />
             <motion.span className="absolute h-3.5 w-px bg-current" animate={{ scaleY: open ? 0 : 1 }} transition={{ duration: 0.3 }} />
           </span>
@@ -72,9 +76,14 @@ export function Faq() {
   return (
     <section id="faq" data-surface="light" aria-labelledby="faq-title" className="bg-paper py-20 text-obsidian sm:py-28">
       <div className="container-x grid gap-12 md:grid-cols-[1fr_1.4fr] md:gap-16">
-        <h2 id="faq-title" className="type-heading text-[clamp(2.25rem,4.4vw,3.25rem)]">
-          Questions
-        </h2>
+        <div>
+          <div className="mb-5">
+            <Eyebrow>FAQ</Eyebrow>
+          </div>
+          <h2 id="faq-title" className="type-heading text-[clamp(2.25rem,4.4vw,3.25rem)]">
+            Questions
+          </h2>
+        </div>
         <ul>
           {QUESTIONS.map((x) => (
             <Item key={x.q} {...x} />
