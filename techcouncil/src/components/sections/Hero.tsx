@@ -7,11 +7,10 @@ import { useIntroDone } from '@/lib/intro';
 import { useSmoothScroll } from '@/lib/smoothScroll';
 import { EASE_OUT } from '@/lib/motion';
 import { archPath, TIS } from '../brand/Shapes';
-import { LOOK } from '@/lib/look';
 
 const WaveField = lazy(() => import('./WaveField'));
 
-/** Full-bleed dark-blue hero: a turquoise WebGL wave field, light display type lower-left. */
+/** Full-bleed ink hero: a turquoise WebGL wave field, the brand arch, bold display type lower-left. */
 export function Hero() {
   const introDone = useIntroDone();
   const reduce = !!useReducedMotion();
@@ -22,6 +21,8 @@ export function Hero() {
   const { scrollYProgress } = useScroll({ target: ref, offset: ['start start', 'end start'] });
   const y = useTransform(scrollYProgress, [0, 1], [0, reduce ? 0 : 120]);
   const opacity = useTransform(scrollYProgress, [0, 0.8], [1, 0]);
+  const archOuterY = useTransform(scrollYProgress, [0, 1], ['0%', reduce ? '0%' : '-8%']);
+  const archInnerY = useTransform(scrollYProgress, [0, 1], ['0%', reduce ? '0%' : '-26%']);
 
   useEffect(() => {
     if (!introDone) return;
@@ -42,19 +43,21 @@ export function Hero() {
         </Suspense>
       )}
       <div aria-hidden className="absolute inset-x-0 bottom-0 -z-10 h-2/3 bg-gradient-to-t from-obsidian via-obsidian/70 to-transparent" />
-      {LOOK === 'blocks' && (
-        <motion.svg
-          aria-hidden
-          viewBox="0 0 400 560"
-          className="absolute bottom-0 right-[7vw] -z-[5] hidden h-[72%] w-auto md:block"
-          initial={{ y: '18%', opacity: 0 }}
-          animate={introDone ? { y: '0%', opacity: 1 } : undefined}
-          transition={{ duration: 1.6, ease: EASE_OUT, delay: d + 0.3 }}
-        >
+      {/* The arch rises in, then its two layers drift apart as you scroll, for depth. */}
+      <motion.div
+        aria-hidden
+        className="absolute bottom-0 right-[7vw] -z-[5] hidden aspect-[400/560] h-[72%] md:block"
+        initial={{ y: '18%', opacity: 0 }}
+        animate={introDone ? { y: '0%', opacity: 1 } : undefined}
+        transition={{ duration: 1.6, ease: EASE_OUT, delay: d + 0.3 }}
+      >
+        <motion.svg viewBox="0 0 400 560" className="absolute inset-0 h-full w-full" style={{ y: archOuterY }}>
           <path d={archPath(400, 560)} fill={TIS.turquoise} />
+        </motion.svg>
+        <motion.svg viewBox="0 0 400 560" className="absolute inset-0 h-full w-full" style={{ y: archInnerY }}>
           <path d={archPath(220, 330)} transform="translate(90 230)" fill={TIS.apricot} />
         </motion.svg>
-      )}
+      </motion.div>
 
       <motion.div className="container-x relative pb-20 pt-40 sm:pb-28" style={{ y, opacity }}>
         <h1 id="hero-title" className="type-display max-w-[14ch] text-[clamp(3rem,7.4vw,6rem)]">

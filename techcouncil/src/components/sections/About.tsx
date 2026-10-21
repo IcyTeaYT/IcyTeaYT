@@ -48,7 +48,7 @@ export function About() {
   return (
     <section id="about" data-surface="light" aria-labelledby="about-title" className="bg-paper py-24 text-obsidian sm:py-36">
       <div className="container-x">
-        <SectionIntro id="about-title" eyebrow="About" title="We build the tech our campus is missing.">
+        <SectionIntro id="about-title" eyebrow="About" layout="stack" title="We build the tech our campus is missing.">
           <p>
             The TIS Tech Council is a group of students at Tashkent International School who think our school deserves better tools, so we
             make them.

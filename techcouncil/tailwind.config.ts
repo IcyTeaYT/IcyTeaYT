@@ -13,8 +13,8 @@ export default {
   theme: {
     extend: {
       colors: {
-        // The brand's dark blue: every dark surface, and the text on light ones.
-        obsidian: '#2B3744',
+        // Near-black ink with a trace of the brand's dark blue: every dark surface, and the text on light ones.
+        obsidian: '#11161C',
         paper: '#FFFFFF',
         ash: '#F3F6F8',
         fog: '#C5CDD6', // muted text on dark blue (7.6:1)

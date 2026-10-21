@@ -8,15 +8,10 @@ import { useSmoothScroll } from '@/lib/smoothScroll';
 import { useFocusTrap } from '@/lib/useFocusTrap';
 import { EASE_OUT, SPRING_SOFT } from '@/lib/motion';
 import { archPath, shapeMask, TIS } from '../brand/Shapes';
-import { LOOK } from '@/lib/look';
 
-/**
- * What each founder's arch sits on: a solid brand colour (blocks), or quiet
- * dark blue with the arch drawn in a fine brand-colour line (calm).
- */
-const BACKDROPS = LOOK === 'blocks' ? [TIS.turquoise, TIS.apricot, TIS.teal] : ['#323F4D', '#323F4D', '#323F4D'];
+/** Each founder's arch sits on one of the brand colours, in turn. */
+const BACKDROPS = [TIS.turquoise, TIS.apricot, TIS.teal];
 const ARCH_OPEN = { hidden: { clipPath: 'inset(100% 0% 0% 0%)' }, shown: { clipPath: 'inset(0% 0% 0% 0%)' } };
-const LINES = [TIS.turquoise, TIS.apricot, TIS.green];
 
 // The arch window in a card: 82% of its width, from 7% below its top (the card is 4:5).
 const ARCH_W = 328;
@@ -69,11 +64,6 @@ function Portrait({ founder, index, large = false, play = false }: { founder: Fo
           >
             {photo}
           </motion.div>
-          {LOOK === 'calm' && (
-            <svg aria-hidden viewBox={`0 0 ${ARCH_W} ${ARCH_H}`} preserveAspectRatio="none" className="pointer-events-none absolute inset-x-[9%] bottom-0 top-[7%] h-[93%] w-[82%] overflow-visible">
-              <path d={archPath(ARCH_W, ARCH_H)} fill="none" stroke={LINES[index % LINES.length]} strokeWidth="1.5" vectorEffect="non-scaling-stroke" transform={`translate(-8 -8) scale(${(ARCH_W + 16) / ARCH_W} ${(ARCH_H + 8) / ARCH_H})`} />
-            </svg>
-          )}
         </>
       )}
     </div>
@@ -211,7 +201,7 @@ export function Founders() {
   return (
     <section id="founders" data-surface="dark" aria-labelledby="founders-title" className="relative overflow-hidden bg-obsidian py-24 text-paper sm:py-36">
       <div className="container-x relative">
-        <SectionIntro id="founders-title" eyebrow="The team" tone="dark" title="Three students. One campus to upgrade.">
+        <SectionIntro id="founders-title" eyebrow="The team" tone="dark" layout="center" title="Three students. One campus to upgrade.">
           <p className="text-fog">The Tech Council was started by three TIS students who wanted to fix things, not just talk about them.</p>
         </SectionIntro>
         <ul className="mt-20 grid gap-6 sm:grid-cols-2 md:grid-cols-3 lg:gap-8">

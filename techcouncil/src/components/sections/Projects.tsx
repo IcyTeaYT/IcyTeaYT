@@ -227,7 +227,16 @@ export function Projects() {
         </SectionIntro>
 
         {/* While open, the project lives in the dialog; this slot keeps its space. */}
-        <div ref={slotRef} className="mt-16 sm:mt-20" style={{ minHeight: open ? holdHeight : undefined }}>
+        {/* The slot settles in from slightly smaller as it arrives; it stays mounted, so this plays once. */}
+        <motion.div
+          ref={slotRef}
+          className="mt-16 sm:mt-20"
+          style={{ minHeight: open ? holdHeight : undefined }}
+          initial={{ opacity: 0, y: 60, scale: 0.96 }}
+          whileInView={{ opacity: 1, y: 0, scale: 1 }}
+          viewport={{ once: true, amount: 0.2 }}
+          transition={{ duration: 1.1, ease: EASE_OUT }}
+        >
           {!open && (
             <Featured
               project={featuredProject}
@@ -237,7 +246,7 @@ export function Projects() {
               }}
             />
           )}
-        </div>
+        </motion.div>
 
         {pipelineProjects.length > 0 && (
           <div className="mt-20">

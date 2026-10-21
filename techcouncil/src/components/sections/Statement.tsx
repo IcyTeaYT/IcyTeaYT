@@ -2,7 +2,6 @@ import { motion, useReducedMotion, useScroll, useTransform, type MotionValue } f
 import { useRef } from 'react';
 import { archPath, TIS } from '../brand/Shapes';
 import { span } from '@/lib/motion';
-import { LOOK } from '@/lib/look';
 
 const TEXT =
   'We’re students who think our school deserves better tech, so we build it. Tools for teachers and students, projects that make campus run smoother, and a direct line for your ideas.';
@@ -14,8 +13,8 @@ function Word({ children, progress, range }: { children: string; progress: Motio
 }
 
 /**
- * The manual's nested lancet arches (6.2), rising into the corner: solid
- * green and deep teal (blocks), or drawn in fine brand-colour lines (calm).
+ * The manual's nested lancet arches (6.2) in solid green and deep teal,
+ * rising into the corner.
  */
 function Arches({ rise }: { rise?: MotionValue<string> }) {
   const outer = archPath(400, 520);
@@ -27,17 +26,8 @@ function Arches({ rise }: { rise?: MotionValue<string> }) {
       className="pointer-events-none absolute bottom-0 right-[-4vw] h-[28svh] w-auto overflow-visible sm:right-[3vw] md:h-[74svh]"
       style={{ y: rise }}
     >
-      {LOOK === 'blocks' ? (
-        <>
-          <path d={outer} fill={TIS.green} />
-          <path d={inner} transform="translate(75 180)" fill={TIS.teal} />
-        </>
-      ) : (
-        <>
-          <path d={outer} fill="none" stroke={TIS.turquoise} strokeWidth="1.5" vectorEffect="non-scaling-stroke" />
-          <path d={inner} transform="translate(75 180)" fill="none" stroke={TIS.apricot} strokeWidth="1.5" vectorEffect="non-scaling-stroke" />
-        </>
-      )}
+      <path d={outer} fill={TIS.green} />
+      <path d={inner} transform="translate(75 180)" fill={TIS.teal} />
     </motion.svg>
   );
 }
