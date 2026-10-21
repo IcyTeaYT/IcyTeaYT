@@ -3,7 +3,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { featuredProject, pipelineProjects, STATUS_LABEL, type Project } from '@/data/projects';
 import { SectionIntro } from '../ui/SectionIntro';
-import { Arrow } from '../ui/Arrow';
+import { ArrowChip } from '../ui/Arrow';
 import { Ripple } from '../ui/Ripple';
 import { TismunLogo } from '../brand/TismunLogo';
 import { Countdown } from './Countdown';
@@ -47,9 +47,9 @@ function VisitButton({ project, solid }: { project: Project; solid: 'dark' | 'li
     );
   }
   return (
-    <a href={project.link} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} className={cls}>
+    <a href={project.link} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} className={`${cls} group`}>
       Visit {project.name}
-      <Arrow />
+      <ArrowChip />
       <span className="sr-only">(opens in a new tab)</span>
     </a>
   );
@@ -65,14 +65,16 @@ function Featured({ project, onOpen }: { project: Project; onOpen: () => void })
         onClick={onOpen}
         aria-label={`${project.name}: view details`}
         tabIndex={-1}
-        className="group relative flex aspect-[4/3] items-center justify-center overflow-hidden rounded-card bg-ash p-10"
+        className="group relative rounded-[28px] bg-white/[0.04] p-2 text-left ring-1 ring-white/10"
       >
+        <span className="relative flex aspect-[4/3] items-center justify-center overflow-hidden rounded-[20px] bg-ash p-10 shadow-[inset_0_1px_1px_rgba(255,255,255,0.6)]">
         <motion.div layoutId={`project-logo-${project.id}`} className="w-full max-w-[420px]" transition={SPRING_SOFT}>
           <Ripple>
             <TismunLogo className="w-full transition-transform duration-700 ease-out-expo group-hover:scale-[1.03]" />
           </Ripple>
         </motion.div>
         <span className="absolute bottom-5 left-5 text-caption text-graphite">{project.date}</span>
+        </span>
       </button>
 
       <div className="flex flex-col justify-center">
@@ -218,7 +220,7 @@ export function Projects() {
   if (!featuredProject) return null;
 
   return (
-    <section id="projects" data-surface="dark" aria-labelledby="projects-title" className="bg-obsidian py-20 text-paper sm:py-28">
+    <section id="projects" data-surface="dark" aria-labelledby="projects-title" className="bg-obsidian py-24 text-paper sm:py-36">
       <div className="container-x">
         <SectionIntro id="projects-title" eyebrow="Projects" tone="dark" title="Things we’ve shipped.">
           <p className="text-fog">Real platforms, used by real people at TIS.</p>

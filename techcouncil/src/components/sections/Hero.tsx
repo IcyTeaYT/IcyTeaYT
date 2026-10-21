@@ -2,10 +2,12 @@ import { lazy, Suspense, useEffect, useRef, useState } from 'react';
 import { motion, useReducedMotion, useScroll, useTransform } from 'motion/react';
 import { SplitText } from '../ui/SplitText';
 import { Magnetic } from '../ui/Magnetic';
-import { Arrow } from '../ui/Arrow';
+import { ArrowChip } from '../ui/Arrow';
 import { useIntroDone } from '@/lib/intro';
 import { useSmoothScroll } from '@/lib/smoothScroll';
 import { EASE_OUT } from '@/lib/motion';
+import { archPath, TIS } from '../brand/Shapes';
+import { LOOK } from '@/lib/look';
 
 const WaveField = lazy(() => import('./WaveField'));
 
@@ -40,6 +42,19 @@ export function Hero() {
         </Suspense>
       )}
       <div aria-hidden className="absolute inset-x-0 bottom-0 -z-10 h-2/3 bg-gradient-to-t from-obsidian via-obsidian/70 to-transparent" />
+      {LOOK === 'blocks' && (
+        <motion.svg
+          aria-hidden
+          viewBox="0 0 400 560"
+          className="absolute bottom-0 right-[7vw] -z-[5] hidden h-[72%] w-auto md:block"
+          initial={{ y: '18%', opacity: 0 }}
+          animate={introDone ? { y: '0%', opacity: 1 } : undefined}
+          transition={{ duration: 1.6, ease: EASE_OUT, delay: d + 0.3 }}
+        >
+          <path d={archPath(400, 560)} fill={TIS.turquoise} />
+          <path d={archPath(220, 330)} transform="translate(90 230)" fill={TIS.apricot} />
+        </motion.svg>
+      )}
 
       <motion.div className="container-x relative pb-20 pt-40 sm:pb-28" style={{ y, opacity }}>
         <h1 id="hero-title" className="type-display max-w-[14ch] text-[clamp(3rem,7.4vw,6rem)]">
@@ -69,10 +84,10 @@ export function Hero() {
                 e.preventDefault();
                 scrollTo('#suggestions');
               }}
-              className="pill-ghost"
+              className="pill-ghost group"
             >
               Suggest an idea
-              <Arrow />
+              <ArrowChip />
             </a>
           </Magnetic>
           <a

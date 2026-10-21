@@ -19,7 +19,7 @@ export function AnnouncementBar({ onClose }: { onClose: () => void }) {
       : `${p.name} 2026 · ${p.date} · ${days === 1 ? '1 day' : `${days} days`} to go`;
 
   return (
-    <div className="relative z-[55] flex items-center justify-center bg-petal px-10 text-caption text-paper" style={{ height: BAR_HEIGHT }} data-chrome>
+    <div className="relative z-[55] flex items-center justify-center bg-tis-teal px-10 text-caption text-paper" style={{ height: BAR_HEIGHT }} data-chrome>
       {/* Straight to the event's own site when it has one, else to it on this page. */}
       <a
         href={p.link || '#projects'}

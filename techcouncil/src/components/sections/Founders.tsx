@@ -8,9 +8,15 @@ import { useSmoothScroll } from '@/lib/smoothScroll';
 import { useFocusTrap } from '@/lib/useFocusTrap';
 import { EASE_OUT, SPRING_SOFT } from '@/lib/motion';
 import { archPath, shapeMask, TIS } from '../brand/Shapes';
+import { LOOK } from '@/lib/look';
 
-/** Each founder sits on one of the brand's colour blocks, in turn. */
-const BLOCKS = [TIS.turquoise, TIS.apricot, TIS.teal];
+/**
+ * What each founder's arch sits on: a solid brand colour (blocks), or quiet
+ * dark blue with the arch drawn in a fine brand-colour line (calm).
+ */
+const BACKDROPS = LOOK === 'blocks' ? [TIS.turquoise, TIS.apricot, TIS.teal] : ['#323F4D', '#323F4D', '#323F4D'];
+const ARCH_OPEN = { hidden: { clipPath: 'inset(100% 0% 0% 0%)' }, shown: { clipPath: 'inset(0% 0% 0% 0%)' } };
+const LINES = [TIS.turquoise, TIS.apricot, TIS.green];
 
 // The arch window in a card: 82% of its width, from 7% below its top (the card is 4:5).
 const ARCH_W = 328;
@@ -23,7 +29,7 @@ const ARCH_MASK = shapeMask(archPath(ARCH_W, ARCH_H), ARCH_W, ARCH_H);
  * photo exists the initials stand in, and the photo fades in once loaded, so
  * a missing file never shifts anything.
  */
-function Portrait({ founder, index, large = false }: { founder: Founder; index: number; large?: boolean }) {
+function Portrait({ founder, index, large = false, play = false }: { founder: Founder; index: number; large?: boolean; play?: boolean }) {
   const [loaded, setLoaded] = useState(false);
   const [failed, setFailed] = useState(false);
   const photo = (
@@ -49,13 +55,26 @@ function Portrait({ founder, index, large = false }: { founder: Founder; index: 
     </>
   );
   return (
-    <div className="absolute inset-0 overflow-hidden" style={{ background: BLOCKS[index % BLOCKS.length] }}>
+    <div className="absolute inset-0 overflow-hidden" style={{ background: BACKDROPS[index % BACKDROPS.length] }}>
       {large ? (
         <div className="absolute inset-0 bg-obsidian">{photo}</div>
       ) : (
-        <div className="absolute inset-x-[9%] bottom-0 top-[7%] bg-obsidian" style={ARCH_MASK}>
-          {photo}
-        </div>
+        <>
+          {/* The arch opens upward as the card comes into view. */}
+          <motion.div
+            className="absolute inset-x-[9%] bottom-0 top-[7%] bg-obsidian"
+            style={ARCH_MASK}
+            variants={play ? ARCH_OPEN : undefined}
+            transition={{ duration: 1.3, ease: EASE_OUT, delay: 0.15 + index * 0.12 }}
+          >
+            {photo}
+          </motion.div>
+          {LOOK === 'calm' && (
+            <svg aria-hidden viewBox={`0 0 ${ARCH_W} ${ARCH_H}`} preserveAspectRatio="none" className="pointer-events-none absolute inset-x-[9%] bottom-0 top-[7%] h-[93%] w-[82%] overflow-visible">
+              <path d={archPath(ARCH_W, ARCH_H)} fill="none" stroke={LINES[index % LINES.length]} strokeWidth="1.5" vectorEffect="non-scaling-stroke" transform={`translate(-8 -8) scale(${(ARCH_W + 16) / ARCH_W} ${(ARCH_H + 8) / ARCH_H})`} />
+            </svg>
+          )}
+        </>
       )}
     </div>
   );
@@ -66,10 +85,11 @@ function FounderCard({ founder, index, onOpen, revealed }: { founder: Founder; i
   return (
     <motion.li
       // A card coming back from the bio dialog must not replay its entrance.
-      initial={revealed || reduce ? false : { y: 40 }}
-      whileInView={{ y: 0 }}
-      viewport={{ once: true, amount: 0 }}
-      transition={{ duration: 1, ease: EASE_OUT, delay: index * 0.1 }}
+      initial={revealed || reduce ? false : 'hidden'}
+      whileInView="shown"
+      variants={{ hidden: { y: 48, opacity: 0 }, shown: { y: 0, opacity: 1 } }}
+      viewport={{ once: true, amount: 0.2 }}
+      transition={{ duration: 1.1, ease: EASE_OUT, delay: index * 0.1 }}
     >
       <motion.button
         type="button"
@@ -78,22 +98,28 @@ function FounderCard({ founder, index, onOpen, revealed }: { founder: Founder; i
         data-open-founder={founder.id}
         aria-haspopup="dialog"
         aria-label={`${founder.name}, ${founder.role}. Read bio`}
-        className="group block w-full text-left text-obsidian"
+        className="group block w-full text-left text-paper"
         transition={SPRING_SOFT}
       >
-        <motion.div layoutId={`founder-photo-${founder.id}`} className="relative aspect-[4/5] overflow-hidden rounded-card" transition={SPRING_SOFT}>
-          <Portrait founder={founder} index={index} />
-        </motion.div>
-        <div className="mt-5 flex items-end justify-between gap-4">
+        <div className="rounded-[28px] bg-white/[0.04] p-2 ring-1 ring-white/10 transition-colors duration-500 group-hover:bg-white/[0.07]">
+          <motion.div
+            layoutId={`founder-photo-${founder.id}`}
+            className="relative aspect-[4/5] overflow-hidden rounded-[20px] shadow-[inset_0_1px_1px_rgba(255,255,255,0.15)]"
+            transition={SPRING_SOFT}
+          >
+            <Portrait founder={founder} index={index} play={!revealed && !reduce} />
+          </motion.div>
+        </div>
+        <div className="mt-6 flex items-end justify-between gap-4 px-2">
           <div>
             <motion.h3 layoutId={`founder-name-${founder.id}`} className="text-subheading font-semibold">
               {founder.name}
             </motion.h3>
-            <p className="mt-1 text-body text-graphite">{founder.role}</p>
+            <p className="mt-1 text-body text-fog">{founder.role}</p>
           </div>
           <span
             aria-hidden
-            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-line-light transition-colors duration-300 group-hover:border-tis-turquoise group-hover:bg-tis-turquoise group-hover:text-paper"
+            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-line-dark transition-colors duration-300 group-hover:border-tis-turquoise group-hover:bg-tis-turquoise"
           >
             <Arrow />
           </span>
@@ -183,12 +209,12 @@ export function Founders() {
   }, [openId, lock, unlock]);
 
   return (
-    <section id="founders" data-surface="light" aria-labelledby="founders-title" className="bg-paper py-20 text-obsidian sm:py-28">
-      <div className="container-x">
-        <SectionIntro id="founders-title" eyebrow="Founders" title="Three students. One campus to upgrade.">
-          <p className="text-graphite">The Tech Council was started by three TIS students who wanted to fix things, not just talk about them.</p>
+    <section id="founders" data-surface="dark" aria-labelledby="founders-title" className="relative overflow-hidden bg-obsidian py-24 text-paper sm:py-36">
+      <div className="container-x relative">
+        <SectionIntro id="founders-title" eyebrow="The team" tone="dark" title="Three students. One campus to upgrade.">
+          <p className="text-fog">The Tech Council was started by three TIS students who wanted to fix things, not just talk about them.</p>
         </SectionIntro>
-        <ul className="mt-16 grid gap-5 sm:grid-cols-2 md:grid-cols-3">
+        <ul className="mt-20 grid gap-6 sm:grid-cols-2 md:grid-cols-3 lg:gap-8">
           {founders.map((f, i) =>
             f.id === openId ? (
               <li key={f.id} aria-hidden>

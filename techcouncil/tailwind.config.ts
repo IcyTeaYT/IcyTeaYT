@@ -53,8 +53,8 @@ export default {
         nav: '16px',
       },
       backgroundImage: {
-        // The rosette's petal colours, in the manual's exact values.
-        petal: 'linear-gradient(90deg, #F2942C, #9C1B30 30%, #006B6E 65%, #009CB9 100%)',
+        // The rosette's petal colours, in the manual's exact values, as four hard-edged tiles (no blending).
+        petal: 'linear-gradient(90deg, #F2942C 0 25%, #9C1B30 25% 50%, #006B6E 50% 75%, #009CB9 75% 100%)',
       },
       transitionTimingFunction: {
         'out-expo': 'cubic-bezier(0.16, 1, 0.3, 1)',

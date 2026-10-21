@@ -13,6 +13,7 @@ import { TismunFeedback } from './sections/TismunFeedback';
 import { Founders } from './sections/Founders';
 import { SuggestionBox } from './sections/SuggestionBox';
 import { Footer } from './sections/Footer';
+import { LookSwitcher } from './LookSwitcher';
 import { IntroContext } from '@/lib/intro';
 import { prefersReducedMotion } from '@/lib/media';
 import { SmoothScrollProvider, useSmoothScroll } from '@/lib/smoothScroll';
@@ -95,6 +96,8 @@ export function Home() {
             <Faq />
           </main>
           <Footer />
+          <div aria-hidden className="grain" />
+          <LookSwitcher />
         </IntroContext.Provider>
       </SmoothScrollProvider>
     </MotionConfig>

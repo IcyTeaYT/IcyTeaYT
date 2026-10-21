@@ -46,7 +46,7 @@ export function About() {
   ].filter((s) => s.n > 0);
 
   return (
-    <section id="about" data-surface="light" aria-labelledby="about-title" className="bg-paper py-20 text-obsidian sm:py-28">
+    <section id="about" data-surface="light" aria-labelledby="about-title" className="bg-paper py-24 text-obsidian sm:py-36">
       <div className="container-x">
         <SectionIntro id="about-title" eyebrow="About" title="We build the tech our campus is missing.">
           <p>

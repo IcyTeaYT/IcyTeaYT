@@ -30,7 +30,7 @@ export function SectionIntro({ id, title, children, className = '', eyebrow, ton
             <Eyebrow tone={tone}>{eyebrow}</Eyebrow>
           </div>
         )}
-        <h2 id={id} className="type-heading text-[clamp(2.25rem,4.4vw,3.25rem)]">
+        <h2 id={id} className="type-heading text-[clamp(2.4rem,4.8vw,3.75rem)]">
           {title}
         </h2>
       </motion.div>

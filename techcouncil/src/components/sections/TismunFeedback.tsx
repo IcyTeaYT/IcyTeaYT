@@ -1,7 +1,7 @@
 import { AnimatePresence, motion, useAnimationControls, useReducedMotion } from 'motion/react';
 import { useId, useState, type FormEvent } from 'react';
 import { FEEDBACK_COMMENT_MAX, FEEDBACK_NAME_MAX, FEEDBACK_ROLES, type FeedbackRole } from '@/data/feedback';
-import { Arrow } from '../ui/Arrow';
+import { ArrowChip } from '../ui/Arrow';
 import { Eyebrow } from '../brand/Shapes';
 import { EASE_OUT, SPRING_SNAPPY } from '@/lib/motion';
 
@@ -98,7 +98,7 @@ export function TismunFeedback() {
   const sending = status === 'sending';
 
   return (
-    <section id="tismun-feedback" data-surface="dark" aria-labelledby="feedback-title" className="border-t border-line-dark bg-obsidian py-20 text-paper sm:py-28">
+    <section id="tismun-feedback" data-surface="dark" aria-labelledby="feedback-title" className="border-t border-line-dark bg-obsidian py-24 text-paper sm:py-36">
       <div className="container-x grid gap-14 md:grid-cols-2 md:gap-16">
         <div className="md:sticky md:top-28 md:self-start">
           <Eyebrow tone="dark">TISMUN 2026</Eyebrow>
@@ -235,11 +235,11 @@ export function TismunFeedback() {
                 </AnimatePresence>
 
                 <div className="pt-8">
-                  <button type="submit" disabled={sending} className="pill-solid-dark w-full disabled:cursor-wait sm:w-auto sm:min-w-[220px]">
+                  <button type="submit" disabled={sending} className="pill-solid-dark group w-full disabled:cursor-wait sm:w-auto sm:min-w-[220px]">
                     {sending ? 'Sending…' : (
                       <span className="flex items-center gap-3">
                         Send feedback
-                        <Arrow />
+                        <ArrowChip />
                       </span>
                     )}
                   </button>

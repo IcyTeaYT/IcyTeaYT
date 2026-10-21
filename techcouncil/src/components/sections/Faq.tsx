@@ -74,7 +74,7 @@ function Item({ q, a }: { q: string; a: string }) {
 
 export function Faq() {
   return (
-    <section id="faq" data-surface="light" aria-labelledby="faq-title" className="bg-paper py-20 text-obsidian sm:py-28">
+    <section id="faq" data-surface="light" aria-labelledby="faq-title" className="bg-paper py-24 text-obsidian sm:py-36">
       <div className="container-x grid gap-12 md:grid-cols-[1fr_1.4fr] md:gap-16">
         <div>
           <div className="mb-5">
