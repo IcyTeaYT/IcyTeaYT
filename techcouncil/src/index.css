@@ -54,16 +54,16 @@ html.lenis body {
     @apply mx-auto w-full max-w-[1200px] px-5 sm:px-8;
   }
 
-  /* Bold display type with tight tracking: confident, not a brochure. */
+  /* Light display type, as the manual's Ultra Light lines; headings a touch heavier. */
   .type-display {
-    font-weight: 780;
-    line-height: 0.98;
-    letter-spacing: -0.045em;
+    font-weight: 300;
+    line-height: 1.02;
+    letter-spacing: -0.035em;
   }
   .type-heading {
-    font-weight: 700;
-    line-height: 1.06;
-    letter-spacing: -0.035em;
+    font-weight: 350;
+    line-height: 1.12;
+    letter-spacing: -0.03em;
   }
   /* Small all-caps labels (the manual allows caps for titles and subtitles). */
   .eyebrow {
